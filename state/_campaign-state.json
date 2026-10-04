@@ -15,31 +15,21 @@
   },
   "characters": {
     "daphne": {
-      "features": [
-        "Magic Initiate: Shield (always prepared)"
-      ],
+      "features": ["Magic Initiate: Shield (always prepared)"],
       "goal": "вернуться с Яром в Хейвенгард",
       "inventory": [],
-      "knowledge": [
-        "K001"
-      ],
+      "knowledge": ["K001", "K004"],
       "location": "лесистый овраг у лагеря разбойников",
       "name": "Дафна",
-      "relationships": {
-        "yar": "жених"
-      },
-      "resources": {
-        "shield_magic_initiate": "0/1 бесплатных применений до следующего длительного отдыха; далее обычные ячейки"
-      },
+      "relationships": {"yar": "жених"},
+      "resources": {"shield_magic_initiate": "0/1 бесплатных применений до следующего длительного отдыха; далее обычные ячейки"},
       "role": "companion",
       "state": "здорова"
     },
     "lyutobor": {
       "goal": "вернуться в Хейвенгард",
       "inventory": [],
-      "knowledge": [
-        "K001"
-      ],
+      "knowledge": ["K001", "K004"],
       "location": "лесистый овраг у лагеря разбойников",
       "name": "Лютобор",
       "relationships": {},
@@ -49,9 +39,7 @@
     "rada": {
       "goal": "вернуться в Хейвенгард",
       "inventory": [],
-      "knowledge": [
-        "K001"
-      ],
+      "knowledge": ["K001", "K004"],
       "location": "лесистый овраг у лагеря разбойников",
       "name": "Рада",
       "relationships": {},
@@ -60,63 +48,34 @@
     },
     "yar": {
       "goal": "вернуться в Хейвенгард и продолжить дела города",
-      "inventory": [
-        "storm_thrower"
-      ],
-      "knowledge": [
-        "K001",
-        "K002"
-      ],
+      "inventory": ["storm_thrower"],
+      "knowledge": ["K001", "K002", "K004"],
       "location": "лесистый овраг у лагеря разбойников",
       "name": "Яр",
-      "relationships": {
-        "daphne": "невеста"
-      },
+      "relationships": {"daphne": "невеста"},
       "role": "player_character",
       "state": "здоров"
     }
   },
   "commit_history": [
-    {
-      "event_id": "EV002",
-      "revision": 1,
-      "summary": "Начальное состояние MVP зафиксировано."
-    },
-    {
-      "event_id": "RULES-COMBAT-001",
-      "revision": 2,
-      "summary": "Зафиксированы постоянные правила управления боем, минимального тактического брифинга и творческая трактовка Магической руки."
-    },
-    {
-      "event_id": "RULES-DAPHNE-SHIELD-001",
-      "revision": 3,
-      "summary": "Зафиксирована автоматическая защитная реакция Дафны «Щит»: Magic Initiate 1/долгий отдых, затем обычные ячейки, только когда +5 КД превращает попадание в промах."
-    },
-    {
-      "event_id": "COMBAT-ROAD-AMBUSH-001",
-      "revision": 4,
-      "summary": "Партия разгромила дорожных разбойников в лесистом овраге; седой главарь взят живым и связан."
-    }
+    {"event_id": "EV002", "revision": 1, "summary": "Начальное состояние MVP зафиксировано."},
+    {"event_id": "RULES-COMBAT-001", "revision": 2, "summary": "Зафиксированы постоянные правила управления боем, минимального тактического брифинга и творческая трактовка Магической руки."},
+    {"event_id": "RULES-DAPHNE-SHIELD-001", "revision": 3, "summary": "Зафиксирована автоматическая защитная реакция Дафны «Щит»: Magic Initiate 1/долгий отдых, затем обычные ячейки, только когда +5 КД превращает попадание в промах."},
+    {"event_id": "COMBAT-ROAD-AMBUSH-001", "revision": 4, "summary": "Партия разгромила дорожных разбойников в лесистом овраге; седой главарь взят живым и связан."},
+    {"event_id": "CORRECTION-ROAD-AMBUSH-001", "revision": 5, "summary": "Уточнены потери банды: все разбойники, кроме пленённого главаря, мертвы."}
   ],
   "knowledge": {
     "K001": {
       "fact": "Мгновенная крепость Даэрна разворачивается из адамантиновой статуэтки-башни.",
       "hidden_from_party": false,
-      "known_by": [
-        "yar",
-        "daphne",
-        "lyutobor",
-        "rada"
-      ],
+      "known_by": ["yar", "daphne", "lyutobor", "rada"],
       "source_event": "EV001",
       "status": "canonical"
     },
     "K002": {
       "fact": "Хейвенгард умеет накапливать заряды грозы для дальнейшего использования.",
       "hidden_from_party": false,
-      "known_by": [
-        "yar"
-      ],
+      "known_by": ["yar"],
       "source_event": "EV002",
       "status": "canonical"
     },
@@ -125,16 +84,18 @@
       "hidden_from_party": true,
       "known_by": [],
       "status": "candidate"
+    },
+    "K004": {
+      "fact": "После боя в лесистом овраге все разбойники банды, кроме седого главаря, мертвы; главарь жив, связан и находится под контролем партии.",
+      "hidden_from_party": false,
+      "known_by": ["yar", "daphne", "lyutobor", "rada"],
+      "source_event": "CORRECTION-ROAD-AMBUSH-001",
+      "status": "canonical"
     }
   },
   "party": {
     "location": "лесистый овраг у лагеря разбойников, около 2 км от башни",
-    "members": [
-      "yar",
-      "daphne",
-      "lyutobor",
-      "rada"
-    ]
+    "members": ["yar", "daphne", "lyutobor", "rada"]
   },
   "play_rules": {
     "combat_control": {
@@ -146,40 +107,19 @@
           "effect_note": "+5 КД действует до начала следующего хода Дафны, поэтому не применять повторно, пока текущий «Щит» ещё действует.",
           "exception": "Не применять автоматически, если реакция уже потрачена или эффект заведомо не изменит попадание на промах.",
           "free_cast_recovery": "long_rest",
-          "priority": [
-            "free_cast_1_per_long_rest",
-            "lowest_available_spell_slot"
-          ],
+          "priority": ["free_cast_1_per_long_rest", "lowest_available_spell_slot"],
           "source": "Magic Initiate",
           "trigger": "Когда Дафна становится целью атаки, которая попала бы по её текущему КД, и +5 КД от «Щита» превратит это попадание в промах, при доступной реакции автоматически применить «Щит»."
         }
       },
       "automatic_passives_are_checked_automatically": true,
-      "gm_controls": [
-        "enemies",
-        "environment",
-        "npc_reactions",
-        "consequences"
-      ],
+      "gm_controls": ["enemies", "environment", "npc_reactions", "consequences"],
       "optional_reactions_require_player_choice": true,
-      "party_controlled_by_player": [
-        "yar",
-        "lyutobor",
-        "daphne",
-        "rada"
-      ],
+      "party_controlled_by_player": ["yar", "lyutobor", "daphne", "rada"],
       "stop_before_each_player_character_turn": true,
       "turn_briefing": {
-        "default_hide": [
-          "ally_positions",
-          "obvious_movement_commentary",
-          "opportunity_attack_explanations_unless_material_or_asked"
-        ],
-        "default_show": [
-          "visible_enemy_distances",
-          "enemy_cover_or_key_status",
-          "major_terrain_obstacles_if_relevant"
-        ],
+        "default_hide": ["ally_positions", "obvious_movement_commentary", "opportunity_attack_explanations_unless_material_or_asked"],
+        "default_show": ["visible_enemy_distances", "enemy_cover_or_key_status", "major_terrain_obstacles_if_relevant"],
         "principle": "Давать минимальную тактическую информацию, достаточную игроку для выбора действия; детали по запросу."
       }
     },
@@ -193,46 +133,22 @@
     }
   },
   "recent_events": [
-    {
-      "id": "EV001",
-      "summary": "Партия разбила лагерь и развернула Мгновенную крепость Даэрна из адамантиновой статуэтки-башни."
-    },
-    {
-      "id": "EV002",
-      "summary": "Яр и Дафна провели время на крыше башни; отношения остаются близкими и устойчивыми."
-    },
-    {
-      "id": "RULES-COMBAT-001",
-      "summary": "Правила боя: игрок управляет Яром, Лютобором, Дафной и Радой; перед их ходами показываются прежде всего дистанции до врагов и только существенные тактические статусы."
-    },
-    {
-      "id": "RULES-DAPHNE-SHIELD-001",
-      "summary": "Дафна автоматически использует «Щит», если +5 КД превратит попадание в промах: сначала бесплатное применение Magic Initiate 1/долгий отдых, затем при необходимости обычную ячейку. «Щит» всегда подготовлен."
-    },
-    {
-      "id": "COMBAT-ROAD-AMBUSH-001",
-      "summary": "Партия разгромила дорожных разбойников в лесистом овраге; седой главарь взят живым и связан."
-    }
+    {"id": "EV001", "summary": "Партия разбила лагерь и развернула Мгновенную крепость Даэрна из адамантиновой статуэтки-башни."},
+    {"id": "EV002", "summary": "Яр и Дафна провели время на крыше башни; отношения остаются близкими и устойчивыми."},
+    {"id": "RULES-COMBAT-001", "summary": "Правила боя: игрок управляет Яром, Лютобором, Дафной и Радой; перед их ходами показываются прежде всего дистанции до врагов и только существенные тактические статусы."},
+    {"id": "RULES-DAPHNE-SHIELD-001", "summary": "Дафна автоматически использует «Щит», если +5 КД превратит попадание в промах: сначала бесплатное применение Magic Initiate 1/долгий отдых, затем при необходимости обычную ячейку. «Щит» всегда подготовлен."},
+    {"id": "COMBAT-ROAD-AMBUSH-001", "summary": "Партия разгромила дорожных разбойников в лесистом овраге; седой главарь взят живым и связан."},
+    {"id": "CORRECTION-ROAD-AMBUSH-001", "summary": "Уточнение: все остальные разбойники мертвы; единственный живой противник — связанный седой главарь."}
   ],
   "schema_version": 1,
-  "state_revision": 4,
+  "state_revision": 5,
   "threads": {
-    "T001": {
-      "pressure": "нет жёсткого таймера",
-      "status": "active",
-      "summary": "Партия возвращается в город после поездки.",
-      "title": "Возвращение в Хейвенгард"
-    },
-    "T002": {
-      "pressure": "строительство продолжается со временем",
-      "status": "active",
-      "summary": "Строительство начато и ещё не завершено.",
-      "title": "Дом родителей Дафны"
-    }
+    "T001": {"pressure": "нет жёсткого таймера", "status": "active", "summary": "Партия возвращается в город после поездки.", "title": "Возвращение в Хейвенгард"},
+    "T002": {"pressure": "строительство продолжается со временем", "status": "active", "summary": "Строительство начато и ещё не завершено.", "title": "Дом родителей Дафны"}
   },
   "world": {
     "current_region": "дорога к Хейвенгарду",
-    "current_scene": "лесистый овраг у лагеря разбойников; бой завершён, седой главарь пленён и связан",
+    "current_scene": "лесистый овраг у лагеря разбойников; бой завершён; все разбойники, кроме пленённого седого главаря, мертвы",
     "date_label": "текущий игровой день",
     "time_label": "вечер"
   },
