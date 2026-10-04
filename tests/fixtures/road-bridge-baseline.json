@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "state_revision": 0,
+  "campaign": {"id": "yar-warrior", "title": "Яр воин"},
+  "world": {
+    "current_region": "дорога Вельмар → Хейвенгард",
+    "current_scene": "повреждённый мост через быструю реку",
+    "time_label": "день",
+    "date_label": "Г1М8, тестовая точка перед завершением спасения",
+    "travel_event": {"check": "d20=18", "status": "active"}
+  },
+  "party": {
+    "location": "повреждённый мост на дороге Вельмар → Хейвенгард",
+    "members": ["yar", "daphne", "lyutobor", "rada"]
+  },
+  "characters": {
+    "yar": {
+      "name": "Яр",
+      "role": "player_character",
+      "state": "здоров",
+      "goal": "вернуться в Хейвенгард",
+      "location": "повреждённый мост на дороге Вельмар → Хейвенгард",
+      "inventory": ["storm_thrower"],
+      "resources": {
+        "hp": "114/114",
+        "storm_thrower_ammo": "20/28",
+        "action_surge": "1/1",
+        "personal_money_gp": "18703.89"
+      }
+    },
+    "daphne": {
+      "name": "Дафна",
+      "role": "companion",
+      "state": "здорова",
+      "goal": "вернуться с Яром в Хейвенгард",
+      "location": "повреждённый мост на дороге Вельмар → Хейвенгард",
+      "inventory": [],
+      "resources": {
+        "hp": "62/62",
+        "spell_slots": "I 4/4; II 3/3; III 3/3; IV 3/3; V 1/2",
+        "arcane_recovery": "1/1",
+        "prepared_spells": "15/15; 15-е заклинание — Рука Бигби",
+        "concentration": "Рука Бигби"
+      }
+    },
+    "lyutobor": {
+      "name": "Лютобор",
+      "role": "companion",
+      "state": "здоров",
+      "goal": "вернуться в Хейвенгард",
+      "location": "повреждённый мост на дороге Вельмар → Хейвенгард",
+      "inventory": [],
+      "resources": {
+        "hp": "104/104",
+        "spell_slots": "I 4/4; II 3/3; III 2/2",
+        "lay_on_hands": "50/50"
+      }
+    },
+    "rada": {
+      "name": "Рада",
+      "role": "companion",
+      "state": "здорова",
+      "goal": "вернуться в Хейвенгард",
+      "location": "повреждённый мост на дороге Вельмар → Хейвенгард",
+      "inventory": [],
+      "resources": {"hp": "63/63", "arrows": "57/60"}
+    }
+  },
+  "knowledge": {
+    "KTEST-CANON": {
+      "fact": "Партия возвращается из Вельмара в Хейвенгард.",
+      "status": "canonical",
+      "known_by": ["yar", "daphne", "lyutobor", "rada"],
+      "hidden_from_party": false
+    },
+    "KTEST-CANDIDATE": {
+      "fact": "Неутверждённая мастерская идея для будущей сюжетной линии.",
+      "status": "candidate",
+      "known_by": [],
+      "hidden_from_party": true
+    }
+  },
+  "beliefs": {},
+  "threads": {
+    "T001": {
+      "title": "Возвращение в Хейвенгард",
+      "summary": "Партия остановилась на дорожном событии у повреждённого моста.",
+      "pressure": "нет жёсткого таймера",
+      "status": "active"
+    },
+    "T002": {
+      "title": "Дом родителей Дафны",
+      "summary": "Строительство идёт по 14-дневному сроку.",
+      "pressure": "строительство продолжается со временем",
+      "status": "active"
+    }
+  },
+  "world_pressures": {
+    "P001": {
+      "title": "Ход времени в Хейвенгарде",
+      "status": "active",
+      "visibility": "gm",
+      "condition": "Если партия задерживается, городские процессы продолжаются.",
+      "consequence_if_ignored": "Строительство и локальные процессы двигаются по времени."
+    }
+  },
+  "recent_events": [],
+  "commit_history": [],
+  "play_rules": {
+    "combat_control": {
+      "party_controlled_by_player": ["yar", "lyutobor", "daphne", "rada"],
+      "stop_before_each_player_character_turn": true
+    },
+    "narrative_control": {
+      "player_words_are_woven_into_first_person_narrative": true,
+      "do_not_invent_yar_decisions": true
+    }
+  }
+}
