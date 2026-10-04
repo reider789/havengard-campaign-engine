@@ -24,3 +24,6 @@ jobs:
 
       - name: Frozen road-return regression scenario
         run: python tests/test_road_return.py
+
+      - name: Relationship graph and prompt-rule tests
+        run: python tests/test_relationships_and_rules.py
