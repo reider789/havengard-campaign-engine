@@ -1,7 +1,13 @@
 {
   "schema_version": 1,
   "campaign_id": "yar-warrior",
-  "graph_revision": 2,
+  "graph_revision": 3,
+  "policy": {
+    "relationships_do_not_grant_knowledge": true,
+    "relationships_may_affect_willingness_to_share": true,
+    "knowledge_requires_source": true,
+    "do_not_infer_unseen_information": true
+  },
   "principals": {
     "npc:melania_rein": {"name": "Мелания Рейн", "kind": "npc"},
     "npc:theodore_rein": {"name": "Теодор Рейн", "kind": "npc"},
