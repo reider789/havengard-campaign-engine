@@ -19,8 +19,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: MVP tests
+      - name: MVP engine tests
         run: python tests/test_mvp.py
 
-      - name: Real campaign scenario
-        run: python tests/test_real_scenario.py
+      - name: Frozen road-return regression scenario
+        run: python tests/test_road_return.py
