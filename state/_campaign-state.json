@@ -1,0 +1,240 @@
+{
+  "beliefs": {
+    "B001": {
+      "character": "daphne",
+      "confidence": "medium",
+      "proposition": "В ближайшее время дорога до Хейвенгарда останется спокойной.",
+      "source_event": "EV001",
+      "status": "active",
+      "truth_relation": "unknown"
+    }
+  },
+  "campaign": {
+    "id": "yar-warrior",
+    "title": "Яр воин"
+  },
+  "characters": {
+    "daphne": {
+      "features": [
+        "Magic Initiate: Shield (always prepared)"
+      ],
+      "goal": "вернуться с Яром в Хейвенгард",
+      "inventory": [],
+      "knowledge": [
+        "K001"
+      ],
+      "location": "лагерь с башней",
+      "name": "Дафна",
+      "relationships": {
+        "yar": "жених"
+      },
+      "resources": {
+        "shield_magic_initiate": "1/1 бесплатное применение за долгий отдых; затем обычные ячейки"
+      },
+      "role": "companion",
+      "state": "здорова"
+    },
+    "lyutobor": {
+      "goal": "вернуться в Хейвенгард",
+      "inventory": [],
+      "knowledge": [
+        "K001"
+      ],
+      "location": "лагерь с башней",
+      "name": "Лютобор",
+      "relationships": {},
+      "role": "companion",
+      "state": "здоров"
+    },
+    "rada": {
+      "goal": "вернуться в Хейвенгард",
+      "inventory": [],
+      "knowledge": [
+        "K001"
+      ],
+      "location": "лагерь с башней",
+      "name": "Рада",
+      "relationships": {},
+      "role": "companion",
+      "state": "здорова"
+    },
+    "yar": {
+      "goal": "вернуться в Хейвенгард и продолжить дела города",
+      "inventory": [
+        "storm_thrower"
+      ],
+      "knowledge": [
+        "K001",
+        "K002"
+      ],
+      "location": "лагерь с башней",
+      "name": "Яр",
+      "relationships": {
+        "daphne": "невеста"
+      },
+      "role": "player_character",
+      "state": "здоров"
+    }
+  },
+  "commit_history": [
+    {
+      "event_id": "EV002",
+      "revision": 1,
+      "summary": "Начальное состояние MVP зафиксировано."
+    },
+    {
+      "event_id": "RULES-COMBAT-001",
+      "revision": 2,
+      "summary": "Зафиксированы постоянные правила управления боем, минимального тактического брифинга и творческая трактовка Магической руки."
+    },
+    {
+      "event_id": "RULES-DAPHNE-SHIELD-001",
+      "revision": 3,
+      "summary": "Зафиксирована автоматическая защитная реакция Дафны «Щит»: Magic Initiate 1/долгий отдых, затем обычные ячейки, только когда +5 КД превращает попадание в промах."
+    }
+  ],
+  "knowledge": {
+    "K001": {
+      "fact": "Мгновенная крепость Даэрна разворачивается из адамантиновой статуэтки-башни.",
+      "hidden_from_party": false,
+      "known_by": [
+        "yar",
+        "daphne",
+        "lyutobor",
+        "rada"
+      ],
+      "source_event": "EV001",
+      "status": "canonical"
+    },
+    "K002": {
+      "fact": "Хейвенгард умеет накапливать заряды грозы для дальнейшего использования.",
+      "hidden_from_party": false,
+      "known_by": [
+        "yar"
+      ],
+      "source_event": "EV002",
+      "status": "canonical"
+    },
+    "K003": {
+      "fact": "Неутверждённая мастерская идея для будущей сюжетной линии.",
+      "hidden_from_party": true,
+      "known_by": [],
+      "status": "candidate"
+    }
+  },
+  "party": {
+    "location": "лагерь с башней",
+    "members": [
+      "yar",
+      "daphne",
+      "lyutobor",
+      "rada"
+    ]
+  },
+  "play_rules": {
+    "combat_control": {
+      "assistant_must_not_choose_optional_party_actions": true,
+      "automatic_defensive_reactions": {
+        "daphne_shield": {
+          "always_prepared": true,
+          "automatic": true,
+          "effect_note": "+5 КД действует до начала следующего хода Дафны, поэтому не применять повторно, пока текущий «Щит» ещё действует.",
+          "exception": "Не применять автоматически, если реакция уже потрачена или эффект заведомо не изменит попадание на промах.",
+          "free_cast_recovery": "long_rest",
+          "priority": [
+            "free_cast_1_per_long_rest",
+            "lowest_available_spell_slot"
+          ],
+          "source": "Magic Initiate",
+          "trigger": "Когда Дафна становится целью атаки, которая попала бы по её текущему КД, и +5 КД от «Щита» превратит это попадание в промах, при доступной реакции автоматически применить «Щит»."
+        }
+      },
+      "automatic_passives_are_checked_automatically": true,
+      "gm_controls": [
+        "enemies",
+        "environment",
+        "npc_reactions",
+        "consequences"
+      ],
+      "optional_reactions_require_player_choice": true,
+      "party_controlled_by_player": [
+        "yar",
+        "lyutobor",
+        "daphne",
+        "rada"
+      ],
+      "stop_before_each_player_character_turn": true,
+      "turn_briefing": {
+        "default_hide": [
+          "ally_positions",
+          "obvious_movement_commentary",
+          "opportunity_attack_explanations_unless_material_or_asked"
+        ],
+        "default_show": [
+          "visible_enemy_distances",
+          "enemy_cover_or_key_status",
+          "major_terrain_obstacles_if_relevant"
+        ],
+        "principle": "Давать минимальную тактическую информацию, достаточную игроку для выбора действия; детали по запросу."
+      }
+    },
+    "combat_rulings": {
+      "mage_hand_soften_fall": "Магическая рука не держит вес взрослого существа, но может творчески помочь сделать падение тише: придержать одежду/снаряжение, слегка изменить направление или прислонить уже падающее тело к опоре, если основной вес принимает персонаж или опора."
+    },
+    "narrative_control": {
+      "do_not_invent_yar_decisions": true,
+      "player_words_are_woven_into_first_person_narrative": true,
+      "yar_controlled_by_player": true
+    }
+  },
+  "recent_events": [
+    {
+      "id": "EV001",
+      "summary": "Партия разбила лагерь и развернула Мгновенную крепость Даэрна из адамантиновой статуэтки-башни."
+    },
+    {
+      "id": "EV002",
+      "summary": "Яр и Дафна провели время на крыше башни; отношения остаются близкими и устойчивыми."
+    },
+    {
+      "id": "RULES-COMBAT-001",
+      "summary": "Правила боя: игрок управляет Яром, Лютобором, Дафной и Радой; перед их ходами показываются прежде всего дистанции до врагов и только существенные тактические статусы."
+    },
+    {
+      "id": "RULES-DAPHNE-SHIELD-001",
+      "summary": "Дафна автоматически использует «Щит», если +5 КД превратит попадание в промах: сначала бесплатное применение Magic Initiate 1/долгий отдых, затем при необходимости обычную ячейку. «Щит» всегда подготовлен."
+    }
+  ],
+  "schema_version": 1,
+  "state_revision": 3,
+  "threads": {
+    "T001": {
+      "pressure": "нет жёсткого таймера",
+      "status": "active",
+      "summary": "Партия возвращается в город после поездки.",
+      "title": "Возвращение в Хейвенгард"
+    },
+    "T002": {
+      "pressure": "строительство продолжается со временем",
+      "status": "active",
+      "summary": "Строительство начато и ещё не завершено.",
+      "title": "Дом родителей Дафны"
+    }
+  },
+  "world": {
+    "current_region": "дорога к Хейвенгарду",
+    "current_scene": "лагерь с развёрнутой башней",
+    "date_label": "текущий игровой день",
+    "time_label": "вечер"
+  },
+  "world_pressures": {
+    "P001": {
+      "condition": "Если партия задерживается, городские процессы продолжаются без неё.",
+      "consequence_if_ignored": "Строительство, снабжение и локальные события продвигаются по игровому времени.",
+      "source_event": "EV001",
+      "status": "active",
+      "title": "Ход времени в Хейвенгарде",
+      "visibility": "gm"
+    }
+  }
+}
