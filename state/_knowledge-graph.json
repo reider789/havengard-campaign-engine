@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "campaign_id": "yar-warrior",
-  "graph_revision": 1,
+  "graph_revision": 2,
   "principals": {
     "npc:melania_rein": {"name": "Мелания Рейн", "kind": "npc"},
     "npc:theodore_rein": {"name": "Теодор Рейн", "kind": "npc"},
@@ -32,10 +32,11 @@
       "status": "active",
       "salience": "major",
       "linked_thread_id": null,
-      "knowledge_ids": [],
+      "knowledge_ids": ["K015"],
       "key_principals": [
         "yar", "daphne", "lyutobor", "rada",
         "npc:ire_tael", "npc:kor_vaer", "npc:saer_val",
+        "npc:melania_rein", "npc:theodore_rein",
         "group:havengard_research_core"
       ]
     },
@@ -104,6 +105,34 @@
         "state": "knows",
         "source": "Яр поручил подготовить техническое описание портала в текущей сцене",
         "note": "Знают назначение отчёта и адресатов"
+      }
+    },
+    "K015": {
+      "npc:ire_tael": {
+        "state": "knows",
+        "source": "Лично участвовала в событиях Башни Пяти Цепей и подготовке контакта с Аэр-Тал"
+      },
+      "npc:kor_vaer": {
+        "state": "knows",
+        "source": "Лично участвовал в событиях Башни Пяти Цепей и согласился участвовать в дипломатическом контакте"
+      },
+      "npc:saer_val": {
+        "state": "knows",
+        "source": "Участвовал в согласовании безопасного контакта и возвращения Таэрнов"
+      },
+      "group:havengard_research_core": {
+        "state": "knows",
+        "source": "Участвуют в текущем обсуждении портала и технической подготовки возвращения/контакта"
+      },
+      "npc:melania_rein": {
+        "state": "heard_of",
+        "source": "Слышит текущий разговор Яра с учёными в Исследовательском центре",
+        "note": "Понимает общий смысл: готовится дипломатический контакт ради будущего народа Таэрнов, но не обязана знать технические детали"
+      },
+      "npc:theodore_rein": {
+        "state": "heard_of",
+        "source": "Слышит текущий разговор Яра с учёными в Исследовательском центре",
+        "note": "Знает общую цель будущего похода, но не считается специалистом по портальной технике или дипломатическим условиям"
       }
     },
     "K012": {
