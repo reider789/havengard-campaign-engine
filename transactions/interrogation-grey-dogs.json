@@ -1,0 +1,38 @@
+{
+  "expected_state_revision": 4,
+  "event": {
+    "id": "INTERROGATION-GREY-DOGS-001",
+    "summary": "Рада и Лютобор быстро допросили пленённого главаря дорожной банды и получили сведения о составе банды и её схронах."
+  },
+  "operations": [
+    {
+      "type": "add_knowledge",
+      "id": "K004",
+      "fact": "Пленная банда называет себя «Серые Псы». Всего в ней было 17 человек; в момент нападения все 17 находились в этом районе, отдельных отсутствующих групп не было.",
+      "status": "canonical",
+      "known_by": ["yar", "daphne", "lyutobor", "rada"],
+      "hidden_from_party": false
+    },
+    {
+      "type": "add_knowledge",
+      "id": "K005",
+      "fact": "У «Серых Псов» нет второго лагеря или другой самостоятельной ячейки на этой дороге; текущий овраг был их единственной действующей базой.",
+      "status": "canonical",
+      "known_by": ["yar", "daphne", "lyutobor", "rada"],
+      "hidden_from_party": false
+    },
+    {
+      "type": "add_knowledge",
+      "id": "K006",
+      "fact": "У банды есть два схрона: основной тайник с добычей в лесу западнее лагеря под выворотнем и малый аварийный тайник ближе к дороге у расколотого межевого камня.",
+      "status": "canonical",
+      "known_by": ["yar", "daphne", "lyutobor", "rada"],
+      "hidden_from_party": false
+    },
+    {
+      "type": "set_world_field",
+      "field": "current_scene",
+      "value": "лесистый овраг у лагеря разбойников; бой завершён, главарь связан и допрошен, известны два схрона банды"
+    }
+  ]
+}
