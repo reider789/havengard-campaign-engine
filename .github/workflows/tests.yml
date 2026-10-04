@@ -27,3 +27,9 @@ jobs:
 
       - name: Relationship graph and prompt-rule tests
         run: python tests/test_relationships_and_rules.py
+
+      - name: NPC and story-thread knowledge graph tests
+        run: |
+          python tests/test_knowledge_graph.py
+          python tools/knowledgegraph.py --project . check
+          python tools/knowledgegraph.py --project . render
