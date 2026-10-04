@@ -40,6 +40,12 @@ def main() -> None:
     assert any(s["key"] == "economy_prompt" for s in rules["source_registry"])
     assert any(s["key"] == "relationship_baseline_g1m5" for s in rules["source_registry"])
 
+    narrative_rules = "\n".join(rules["narrative"]["rules"])
+    assert "Сила 20" in narrative_rules
+    assert "не осознают числовые игровые характеристики" in narrative_rules
+    assert "переводить механику в естественный язык мира" in narrative_rules
+    assert "Механические числа и термины допустимы в служебных блоках" in narrative_rules
+
     with tempfile.TemporaryDirectory() as td:
         project = Path(td) / "campaign"
         shutil.copytree(ROOT, project)
@@ -107,6 +113,7 @@ def main() -> None:
         assert "эмоционально и бытово почти как молодожёны" in gm
         assert "медленный и стеснительный" in gm
         assert "Вера Ренк" in gm
+        assert "не осознают числовые игровые характеристики" in gm
         assert "## Отношения" in player
         assert "Между ними уже больше, чем дружба" in player
         assert "Вера Ренк" not in player
