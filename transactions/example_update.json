@@ -1,0 +1,14 @@
+{
+  "expected_state_revision": 3,
+  "event": {
+    "id": "EXAMPLE-001",
+    "summary": "Пример безопасного обновления состояния."
+  },
+  "operations": [
+    {
+      "type": "set_world_field",
+      "field": "time_label",
+      "value": "ночь"
+    }
+  ]
+}
