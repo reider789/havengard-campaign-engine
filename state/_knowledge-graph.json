@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "campaign_id": "yar-warrior",
-  "graph_revision": 3,
+  "graph_revision": 4,
   "policy": {
     "relationships_do_not_grant_knowledge": true,
     "relationships_may_affect_willingness_to_share": true,
@@ -25,7 +25,7 @@
       "status": "active",
       "salience": "major",
       "linked_thread_id": null,
-      "knowledge_ids": ["K013", "K014"],
+      "knowledge_ids": ["K013", "K014", "K016"],
       "key_principals": [
         "yar", "daphne", "lyutobor", "rada",
         "npc:melania_rein", "npc:theodore_rein",
@@ -111,6 +111,35 @@
         "state": "knows",
         "source": "Яр поручил подготовить техническое описание портала в текущей сцене",
         "note": "Знают назначение отчёта и адресатов"
+      }
+    },
+    "K016": {
+      "npc:melania_rein": {
+        "state": "knows",
+        "source": "Яр уже рассказывал семье Рейнов про астральные путешествия и возвращался к ним через Звёздную мантию",
+        "note": "Не путать мантию с древними вратами Хейвенгарда"
+      },
+      "npc:theodore_rein": {
+        "state": "knows",
+        "source": "Яр уже рассказывал семье Рейнов про астральные путешествия и возвращался к ним через Звёздную мантию",
+        "note": "Не путать мантию с древними вратами Хейвенгарда"
+      },
+      "npc:serit": {
+        "state": "knows",
+        "source": "Яр лично сказал Сериту, что в Астрал его переносит мантия"
+      },
+      "npc:ellar": {
+        "state": "knows",
+        "source": "Яр лично сказал Эллару, что в Астрал его переносит мантия"
+      },
+      "npc:bren": {
+        "state": "knows",
+        "source": "Присутствовал при разговоре Яра с Элларом и Серитом о способах входа в Астрал"
+      },
+      "group:havengard_research_core": {
+        "state": "knows",
+        "source": "Яр в текущей сцене поясняет учёным историю астральных путешествий для подготовки техописания",
+        "note": "Звёздная мантия — способ личного перехода Яра; древние врата — отдельный объект исследования"
       }
     },
     "K015": {
