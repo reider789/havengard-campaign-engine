@@ -1,0 +1,35 @@
+{
+  "expected_state_revision": 12,
+  "event": {
+    "id": "KNOWLEDGE-GRAPH-SEED-001",
+    "summary": "Текущая сцена Исследовательского центра связана с ветками Астрала/Каэр-Миры и дипломатии Таэрнов; закреплён канонический статус будущего похода к Аэр-Тал."
+  },
+  "operations": [
+    {
+      "type": "set_world_field",
+      "field": "scene_knowledge_branches",
+      "value": ["BR-ASTRAL-KAER-MIRA", "BR-TAERN-DIPLOMACY"]
+    },
+    {
+      "type": "set_scene_participants",
+      "value": [
+        "yar",
+        "daphne",
+        "lyutobor",
+        "rada",
+        "npc:melania_rein",
+        "npc:theodore_rein",
+        "group:havengard_research_core"
+      ]
+    },
+    {
+      "type": "add_knowledge",
+      "id": "K015",
+      "fact": "После Башни Пяти Цепей путь домой Аэр-Тал найден и записан. Готовые переходные круги Клеймителей уничтожены, поэтому новый контакт нужно открывать осознанно через собственную систему перехода. Кор-Ваэр и Ирэ-Таэл готовы представить Таэрнов тем представителям Аэр-Тал, которые могут обсуждать возможное переселение. Следующая крупная задача этой линии — подготовить первый дипломатический поход к Аэр-Тал; вопрос уже не в том, делать ли его когда-нибудь, а в технической и дипломатической готовности к ближайшей попытке.",
+      "status": "canonical",
+      "known_by": ["yar", "daphne", "lyutobor", "rada"],
+      "hidden_from_party": false,
+      "source_event": "KNOWLEDGE-GRAPH-SEED-001"
+    }
+  ]
+}
