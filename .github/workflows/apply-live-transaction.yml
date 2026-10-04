@@ -40,11 +40,17 @@ jobs:
             python tools/campaignctl.py --project . commit --transaction "$tx"
           done
 
+      - name: Validate and render NPC/thread knowledge slice
+        run: |
+          python tools/knowledgegraph.py --project . check
+          python tools/knowledgegraph.py --project . render
+
       - name: Run regression tests after state update
         run: |
           python tests/test_mvp.py
           python tests/test_road_return.py
           python tests/test_relationships_and_rules.py
+          python tests/test_knowledge_graph.py
 
       - name: Archive applied transactions and commit authoritative state
         shell: bash
