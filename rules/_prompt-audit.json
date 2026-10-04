@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "campaign_id": "yar-warrior",
+  "purpose": "Реестр аудита старых промтов: какие постоянные правила перенесены в компактный rule pack, а что остаётся специализированным lazy-load источником.",
+  "sources": [
+    {
+      "key": "universal_master_prompt",
+      "drive_id": "1G-VslU7qXeLoMPDR5Qv_ksfwEreev_OB",
+      "title": "Мастер-промт_универсальный_актуальный.txt",
+      "status": "audited_complete",
+      "coverage": "53/53 numbered sections",
+      "mapping": {
+        "1": "canon_policy/priority_order",
+        "2-6": "narrative",
+        "7-12": "character_anchors + social_and_relationships + narrative",
+        "13-16": "narrative + world_logic",
+        "17-20": "mechanics_and_rolls",
+        "21-31": "combat + world_logic",
+        "32-42": "loot_inventory_and_assets + city_and_population + world_logic",
+        "43-51": "pacing_and_presentation + narrative",
+        "52": "continuity + social_and_relationships",
+        "53": "cross-cutting priority principles"
+      },
+      "lazy_details": "Полный оригинал сохраняется как источник точной формулировки редких правил; не грузится в каждую сцену."
+    },
+    {
+      "key": "economy_prompt",
+      "drive_id": "1_-PRPdWZtJq-1G7GainIxneOdWYRj1Ph",
+      "title": "havenward_economy_prompt.txt",
+      "status": "core_distilled_details_lazy",
+      "coverage": "39 основных разделов + действующие специальные блоки; постоянные принципы перенесены, числовые таблицы/формулы остаются первоисточником",
+      "distilled_into": ["economy", "city_and_population", "loot_inventory_and_assets", "continuity"],
+      "must_lazy_load_for": ["полное закрытие месяца", "миграция и профессии", "обучение/квалификация", "грейды оборудования", "исследовательские проекты", "аудит экономики"]
+    },
+    {
+      "key": "master_bible",
+      "drive_id": "1n0wtVLF61zfkXygxcfJzx1_zmVLY8JwG",
+      "title": "Хейвенгард_мастерская_библия.md",
+      "status": "core_distilled_module_prep_lazy",
+      "distilled_into": ["canon_policy", "narrative", "character_anchors", "world_logic", "continuity"],
+      "rule": "Скрытая подготовка и конкретные будущие сцены не переносятся в канон/rules как свершившиеся факты."
+    },
+    {
+      "key": "relationship_baseline_g1m5",
+      "drive_id": "1LNx8LV9vC8yk5AO6aeU1fdiJdPospla5LrDMZHjmZDo",
+      "title": "Сохранение — Хейвенгард — Г1М5 — ночь после разлома и помолвки",
+      "status": "relationship_baseline_extracted",
+      "extracted": ["Яр↔Дафна: помолвка, очень высокая близость, принцип 'делить, а не принимать всё одному'", "Лютобор↔Рада: заметная взаимная романтическая симпатия, но официально не пара и медленный темп"]
+    },
+    {
+      "key": "operational_save_g1m8",
+      "drive_id": "13V18AckL-7T7gUdRfHszWDZ7cMswpKzV2i6mh39lBrg",
+      "title": "Сохранение — Хейвенгард — Г1М8 — Вельмар, подготовка к возвращению",
+      "status": "relationship_and_travel_context_extracted",
+      "extracted": ["Яр↔Дафна: романтический вечер, совместная жизнь, Варвара как будущее, беременность не установлена", "план предложить Лютобору и Раде стать крёстными ещё не сыгран как предложение"]
+    },
+    {
+      "key": "wedding_price_of_choice",
+      "drive_id": "1R9Gm6aZixUh-3buvmwDgxmQZPvRKVDFHI4VkySsTEqU",
+      "title": "Хейвенгард — Свадебная кульминация «Цена выбора» — мастер-промт",
+      "status": "special_preparation_not_canon",
+      "rule": "Не загружать как текущий факт и не запускать автоматически; использовать только при наступлении честных условий соответствующей будущей ветки."
+    }
+  ],
+  "relationship_model": {
+    "formal_status_separate_from_emotional_stage": true,
+    "directional_feelings": true,
+    "qualitative_not_numeric": true,
+    "evidence_based_updates": true,
+    "negative_change_requires_played_cause": true,
+    "significant_npcs_only": true
+  }
+}
