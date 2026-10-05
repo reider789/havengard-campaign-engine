@@ -28,6 +28,9 @@ jobs:
       - name: Relationship graph and prompt-rule tests
         run: python tests/test_relationships_and_rules.py
 
+      - name: Time-dependent campaign state tests
+        run: python tests/test_time_dependent_state.py
+
       - name: NPC and story-thread knowledge graph tests
         run: |
           python tests/test_knowledge_graph.py
