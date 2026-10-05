@@ -40,6 +40,11 @@ jobs:
             python tools/campaignctl.py --project . commit --transaction "$tx"
           done
 
+      - name: Synchronize time-dependent state
+        run: |
+          python tools/sync_time_dependent_state.py --project .
+          python tools/campaignctl.py --project . render
+
       - name: Validate and render NPC/thread knowledge slice
         run: |
           python tools/knowledgegraph.py --project . check
@@ -50,6 +55,7 @@ jobs:
           python tests/test_mvp.py
           python tests/test_road_return.py
           python tests/test_relationships_and_rules.py
+          python tests/test_time_dependent_state.py
           python tests/test_knowledge_graph.py
 
       - name: Archive applied transactions and commit authoritative state
