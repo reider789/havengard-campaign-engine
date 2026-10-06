@@ -3,25 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import tempfile
 from pathlib import Path
 from typing import Any
-
-
-def atomic_write_json(path: Path, data: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=True)
-            f.write("\n")
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, path)
-    finally:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
 
 
 def _require_nonnegative_int(value: Any, label: str) -> int:
@@ -82,6 +65,8 @@ def synchronize(state: dict[str, Any]) -> bool:
         changed = True
 
     confirmation = pregnancy.get("confirmation", "pending")
+    if pregnancy.get("status") in {"resolved", "ended", "disproven"}:
+        return changed
     if confirmation != "confirmed":
         # Suspicion is not a diagnosis. Do not derive a gestational age until a
         # played confirmation supplies an estimated age at that moment.
@@ -141,8 +126,8 @@ def synchronize(state: dict[str, Any]) -> bool:
             changed = True
 
     state_label = f"беременность подтверждена; срок {gestational_week} нед. {day_remainder} д.; стадия — {stage_label}"
-    if daphne.get("state") != state_label:
-        daphne["state"] = state_label
+    if daphne.get("time_summary") != state_label:
+        daphne["time_summary"] = state_label
         changed = True
 
     return changed
@@ -156,10 +141,10 @@ def main() -> int:
     state_path = project / "state" / "_campaign-state.json"
     state = json.loads(state_path.read_text(encoding="utf-8"))
     changed = synchronize(state)
-    if changed:
-        atomic_write_json(state_path, state)
-    print(json.dumps({"status": "updated" if changed else "unchanged", "state_revision": state.get("state_revision")}, ensure_ascii=False))
-    return 0
+    print(json.dumps({"status": "derived_fields_stale" if changed else "unchanged",
+                      "state_revision": state.get("state_revision"),
+                      "note": "Проверка без записи. Производные поля обновляет campaignctl внутри транзакции."}, ensure_ascii=False))
+    return 2 if changed else 0
 
 
 if __name__ == "__main__":

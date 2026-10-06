@@ -7,32 +7,16 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: MVP engine tests
-        run: python tests/test_mvp.py
-
-      - name: Frozen road-return regression scenario
-        run: python tests/test_road_return.py
-
-      - name: Relationship graph and prompt-rule tests
-        run: python tests/test_relationships_and_rules.py
-
-      - name: Time-dependent campaign state tests
-        run: python tests/test_time_dependent_state.py
-
-      - name: NPC and story-thread knowledge graph tests
-        run: |
-          python tests/test_knowledge_graph.py
-          python tools/knowledgegraph.py --project . check
-          python tools/knowledgegraph.py --project . render
+      - name: All regressions and derived-view consistency
+        run: python tools/run_tests.py

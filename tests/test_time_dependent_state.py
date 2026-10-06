@@ -83,7 +83,8 @@ def main() -> None:
     assert cpreg["trimester_current"] == "I"
     assert cpreg["stage_current"] == "I триместр"
     assert cpreg["expected_stage_guide"] == "возможны тошнота и утомляемость"
-    assert confirmed["characters"]["daphne"]["state"].startswith("беременность подтверждена; срок 8 нед. 0 д.")
+    assert confirmed["characters"]["daphne"]["time_summary"].startswith("беременность подтверждена; срок 8 нед. 0 д.")
+    assert confirmed["characters"]["daphne"]["state"] == make_state()["characters"]["daphne"]["state"]
 
     # A late-stage pregnancy is still only time-derived: reaching term must not
     # automatically create labor, complications, penalties, or a child event.

@@ -1,0 +1,11 @@
+{
+  "before_sha256": "8ec85369c56b8cc7b9c0cad522e2236450d37bd76992917d4f24d064ea4ee391",
+  "event_id": "ENGINE-SCHEMA-V2-001",
+  "from_revision": 17,
+  "from_schema": 1,
+  "game_time_advanced": false,
+  "kind": "storage_migration",
+  "source_commit": "72bf6955568e4cb4b05e8c675e11793bbf3ea999",
+  "to_revision": 18,
+  "to_schema": 2
+}

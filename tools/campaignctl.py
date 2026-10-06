@@ -6,10 +6,17 @@ import copy
 import json
 import os
 import tempfile
+import re
+import fcntl
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+from campaign_model import (current_fact, integer, normalize_resource, player_visible,
+                            transaction_hash, validate_v2)
+from sync_time_dependent_state import synchronize
+from knowledgegraph import validate_graph, render_scene_slice
+
+SCHEMA_VERSION = 2
 RULES_SCHEMA_VERSION = 1
 RULES_RELATIVE_PATH = Path("rules") / "_campaign-rules.json"
 
@@ -90,9 +97,9 @@ def validate_relationships(state: dict[str, Any]) -> list[str]:
 
 def validate_state(state: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    if state.get("schema_version") != SCHEMA_VERSION:
-        errors.append(f"schema_version должен быть {SCHEMA_VERSION}")
-    if not isinstance(state.get("state_revision"), int) or state["state_revision"] < 0:
+    if state.get("schema_version") not in {1, SCHEMA_VERSION}:
+        errors.append("schema_version должен быть 1 (архив) или 2")
+    if not integer(state.get("state_revision")) or state["state_revision"] < 0:
         errors.append("state_revision должен быть неотрицательным целым")
     for key in ("world", "party", "characters", "knowledge", "beliefs", "threads", "world_pressures", "recent_events", "commit_history"):
         if key not in state:
@@ -111,6 +118,9 @@ def validate_state(state: dict[str, Any]) -> list[str]:
     if history and history[-1].get("revision") != state.get("state_revision"):
         errors.append("последняя revision в commit_history должна совпадать со state_revision")
     errors.extend(validate_relationships(state))
+    errors.extend(validate_v2(state))
+    if state.get("schema_version") == 2:
+        errors.extend(validate_graph(state, state.get("knowledge_graph", {})))
     return errors
 
 
@@ -139,7 +149,12 @@ def validate_rules(rules: dict[str, Any], state: dict[str, Any] | None = None) -
 
 
 def validate_project(state: dict[str, Any], rules: dict[str, Any]) -> list[str]:
-    return validate_state(state) + validate_rules(rules, state)
+    errors = validate_state(state) + validate_rules(rules, state)
+    if not errors and state.get("schema_version") == 2:
+        derived = copy.deepcopy(state)
+        if synchronize(derived):
+            errors.append("Производные поля времени устарели; обновить через транзакцию")
+    return errors
 
 
 def _person_name(pid: str, state: dict[str, Any], rel: dict[str, Any] | None = None) -> str:
@@ -214,7 +229,7 @@ def render_gm_context(state: dict[str, Any], campaign_rules: dict[str, Any]) -> 
     ]
     for cid in state["party"].get("members", []):
         c = state["characters"][cid]
-        lines.append(f"- {c['name']}: {c.get('state','')}; цель — {c.get('goal','')}")
+        lines.append(f"- {c['name']}: {c.get('state','')}; {c.get('time_summary', '')}; цель — {c.get('goal','')}")
     lines.extend(render_relationships_gm(state))
     lines += ["", "## Активные сюжетные линии"]
     for tid, t in state.get("threads", {}).items():
@@ -222,8 +237,12 @@ def render_gm_context(state: dict[str, Any], campaign_rules: dict[str, Any]) -> 
             lines.append(f"- {tid} — {t.get('title')}: {t.get('summary')} | давление: {t.get('pressure','нет')}")
     lines += ["", "## Канонические факты"]
     for kid, fact in state.get("knowledge", {}).items():
-        if fact.get("status") == "canonical":
+        if current_fact(fact):
             lines.append(f"- {kid}: {fact.get('fact')}")
+    lines += ["", "## Исторические факты — не текущее состояние"]
+    for kid, fact in state.get("knowledge", {}).items():
+        if fact.get("status") == "canonical" and not current_fact(fact):
+            lines.append(f"- {kid}: {fact.get('fact')} | сменилось: {', '.join(fact.get('superseded_by', [])) or 'см. событие'}")
     lines += ["", "## Кандидатные идеи — НЕ КАНОН"]
     candidates = [(kid, f) for kid, f in state.get("knowledge", {}).items() if f.get("status") == "candidate"]
     if candidates:
@@ -287,7 +306,7 @@ def render_gm_context(state: dict[str, Any], campaign_rules: dict[str, Any]) -> 
     if sources:
         lines += ["", "## Реестр полных источников — загружать по необходимости"]
         for source in sources:
-            lines.append(f"- {source.get('key')}: {source.get('title')} | Drive ID {source.get('drive_id')} | роль: {source.get('role')} | режим: {source.get('load_policy')}")
+            lines.append(f"- {source.get('key')}: {source.get('title')} | ID {source.get('drive_id') or source.get('library_file_id')} | роль: {source.get('role')} | режим: {source.get('load_policy')}")
     lines += ["", "## Последние события"]
     for event in state.get("recent_events", [])[-10:]:
         lines.append(f"- {event.get('id')}: {event.get('summary')}")
@@ -300,11 +319,12 @@ def render_player_context(state: dict[str, Any]) -> str:
     lines.extend(render_relationships_player(state))
     lines += ["", "## Активные линии"]
     for t in state.get("threads", {}).values():
-        if t.get("status") == "active":
+        if t.get("status") == "active" and player_visible(t, "gm" if state.get("schema_version") == 2 else "party"):
             lines.append(f"- {t.get('title')}: {t.get('summary')}")
     lines += ["", "## Последние события"]
     for event in state.get("recent_events", [])[-10:]:
-        lines.append(f"- {event.get('summary')}")
+        if player_visible(event, "gm" if state.get("schema_version") == 2 else "party"):
+            lines.append(f"- {event.get('player_summary', event.get('summary'))}")
     return "\n".join(lines) + "\n"
 
 
@@ -316,12 +336,40 @@ def write_views(project: Path, state: dict[str, Any], campaign_rules: dict[str, 
         raise CampaignError("Некорректный rule pack:\n" + "\n".join(errors))
     views = project / "views"
     views.mkdir(parents=True, exist_ok=True)
-    (views / "gm-context.md").write_text(render_gm_context(state, campaign_rules), encoding="utf-8")
-    (views / "player-context.md").write_text(render_player_context(state), encoding="utf-8")
+    for name, content in rendered_views(state, campaign_rules).items():
+        atomic_write_text(views / name, content)
+    if state.get("schema_version") == 2:
+        atomic_write_json(project / "state" / "_knowledge-graph.json", state["knowledge_graph"])
+
+
+def atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".view-")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def rendered_views(state: dict, rules: dict) -> dict[str, str]:
+    from scene_context import render_scene_context
+    out = {"gm-context.md": render_gm_context(state, rules),
+           "player-context.md": render_player_context(state),
+           "scene-context.md": render_scene_context(state, rules)}
+    if state.get("knowledge_graph"):
+        out["scene-knowledge.md"] = render_scene_slice(state, state["knowledge_graph"])
+    return out
 
 
 def validate_transaction(tx: dict[str, Any], state: dict[str, Any]) -> list[str]:
     errors: list[str] = []
+    if not integer(tx.get("expected_state_revision")):
+        errors.append("expected_state_revision должен быть целым числом")
     if tx.get("expected_state_revision") != state.get("state_revision"):
         errors.append(f"stale transaction: expected {tx.get('expected_state_revision')}, current {state.get('state_revision')}")
     if not isinstance(tx.get("operations"), list):
@@ -329,12 +377,73 @@ def validate_transaction(tx: dict[str, Any], state: dict[str, Any]) -> list[str]
     event = tx.get("event")
     if not isinstance(event, dict) or not event.get("id") or not event.get("summary"):
         errors.append("event должен содержать id и summary")
+    elif not isinstance(event["id"], str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,160}", event["id"]):
+        errors.append("event.id: использовать безопасный постоянный идентификатор")
+    if state.get("schema_version") == 2 and isinstance(event, dict) and event.get("visibility") not in {"party", "public", "gm"}:
+        errors.append("event.visibility обязателен: party/public/gm")
+    if tx.get("kind") == "month_close" and not str(tx.get("unique_key", "")).startswith("month:"):
+        errors.append("Для month_close обязателен unique_key вида month:ГnМm")
     return errors
 
 
-def apply_operation(state: dict[str, Any], op: dict[str, Any]) -> None:
+def apply_operation(state: dict[str, Any], op: dict[str, Any], event: dict | None = None) -> None:
+    event = event or {}
+    modern = state.get("schema_version") == 2
     t = op.get("type")
-    if t == "set_world_field":
+    if t == "advance_time":
+        units = [key for key in ("seconds", "minutes", "hours") if key in op]
+        if len(units) != 1 or not integer(op[units[0]]) or op[units[0]] < 0:
+            raise CampaignError("advance_time: задать ровно одно неотрицательное целое seconds/minutes/hours")
+        clock = state["world"]["timekeeping"]
+        seconds = op[units[0]] * {"seconds": 1, "minutes": 60, "hours": 3600}[units[0]]
+        clock["elapsed_seconds_from_anchor"] = clock.get("elapsed_seconds_from_anchor", clock["elapsed_hours_from_anchor"] * 3600) + seconds
+        clock["elapsed_hours_from_anchor"] = clock["elapsed_seconds_from_anchor"] // 3600
+        clock["elapsed_full_days_from_anchor"] = clock["elapsed_hours_from_anchor"] // 24
+    elif t == "set_scene_context":
+        state["scene_context"] = copy.deepcopy(op["value"])
+    elif t in {"set_awareness", "upsert_knowledge_branch", "register_principal"}:
+        graph = state["knowledge_graph"]
+        if t == "set_awareness":
+            graph.setdefault("awareness", {}).setdefault(op["fact_id"], {})[op["principal_id"]] = copy.deepcopy(op["value"])
+        else:
+            section = "branches" if t == "upsert_knowledge_branch" else "principals"
+            graph.setdefault(section, {})[op["id"]] = copy.deepcopy(op["value"])
+    elif t in {"supersede_knowledge", "correct_knowledge"}:
+        fact = state["knowledge"][op["id"]]
+        if not op.get("reason") or not op.get("replacement_ids"):
+            raise CampaignError("Указать reason и replacement_ids для изменения канона")
+        fact["temporal_status"] = "historical"
+        fact["superseded_by"] = op["replacement_ids"]
+        fact["valid_to_event"] = event.get("id")
+        fact["transition_reason"] = op["reason"]
+        if t == "correct_knowledge":
+            fact["status"] = "disproven"
+    elif t == "adjust_resource":
+        resources = state["characters"][op["id"]]["resources"]
+        key = op["resource"]
+        value = resources[key]
+        if not integer(op["delta"]):
+            raise CampaignError("delta должен быть целым")
+        if key == "spell_slots":
+            value = value[str(op["level"])]
+        if isinstance(value, dict):
+            value["current"] += op["delta"]
+        elif key.endswith("_money_cp"):
+            resources[key] += op["delta"]
+        else:
+            raise CampaignError("adjust_resource поддерживает счётчики и деньги")
+    elif t == "transfer_money":
+        amount = op["amount_cp"]
+        if not integer(amount) or amount <= 0 or op["from"] == op["to"]:
+            raise CampaignError("Передача денег требует положительную сумму и разных участников")
+        for who, delta in ((op["from"], -amount), (op["to"], amount)):
+            resources = state["characters"][who]["resources"]
+            if "personal_money_cp" not in resources:
+                raise CampaignError(f"Баланс {who} не импортирован; неизвестное не равно нулю")
+            resources["personal_money_cp"] += delta
+    elif t == "set_world_field":
+        if modern and op["field"] == "timekeeping":
+            raise CampaignError("Для продвижения времени использовать advance_time; смена опоры требует миграции")
         state.setdefault("world", {})[op["field"]] = op.get("value")
     elif t == "set_party_field":
         state.setdefault("party", {})[op["field"]] = op.get("value")
@@ -344,12 +453,21 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any]) -> None:
         cid = op["id"]
         if cid not in state["characters"]:
             raise CampaignError(f"неизвестный персонаж {cid}")
+        if modern and op["field"] in {"knowledge", "resources", "time_summary"}:
+            raise CampaignError("Для ресурсов использовать ресурсные операции; знания и сводка времени производны")
         state["characters"][cid][op["field"]] = op.get("value")
     elif t == "set_character_resource":
         cid = op["id"]
         if cid not in state["characters"]:
             raise CampaignError(f"неизвестный персонаж {cid}")
-        state["characters"][cid].setdefault("resources", {})[op["resource"]] = op.get("value")
+        key, value = normalize_resource(op["resource"], op.get("value")) if modern else (op["resource"], op.get("value"))
+        previous = state["characters"][cid].get("resources", {}).get(key)
+        if modern and isinstance(previous, dict) and isinstance(value, dict):
+            old_caps = {k: v.get("max") for k, v in previous.items()} if key == "spell_slots" else previous.get("max")
+            new_caps = {k: v.get("max") if isinstance(v, dict) else None for k, v in value.items()} if key == "spell_slots" else value.get("max")
+            if old_caps != new_caps and not op.get("capacity_reason"):
+                raise CampaignError("Изменение максимума требует capacity_reason с основанием")
+        state["characters"][cid].setdefault("resources", {})[key] = value
     elif t == "remove_character_item":
         cid = op["id"]
         item = op["item"]
@@ -363,11 +481,15 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any]) -> None:
         kid = op["id"]
         if kid not in state["knowledge"]:
             raise CampaignError(f"неизвестный факт {kid}")
+        if modern:
+            raise CampaignError("Статус канона менять через correct_knowledge/supersede_knowledge; новый факт добавлять отдельно")
         state["knowledge"][kid]["status"] = op["status"]
     elif t == "set_knowledge_field":
         kid = op["id"]
         if kid not in state["knowledge"]:
             raise CampaignError(f"неизвестный факт {kid}")
+        if modern and op["field"] not in {"known_by", "hidden_from_party", "visibility"}:
+            raise CampaignError("Не переписывать факт; создать замену и оформить исправление/смену состояния")
         state["knowledge"][kid][op["field"]] = op.get("value")
     elif t == "add_knowledge":
         kid = op["id"]
@@ -376,6 +498,9 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any]) -> None:
         state["knowledge"][kid] = {"fact": op["fact"], "status": op.get("status", "canonical"), "known_by": op.get("known_by", []), "hidden_from_party": op.get("hidden_from_party", False)}
         if op.get("source_event"):
             state["knowledge"][kid]["source_event"] = op["source_event"]
+        if modern:
+            state["knowledge"][kid]["source_event"] = op.get("source_event", event.get("id"))
+            state["knowledge"][kid]["temporal_status"] = op.get("temporal_status", "current")
     elif t == "add_belief":
         bid = op["id"]
         state.setdefault("beliefs", {})[bid] = {"character": op["character"], "proposition": op["proposition"], "truth_relation": op.get("truth_relation", "unknown"), "confidence": op.get("confidence", "medium"), "status": "active"}
@@ -437,6 +562,8 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any]) -> None:
         dst = state["characters"][op["to"]].setdefault("inventory", [])
         if item not in src:
             raise CampaignError(f"{item} отсутствует у {op['from']}")
+        if item in dst:
+            raise CampaignError(f"{item} уже есть у получателя")
         src.remove(item)
         dst.append(item)
     else:
@@ -444,12 +571,28 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any]) -> None:
 
 
 def build_result(state: dict[str, Any], tx: dict[str, Any]) -> dict[str, Any]:
+    eid = tx.get("event", {}).get("id")
+    receipt = state.get("applied_events", {}).get(eid)
+    if receipt:
+        if receipt.get("payload_sha256") == transaction_hash(tx):
+            return copy.deepcopy(state)
+        raise CampaignError(f"event id уже существует: {eid}; другое содержание или старый импорт без полного payload")
     errors = validate_state(state) + validate_transaction(tx, state)
     if errors:
         raise CampaignError("\n".join(errors))
+    if state.get("schema_version") == 2:
+        operations = tx["operations"]
+        if any(o.get("type") == "set_world_field" and o.get("field") == "current_scene" for o in operations):
+            needed = {"set_scene_context", "set_scene_participants"}
+            focus_set = any(o.get("type") == "set_world_field" and o.get("field") == "scene_knowledge_branches" for o in operations)
+            if not needed.issubset({o.get("type") for o in operations}) or not focus_set:
+                raise CampaignError("При смене сцены явно задать участников, scene_context и scene_knowledge_branches (можно [])")
     new_state = copy.deepcopy(state)
     for op in tx["operations"]:
-        apply_operation(new_state, op)
+        apply_operation(new_state, op, tx["event"])
+    synchronize(new_state)
+    if new_state.get("knowledge_graph") != state.get("knowledge_graph"):
+        new_state["knowledge_graph"]["graph_revision"] = state["knowledge_graph"]["graph_revision"] + 1
     event = tx["event"]
     if any(e.get("id") == event["id"] for e in new_state.get("recent_events", [])):
         raise CampaignError(f"event id уже существует: {event['id']}")
@@ -459,6 +602,14 @@ def build_result(state: dict[str, Any], tx: dict[str, Any]) -> dict[str, Any]:
     new_state.setdefault("commit_history", []).append({"revision": next_revision, "event_id": event["id"], "summary": event["summary"]})
     new_state["commit_history"] = new_state["commit_history"][-50:]
     new_state["state_revision"] = next_revision
+    if new_state.get("schema_version") == 2:
+        new_state.setdefault("applied_events", {})[event["id"]] = {"revision": next_revision, "payload_sha256": transaction_hash(tx)}
+        unique_key = tx.get("unique_key")
+        if unique_key:
+            keys = new_state.setdefault("event_unique_keys", {})
+            if unique_key in keys:
+                raise CampaignError(f"Уже выполнено: {unique_key}")
+            keys[unique_key] = event["id"]
     errors = validate_state(new_state)
     if errors:
         raise CampaignError("После применения транзакции состояние невалидно:\n" + "\n".join(errors))
@@ -511,11 +662,18 @@ def cmd_preview(project: Path, tx_path: Path) -> None:
         raise CampaignError("\n".join(errors))
     tx = read_json(tx_path)
     new_state = build_result(state, tx)
+    rendered_views(new_state, rules)
     changes = [c for c in diff(state, new_state) if c["path"] not in {"$.state_revision", "$.commit_history", "$.recent_events"}]
     print(json.dumps({"status": "preview", "current_revision": state["state_revision"], "next_revision": new_state["state_revision"], "event_id": tx["event"]["id"], "changes": changes}, ensure_ascii=False, indent=2))
 
 
 def cmd_commit(project: Path, tx_path: Path) -> None:
+    with (project / ".campaign.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        _commit_locked(project, tx_path)
+
+
+def _commit_locked(project: Path, tx_path: Path) -> None:
     state_path = project / "state" / "_campaign-state.json"
     state = read_json(state_path)
     rules = read_campaign_rules(project)
@@ -524,9 +682,32 @@ def cmd_commit(project: Path, tx_path: Path) -> None:
         raise CampaignError("\n".join(errors))
     tx = read_json(tx_path)
     new_state = build_result(state, tx)
-    atomic_write_json(state_path, new_state)
+    rendered_views(new_state, rules)  # Fail before changing authoritative state.
+    if state.get("schema_version") == 2 and new_state != state:
+        archive = project / "transactions" / "applied" / f"{tx['event']['id']}.json"
+        if archive.exists() and transaction_hash(read_json(archive)) != transaction_hash(tx):
+            raise CampaignError("Архивное событие нельзя перезаписывать другим содержимым")
+        if not archive.exists():
+            atomic_write_json(archive, tx)
+    if new_state != state:
+        atomic_write_json(state_path, new_state)
     write_views(project, new_state, rules)
-    print(json.dumps({"status": "committed", "previous_revision": state["state_revision"], "state_revision": new_state["state_revision"], "event_id": tx["event"]["id"]}, ensure_ascii=False))
+    print(json.dumps({"status": "committed" if new_state != state else "already_applied", "previous_revision": state["state_revision"], "state_revision": new_state["state_revision"], "event_id": tx["event"]["id"]}, ensure_ascii=False))
+
+
+def cmd_check_views(project: Path) -> None:
+    state = read_json(project / "state" / "_campaign-state.json")
+    rules = read_campaign_rules(project)
+    errors = validate_project(state, rules)
+    for name, content in rendered_views(state, rules).items():
+        path = project / "views" / name
+        if not path.exists() or path.read_text(encoding="utf-8") != content:
+            errors.append(f"Устарел views/{name}; выполнить render")
+    if state.get("schema_version") == 2 and read_json(project / "state" / "_knowledge-graph.json") != state["knowledge_graph"]:
+        errors.append("Производная копия knowledge graph устарела")
+    if errors:
+        raise CampaignError("\n".join(errors))
+    print(json.dumps({"status": "ok", "views_current": True}))
 
 
 def main() -> int:
@@ -535,6 +716,9 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("check")
     sub.add_parser("render")
+    sub.add_parser("check-views")
+    context = sub.add_parser("context")
+    context.add_argument("--mode", choices=["social", "combat", "travel", "economy", "exploration"])
     p = sub.add_parser("preview"); p.add_argument("--transaction", required=True)
     c = sub.add_parser("commit"); c.add_argument("--transaction", required=True)
     args = parser.parse_args()
@@ -542,6 +726,14 @@ def main() -> int:
     try:
         if args.command == "check": cmd_check(project)
         elif args.command == "render": cmd_render(project)
+        elif args.command == "check-views": cmd_check_views(project)
+        elif args.command == "context":
+            from scene_context import render_scene_context
+            state = read_json(project / "state" / "_campaign-state.json")
+            rules = read_campaign_rules(project)
+            errors = validate_project(state, rules)
+            if errors: raise CampaignError("\n".join(errors))
+            print(render_scene_context(state, rules, args.mode))
         elif args.command == "preview": cmd_preview(project, Path(args.transaction).resolve())
         elif args.command == "commit": cmd_commit(project, Path(args.transaction).resolve())
         return 0

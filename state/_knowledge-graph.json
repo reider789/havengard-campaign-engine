@@ -1,184 +1,288 @@
 {
-  "schema_version": 1,
-  "campaign_id": "yar-warrior",
-  "graph_revision": 4,
-  "policy": {
-    "relationships_do_not_grant_knowledge": true,
-    "relationships_may_affect_willingness_to_share": true,
-    "knowledge_requires_source": true,
-    "do_not_infer_unseen_information": true
-  },
-  "principals": {
-    "npc:melania_rein": {"name": "Мелания Рейн", "kind": "npc"},
-    "npc:theodore_rein": {"name": "Теодор Рейн", "kind": "npc"},
-    "npc:serit": {"name": "Серит", "kind": "npc"},
-    "npc:ellar": {"name": "Эллар", "kind": "npc"},
-    "npc:bren": {"name": "Брен", "kind": "npc"},
-    "npc:ire_tael": {"name": "Ирэ-Таэл", "kind": "npc"},
-    "npc:kor_vaer": {"name": "Кор-Ваэр", "kind": "npc"},
-    "npc:saer_val": {"name": "Саэр-Вал", "kind": "npc"},
-    "group:havengard_research_core": {"name": "Ведущие учёные Исследовательского центра", "kind": "group"}
-  },
-  "branches": {
-    "BR-ASTRAL-KAER-MIRA": {
-      "title": "Астрал и маршрут Хейвенгард ↔ Каэр-Мира",
-      "status": "active",
-      "salience": "major",
-      "linked_thread_id": null,
-      "knowledge_ids": ["K013", "K014", "K016"],
-      "key_principals": [
-        "yar", "daphne", "lyutobor", "rada",
-        "npc:melania_rein", "npc:theodore_rein",
-        "npc:serit", "npc:ellar", "npc:bren",
-        "group:havengard_research_core"
-      ]
-    },
-    "BR-TAERN-DIPLOMACY": {
-      "title": "Таэрны и дипломатический поход к Аэр-Тал",
-      "status": "active",
-      "salience": "major",
-      "linked_thread_id": null,
-      "knowledge_ids": ["K015"],
-      "key_principals": [
-        "yar", "daphne", "lyutobor", "rada",
-        "npc:ire_tael", "npc:kor_vaer", "npc:saer_val",
-        "npc:melania_rein", "npc:theodore_rein",
-        "group:havengard_research_core"
-      ]
-    },
-    "BR-REIN-SETTLEMENT": {
-      "title": "Переезд Рейнов и их дом в Хейвенгарде",
-      "status": "active",
-      "salience": "recurring",
-      "linked_thread_id": "T002",
-      "knowledge_ids": ["K012"],
-      "key_principals": ["yar", "daphne", "npc:melania_rein", "npc:theodore_rein"]
-    },
-    "BR-GREY-DOGS": {
-      "title": "Серые Псы",
-      "status": "resolved",
-      "salience": "historical",
-      "linked_thread_id": null,
-      "knowledge_ids": ["K004", "K005", "K006", "K008"],
-      "key_principals": ["yar", "daphne", "lyutobor", "rada"]
-    },
-    "BR-ROAD-RETURN": {
-      "title": "Возвращение из Вельмара",
-      "status": "resolved",
-      "salience": "historical",
-      "linked_thread_id": "T001",
-      "knowledge_ids": ["K010", "K011", "K012"],
-      "key_principals": ["yar", "daphne", "lyutobor", "rada", "npc:melania_rein", "npc:theodore_rein"]
-    }
-  },
   "awareness": {
-    "K013": {
+    "K012": {
       "npc:melania_rein": {
-        "state": "knows",
-        "source": "Яр подробно рассказал семье Рейнов всю астральную историю после возвращения",
-        "note": "Знает станцию, Саэлина, Варрока, корабль, Эллара, Брена, Серита, Каэр-Миру, рынок и план маршрута"
+        "source": "Лично переехала в Хейвенгард",
+        "state": "knows"
       },
       "npc:theodore_rein": {
-        "state": "knows",
+        "source": "Лично переехал в Хейвенгард",
+        "state": "knows"
+      }
+    },
+    "K013": {
+      "npc:melania_rein": {
+        "note": "Знает станцию, Саэлина, Варрока, корабль, Эллара, Брена, Серита, Каэр-Миру, рынок и план маршрута",
         "source": "Яр подробно рассказал семье Рейнов всю астральную историю после возвращения",
-        "note": "Знает станцию, Саэлина, Варрока, корабль, Эллара, Брена, Серита, Каэр-Миру, рынок и план маршрута"
+        "state": "knows"
+      },
+      "npc:theodore_rein": {
+        "note": "Знает станцию, Саэлина, Варрока, корабль, Эллара, Брена, Серита, Каэр-Миру, рынок и план маршрута",
+        "source": "Яр подробно рассказал семье Рейнов всю астральную историю после возвращения",
+        "state": "knows"
       }
     },
     "K014": {
-      "npc:melania_rein": {
-        "state": "knows",
-        "source": "Рассказ Яра о Каэр-Мире и текущий разговор в Исследовательском центре",
-        "note": "Понимает, что техописание нужно для проверки будущего маршрута, а не Саэлину"
-      },
-      "npc:theodore_rein": {
-        "state": "knows",
-        "source": "Рассказ Яра о Каэр-Мире и текущий разговор в Исследовательском центре",
-        "note": "Знает про Серита, Эллара, Брена и идею тестового ключа"
-      },
-      "npc:serit": {
-        "state": "knows",
-        "source": "Сам предложил Яру принести описание хейвенгардских врат"
-      },
-      "npc:ellar": {
-        "state": "knows",
-        "source": "Лично обсуждал с Яром проверку врат и советовал собрать всё техническое описание"
-      },
-      "npc:bren": {
-        "state": "knows",
-        "source": "Присутствовал при обсуждении маршрута и тестового ключа в Каэр-Мире"
-      },
       "group:havengard_research_core": {
-        "state": "knows",
+        "note": "Знают назначение отчёта и адресатов",
         "source": "Яр поручил подготовить техническое описание портала в текущей сцене",
-        "note": "Знают назначение отчёта и адресатов"
-      }
-    },
-    "K016": {
-      "npc:melania_rein": {
-        "state": "knows",
-        "source": "Яр уже рассказывал семье Рейнов про астральные путешествия и возвращался к ним через Звёздную мантию",
-        "note": "Не путать мантию с древними вратами Хейвенгарда"
-      },
-      "npc:theodore_rein": {
-        "state": "knows",
-        "source": "Яр уже рассказывал семье Рейнов про астральные путешествия и возвращался к ним через Звёздную мантию",
-        "note": "Не путать мантию с древними вратами Хейвенгарда"
-      },
-      "npc:serit": {
-        "state": "knows",
-        "source": "Яр лично сказал Сериту, что в Астрал его переносит мантия"
-      },
-      "npc:ellar": {
-        "state": "knows",
-        "source": "Яр лично сказал Эллару, что в Астрал его переносит мантия"
+        "state": "knows"
       },
       "npc:bren": {
-        "state": "knows",
-        "source": "Присутствовал при разговоре Яра с Элларом и Серитом о способах входа в Астрал"
+        "source": "Присутствовал при обсуждении маршрута и тестового ключа в Каэр-Мире",
+        "state": "knows"
       },
-      "group:havengard_research_core": {
-        "state": "knows",
-        "source": "Яр в текущей сцене поясняет учёным историю астральных путешествий для подготовки техописания",
-        "note": "Звёздная мантия — способ личного перехода Яра; древние врата — отдельный объект исследования"
+      "npc:ellar": {
+        "source": "Лично обсуждал с Яром проверку врат и советовал собрать всё техническое описание",
+        "state": "knows"
+      },
+      "npc:melania_rein": {
+        "note": "Понимает, что техописание нужно для проверки будущего маршрута, а не Саэлину",
+        "source": "Рассказ Яра о Каэр-Мире и текущий разговор в Исследовательском центре",
+        "state": "knows"
+      },
+      "npc:serit": {
+        "source": "Сам предложил Яру принести описание хейвенгардских врат",
+        "state": "knows"
+      },
+      "npc:theodore_rein": {
+        "note": "Знает про Серита, Эллара, Брена и идею тестового ключа",
+        "source": "Рассказ Яра о Каэр-Мире и текущий разговор в Исследовательском центре",
+        "state": "knows"
       }
     },
     "K015": {
+      "group:havengard_research_core": {
+        "source": "Участвуют в текущем обсуждении портала и технической подготовки возвращения/контакта",
+        "state": "knows"
+      },
       "npc:ire_tael": {
-        "state": "knows",
-        "source": "Лично участвовала в событиях Башни Пяти Цепей и подготовке контакта с Аэр-Тал"
+        "source": "Лично участвовала в событиях Башни Пяти Цепей и подготовке контакта с Аэр-Тал",
+        "state": "knows"
       },
       "npc:kor_vaer": {
-        "state": "knows",
-        "source": "Лично участвовал в событиях Башни Пяти Цепей и согласился участвовать в дипломатическом контакте"
+        "source": "Лично участвовал в событиях Башни Пяти Цепей и согласился участвовать в дипломатическом контакте",
+        "state": "knows"
+      },
+      "npc:melania_rein": {
+        "note": "Понимает общий смысл: готовится дипломатический контакт ради будущего народа Таэрнов, но не обязана знать технические детали",
+        "source": "Слышит текущий разговор Яра с учёными в Исследовательском центре",
+        "state": "heard_of"
       },
       "npc:saer_val": {
-        "state": "knows",
-        "source": "Участвовал в согласовании безопасного контакта и возвращения Таэрнов"
-      },
-      "group:havengard_research_core": {
-        "state": "knows",
-        "source": "Участвуют в текущем обсуждении портала и технической подготовки возвращения/контакта"
-      },
-      "npc:melania_rein": {
-        "state": "heard_of",
-        "source": "Слышит текущий разговор Яра с учёными в Исследовательском центре",
-        "note": "Понимает общий смысл: готовится дипломатический контакт ради будущего народа Таэрнов, но не обязана знать технические детали"
+        "source": "Участвовал в согласовании безопасного контакта и возвращения Таэрнов",
+        "state": "knows"
       },
       "npc:theodore_rein": {
-        "state": "heard_of",
+        "note": "Знает общую цель будущего похода, но не считается специалистом по портальной технике или дипломатическим условиям",
         "source": "Слышит текущий разговор Яра с учёными в Исследовательском центре",
-        "note": "Знает общую цель будущего похода, но не считается специалистом по портальной технике или дипломатическим условиям"
+        "state": "heard_of"
       }
     },
-    "K012": {
+    "K016": {
+      "group:havengard_research_core": {
+        "note": "Звёздная мантия — способ личного перехода Яра; древние врата — отдельный объект исследования",
+        "source": "Яр в текущей сцене поясняет учёным историю астральных путешествий для подготовки техописания",
+        "state": "knows"
+      },
+      "npc:bren": {
+        "source": "Присутствовал при разговоре Яра с Элларом и Серитом о способах входа в Астрал",
+        "state": "knows"
+      },
+      "npc:ellar": {
+        "source": "Яр лично сказал Эллару, что в Астрал его переносит мантия",
+        "state": "knows"
+      },
       "npc:melania_rein": {
-        "state": "knows",
-        "source": "Лично переехала в Хейвенгард"
+        "note": "Не путать мантию с древними вратами Хейвенгарда",
+        "source": "Яр уже рассказывал семье Рейнов про астральные путешествия и возвращался к ним через Звёздную мантию",
+        "state": "knows"
+      },
+      "npc:serit": {
+        "source": "Яр лично сказал Сериту, что в Астрал его переносит мантия",
+        "state": "knows"
       },
       "npc:theodore_rein": {
-        "state": "knows",
-        "source": "Лично переехал в Хейвенгард"
+        "note": "Не путать мантию с древними вратами Хейвенгарда",
+        "source": "Яр уже рассказывал семье Рейнов про астральные путешествия и возвращался к ним через Звёздную мантию",
+        "state": "knows"
+      }
+    },
+    "K018": {
+      "npc:midwife_havengard": {
+        "source": "DAPHNE-PREGNANCY-CONFIRMED-001: участие в осмотре и объявлении результата",
+        "state": "knows"
+      },
+      "npc:mirel": {
+        "source": "DAPHNE-PREGNANCY-CONFIRMED-001: участие в осмотре и объявлении результата",
+        "state": "knows"
       }
     }
-  }
+  },
+  "branches": {
+    "BR-ASTRAL-KAER-MIRA": {
+      "key_principals": [
+        "yar",
+        "daphne",
+        "lyutobor",
+        "rada",
+        "npc:melania_rein",
+        "npc:theodore_rein",
+        "npc:serit",
+        "npc:ellar",
+        "npc:bren",
+        "group:havengard_research_core"
+      ],
+      "knowledge_ids": [
+        "K013",
+        "K014",
+        "K016"
+      ],
+      "linked_thread_id": null,
+      "salience": "major",
+      "status": "active",
+      "title": "Астрал и маршрут Хейвенгард ↔ Каэр-Мира"
+    },
+    "BR-DAPHNE-FAMILY": {
+      "key_principals": [
+        "yar",
+        "daphne",
+        "npc:mirel",
+        "npc:midwife_havengard"
+      ],
+      "knowledge_ids": [
+        "K018"
+      ],
+      "status": "active",
+      "title": "Дафна — подтверждённая беременность и семейная жизнь"
+    },
+    "BR-GREY-DOGS": {
+      "key_principals": [
+        "yar",
+        "daphne",
+        "lyutobor",
+        "rada"
+      ],
+      "knowledge_ids": [
+        "K004",
+        "K005",
+        "K006",
+        "K008"
+      ],
+      "linked_thread_id": null,
+      "salience": "historical",
+      "status": "resolved",
+      "title": "Серые Псы"
+    },
+    "BR-REIN-SETTLEMENT": {
+      "key_principals": [
+        "yar",
+        "daphne",
+        "npc:melania_rein",
+        "npc:theodore_rein"
+      ],
+      "knowledge_ids": [
+        "K012"
+      ],
+      "linked_thread_id": "T002",
+      "salience": "recurring",
+      "status": "active",
+      "title": "Переезд Рейнов и их дом в Хейвенгарде"
+    },
+    "BR-ROAD-RETURN": {
+      "key_principals": [
+        "yar",
+        "daphne",
+        "lyutobor",
+        "rada",
+        "npc:melania_rein",
+        "npc:theodore_rein"
+      ],
+      "knowledge_ids": [
+        "K010",
+        "K011",
+        "K012"
+      ],
+      "linked_thread_id": "T001",
+      "salience": "historical",
+      "status": "resolved",
+      "title": "Возвращение из Вельмара"
+    },
+    "BR-TAERN-DIPLOMACY": {
+      "key_principals": [
+        "yar",
+        "daphne",
+        "lyutobor",
+        "rada",
+        "npc:ire_tael",
+        "npc:kor_vaer",
+        "npc:saer_val",
+        "npc:melania_rein",
+        "npc:theodore_rein",
+        "group:havengard_research_core"
+      ],
+      "knowledge_ids": [
+        "K015"
+      ],
+      "linked_thread_id": null,
+      "salience": "major",
+      "status": "active",
+      "title": "Таэрны и дипломатический поход к Аэр-Тал"
+    }
+  },
+  "campaign_id": "yar-warrior",
+  "graph_revision": 5,
+  "policy": {
+    "do_not_infer_unseen_information": true,
+    "knowledge_requires_source": true,
+    "relationships_do_not_grant_knowledge": true,
+    "relationships_may_affect_willingness_to_share": true
+  },
+  "principals": {
+    "group:havengard_research_core": {
+      "kind": "group",
+      "name": "Ведущие учёные Исследовательского центра"
+    },
+    "npc:bren": {
+      "kind": "npc",
+      "name": "Брен"
+    },
+    "npc:ellar": {
+      "kind": "npc",
+      "name": "Эллар"
+    },
+    "npc:ire_tael": {
+      "kind": "npc",
+      "name": "Ирэ-Таэл"
+    },
+    "npc:kor_vaer": {
+      "kind": "npc",
+      "name": "Кор-Ваэр"
+    },
+    "npc:melania_rein": {
+      "kind": "npc",
+      "name": "Мелания Рейн"
+    },
+    "npc:midwife_havengard": {
+      "kind": "npc",
+      "name": "Повитуха Хейвенгарда"
+    },
+    "npc:mirel": {
+      "kind": "npc",
+      "name": "Мирэль"
+    },
+    "npc:saer_val": {
+      "kind": "npc",
+      "name": "Саэр-Вал"
+    },
+    "npc:serit": {
+      "kind": "npc",
+      "name": "Серит"
+    },
+    "npc:theodore_rein": {
+      "kind": "npc",
+      "name": "Теодор Рейн"
+    }
+  },
+  "schema_version": 1
 }

@@ -1,47 +1,20 @@
-name: Render Scene Knowledge
+name: Verify Scene Knowledge
 
+# Rendering is owned by campaignctl's transaction pipeline. This workflow is
+# deliberately read-only: there must not be a second bot writing the same state.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'state/_knowledge-graph.json'
-      - 'tools/knowledgegraph.py'
-      - '.github/workflows/render-knowledge-graph.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  render:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Validate graph and render current scene slice
-        run: |
-          python tools/knowledgegraph.py --project . check
-          python tools/knowledgegraph.py --project . render
-          python tests/test_knowledge_graph.py
-
-      - name: Commit rendered view when changed
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "campaign-engine-bot"
-          git config user.email "campaign-engine-bot@users.noreply.github.com"
-          git add views/scene-knowledge.md
-          if git diff --cached --quiet; then
-            echo "Scene knowledge view already current."
-            exit 0
-          fi
-          git commit -m "[knowledge-view] Refresh scene knowledge slice"
-          git push
+      - run: python tools/knowledgegraph.py --project . check
+      - run: python tools/campaignctl.py --project . check-views

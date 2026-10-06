@@ -102,8 +102,6 @@ def main() -> None:
     live_state = json.loads((ROOT / "state" / "_campaign-state.json").read_text(encoding="utf-8"))
     live_graph = json.loads((ROOT / "state" / "_knowledge-graph.json").read_text(encoding="utf-8"))
     assert kg.validate_graph(live_state, live_graph) == []
-    assert live_graph["awareness"]["K013"]["npc:melania_rein"]["state"] == "knows"
-    assert live_graph["awareness"]["K014"]["npc:serit"]["state"] == "knows"
 
     print("Knowledge graph tests: OK")
 

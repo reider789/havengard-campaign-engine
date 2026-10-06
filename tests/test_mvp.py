@@ -24,7 +24,7 @@ def main():
         state = json.loads((tmp / "state" / "_campaign-state.json").read_text(encoding="utf-8"))
         tx = {
             "expected_state_revision": state["state_revision"],
-            "event": {"id": "TEST-001", "summary": "Тестовая смена времени."},
+            "event": {"id": "TEST-001", "summary": "Тестовая смена времени.", "visibility": "party"},
             "operations": [{"type": "set_world_field", "field": "time_label", "value": "ночь"}],
         }
         tx_path = tmp / "transactions" / "test.json"
@@ -41,6 +41,11 @@ def main():
         assert new_state["state_revision"] == state["state_revision"] + 1
         assert new_state["world"]["time_label"] == "ночь"
 
+        duplicate = subprocess.run(["python", str(tmp / "tools" / "campaignctl.py"), "--project", str(tmp), "commit", "--transaction", str(tx_path)], capture_output=True, text=True)
+        assert duplicate.returncode == 0
+        assert json.loads(duplicate.stdout)["status"] == "already_applied"
+        tx["event"]["id"] = "TEST-STALE-NEW-EVENT"
+        tx_path.write_text(json.dumps(tx), encoding="utf-8")
         stale = subprocess.run(["python", str(tmp / "tools" / "campaignctl.py"), "--project", str(tmp), "commit", "--transaction", str(tx_path)], capture_output=True, text=True)
         assert stale.returncode != 0
 
