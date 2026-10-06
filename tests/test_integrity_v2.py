@@ -149,7 +149,7 @@ class IntegrityTests(unittest.TestCase):
     def test_two_writers_and_recoverable_views(self):
         with tempfile.TemporaryDirectory() as td:
             project = Path(td) / "campaign"
-            shutil.copytree(ROOT, project, ignore=shutil.ignore_patterns(".git", "__pycache__", ".campaign.lock"))
+            shutil.copytree(ROOT, project, ignore=shutil.ignore_patterns(".git", "__pycache__", ".campaign.lock", "live"))
             s = baseline(); engine.atomic_write_json(project / "state/_campaign-state.json", s)
             paths=[]
             for i in range(2):
@@ -170,7 +170,7 @@ class IntegrityTests(unittest.TestCase):
     def test_live_queue_orders_revisions_and_retries_safely(self):
         with tempfile.TemporaryDirectory() as td:
             project = Path(td) / "campaign"
-            shutil.copytree(ROOT, project, ignore=shutil.ignore_patterns(".git", "__pycache__", ".campaign.lock"))
+            shutil.copytree(ROOT, project, ignore=shutil.ignore_patterns(".git", "__pycache__", ".campaign.lock", "live"))
             s = baseline(); engine.atomic_write_json(project / "state/_campaign-state.json", s)
             first = transaction(s, [{"type": "adjust_resource", "id": "yar", "resource": "personal_money_cp", "delta": -10}], "QUEUE-1")
             second = transaction(engine.build_result(s, first), [{"type": "adjust_resource", "id": "yar", "resource": "personal_money_cp", "delta": -20}], "QUEUE-2")
@@ -189,7 +189,7 @@ class IntegrityTests(unittest.TestCase):
     def test_preview_contains_derived_fields_before_commit(self):
         with tempfile.TemporaryDirectory() as td:
             project = Path(td) / "campaign"
-            shutil.copytree(ROOT, project, ignore=shutil.ignore_patterns(".git", "__pycache__", ".campaign.lock"))
+            shutil.copytree(ROOT, project, ignore=shutil.ignore_patterns(".git", "__pycache__", ".campaign.lock", "live"))
             s = baseline()
             s["characters"]["daphne"]["health"] = {"pregnancy": {"status": "confirmed", "confirmation": "confirmed", "confirmation_elapsed_day_from_first_signs": 0, "gestational_day_at_confirmation": 39}}
             synchronize(s)
