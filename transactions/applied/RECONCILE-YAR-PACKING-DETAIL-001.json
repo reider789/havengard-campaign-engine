@@ -1,16 +1,15 @@
 {
-  "expected_state_revision": 24,
-  "unique_key": "reconciliation:packing-rule-full-text-20261010",
   "event": {
     "id": "RECONCILE-YAR-PACKING-DETAIL-001",
     "summary": "В карточке Яра полностью закреплено подтверждённое правило упаковки переносной крепости; игровые ресурсы и предметы не изменены.",
     "visibility": "gm"
   },
+  "expected_state_revision": 24,
   "operations": [
     {
-      "type": "set_character_field",
-      "id": "yar",
       "field": "character_sheet",
+      "id": "yar",
+      "type": "set_character_field",
       "value": {
         "abilities": {
           "ИНТ": "8 (-1)",
@@ -334,5 +333,6 @@
         "xp": "64 750 / 85 000"
       }
     }
-  ]
+  ],
+  "unique_key": "reconciliation:packing-rule-full-text-20261010"
 }
