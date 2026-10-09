@@ -58,6 +58,13 @@ class CityRegistryTests(unittest.TestCase):
             ], "TEST-CITY-DEBT"))
         self.assertEqual(state["world"]["city_treasury_cp"], 1312633)
 
+    def test_economy_context_reads_git_rule_copy(self):
+        from scene_context import render_scene_context
+        rules = json.loads((ROOT / "rules/_campaign-rules.json").read_text(encoding="utf-8"))
+        context = render_scene_context(current(), rules, mode="economy")
+        self.assertIn("rules/economy-full-g1m8.txt", context)
+        self.assertIn("GitHub", context)
+
     def test_refuse_invalid_or_missing_city_entries(self):
         state = current()
         for op in [
