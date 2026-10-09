@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import copy
 import math
+import re
 from typing import Any
 
 RECORD_KEYS = {
@@ -79,6 +80,62 @@ def validate_city_registry(state: dict[str, Any]) -> list[str]:
                         errors.append(f"city.layout.{obj_id}.{field}: требуется конечное число")
                     elif field in ("width_m", "height_m") and val <= 0:
                         errors.append(f"city.layout.{obj_id}.{field}: размер должен быть положительным")
+    if city.get("reconciliation", {}).get("status") == "census_housing_staff_verified":
+        # Cross-check independent ledgers. Archived casualties still exist as records.
+        active = [r for r in city["residents"] if not any(
+            marker in str(r.get("status", "")).lower() for marker in ("погиб", "умер", "выбыл"))]
+        if len(active) != world.get("city_population"):
+            errors.append(f"city.population: действующих записей {len(active)} != world.city_population {world.get('city_population')}")
+        by_site: dict[str, int] = {}
+        for resident in active:
+            age = resident.get("age")
+            adult = (isinstance(age, str) and age.isdigit() and int(age) >= 14) or resident.get("age_group") == "взрослый"
+            if adult and resident.get("worksite") not in {None, "", "—"}:
+                name = resident["worksite"]
+                by_site[name] = by_site.get(name, 0) + 1
+        for site in city.get("worksites", []):
+            try:
+                expected = int(site.get("resident_workers", 0))
+            except (ValueError, TypeError):
+                errors.append(f"city.worksites.{site.get('id')}: некорректная численность")
+                continue
+            actual = by_site.pop(site.get("name"), 0)
+            if actual != expected:
+                errors.append(f"city.worksites.{site.get('id')}: по реестру {actual}, штатная строка {expected}")
+        if by_site:
+            errors.append(f"city.residents: рабочие точки без реестра {by_site}")
+        homes = {home.get("name"): home for home in city.get("housing", [])}
+        ordinary = homes.get("Обычные жилые дома", {})
+        occupied = None
+        if ordinary:
+            try:
+                occupied = int(ordinary["current_occupants"])
+                capacity = [int(n) for n in re.findall(r"\d+", ordinary["capacity"])]
+                free = [int(n) for n in re.findall(r"\d+", ordinary["available"])]
+                if len(capacity) < 2 or free[:2] != [capacity[0] - occupied, capacity[1] - occupied]:
+                    errors.append("city.housing: резерв не соответствует вместимости и заселению")
+            except (ValueError, KeyError, TypeError):
+                errors.append("city.housing: неизвестная вместимость типовых домов")
+        known_separate = 0
+        for name in ("Дом семьи Харрика", "Флигель семьи Астэр", "Усадьба Яра — основной дом",
+                     "Жилой караульный дом усадьбы", "Дом Мирэль в Роще Иллариэль"):
+            house = homes.get(name)
+            if not house:
+                errors.append(f"city.housing: отсутствует {name}")
+                continue
+            if name == "Усадьба Яра — основной дом":
+                counted = re.search(r"(\d+)\s+из\s+(\d+)", house.get("counted_in_population", ""))
+                if not counted or int(counted.group(2)) != int(house["current_occupants"]):
+                    errors.append("city.housing: в усадьбе не совпадает состав жителей")
+                    continue
+                known_separate += int(counted.group(1))
+            else:
+                known_separate += int(house["current_occupants"])
+        if ordinary and occupied is not None and occupied + known_separate != len(active):
+            errors.append(f"city.housing: {occupied} + {known_separate} != {len(active)} жителей")
+        for animal in city.get("animals", []):
+            if animal.get("category") == "Показатель" or animal.get("name_or_group") in {"28", "20", "6", "12", "0", "8"}:
+                errors.append("city.animals: строка итоговой таблицы попала в реестр животных")
     return errors
 
 

@@ -15,6 +15,7 @@ from campaign_model import (current_fact, integer, normalize_resource, player_vi
                             transaction_hash, validate_v2)
 from sync_time_dependent_state import synchronize
 from city_registry import apply_city_operation, validate_city_registry
+from character_catalog import validate_character_catalogs
 from knowledgegraph import validate_graph, render_scene_slice
 
 SCHEMA_VERSION = 2
@@ -121,6 +122,7 @@ def validate_state(state: dict[str, Any]) -> list[str]:
     errors.extend(validate_relationships(state))
     errors.extend(validate_v2(state))
     errors.extend(validate_city_registry(state))
+    errors.extend(validate_character_catalogs(state))
     if state.get("schema_version") == 2:
         errors.extend(validate_graph(state, state.get("knowledge_graph", {})))
     return errors
@@ -570,6 +572,19 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any], event: dict | Non
             raise CampaignError(f"{item} уже есть у получателя")
         src.remove(item)
         dst.append(item)
+        # Equipment metadata follows the item; otherwise the old owner would keep
+        # a ghost catalog entry and the new owner would have an unidentified object.
+        origin_catalog = state["characters"][op["from"]].get("inventory_catalog")
+        target_catalog = state["characters"][op["to"]].get("inventory_catalog")
+        if origin_catalog is not None and item in origin_catalog:
+            if target_catalog is None:
+                target_catalog = state["characters"][op["to"]].setdefault("inventory_catalog", {})
+            if item in target_catalog:
+                raise CampaignError("Предмет уже присутствует в каталоге получателя")
+            moved = origin_catalog.pop(item)
+            moved["previous_status"] = moved.get("status")
+            moved["status"] = "Передан новому владельцу; экипировка и настройка требуют подтверждения"
+            target_catalog[item] = moved
     else:
         raise CampaignError(f"Неизвестный тип операции: {t}")
 
