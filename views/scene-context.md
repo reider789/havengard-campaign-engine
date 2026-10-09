@@ -1,6 +1,6 @@
 # Контекст текущей сцены
 
-> state_revision: 19; mode: social
+> state_revision: 20; mode: social
 > Рабочая сводка. Полный отчёт: views/gm-context.md; данные: state/_campaign-state.json.
 
 ## Точка продолжения
@@ -62,7 +62,7 @@
 
 # Scene Knowledge
 
-> state_revision: 19
+> state_revision: 20
 > graph_revision: 5
 > Этот файл отвечает на вопрос: кто из участников текущей сцены что знает по релевантным сюжетным веткам.
 
