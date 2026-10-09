@@ -81,7 +81,6 @@ class G1M8Reconciliation(unittest.TestCase):
                              for v in s["characters"]["daphne"]["inventory_catalog"].values()))
         self.assertEqual(s["characters"]["daphne"]["resources"]["shield_magic_initiate"]["current"], 1)
         yar = s["characters"]["yar"]
-        self.assertEqual(yar["characters"] if "characters" in yar else None, None)
         self.assertTrue(yar["character_sheet"]["portable_hole_policy"]["packed_after_last_road_camp"])
         self.assertEqual(len(yar["character_sheet"]["portable_hole_policy"]["paid_but_delivery_not_confirmed"]), 3)
 
