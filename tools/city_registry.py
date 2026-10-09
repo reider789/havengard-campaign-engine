@@ -106,6 +106,7 @@ def validate_city_registry(state: dict[str, Any]) -> list[str]:
             errors.append(f"city.residents: рабочие точки без реестра {by_site}")
         homes = {home.get("name"): home for home in city.get("housing", [])}
         ordinary = homes.get("Обычные жилые дома", {})
+        occupied = None
         if ordinary:
             try:
                 occupied = int(ordinary["current_occupants"])
@@ -130,7 +131,7 @@ def validate_city_registry(state: dict[str, Any]) -> list[str]:
                 known_separate += int(counted.group(1))
             else:
                 known_separate += int(house["current_occupants"])
-        if ordinary and occupied + known_separate != len(active):
+        if ordinary and occupied is not None and occupied + known_separate != len(active):
             errors.append(f"city.housing: {occupied} + {known_separate} != {len(active)} жителей")
         for animal in city.get("animals", []):
             if animal.get("category") == "Показатель" or animal.get("name_or_group") in {"28", "20", "6", "12", "0", "8"}:
