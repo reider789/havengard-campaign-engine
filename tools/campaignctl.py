@@ -14,6 +14,7 @@ from typing import Any
 from campaign_model import (current_fact, integer, normalize_resource, player_visible,
                             transaction_hash, validate_v2)
 from sync_time_dependent_state import synchronize
+from city_registry import apply_city_operation, validate_city_registry
 from knowledgegraph import validate_graph, render_scene_slice
 
 SCHEMA_VERSION = 2
@@ -119,6 +120,7 @@ def validate_state(state: dict[str, Any]) -> list[str]:
         errors.append("последняя revision в commit_history должна совпадать со state_revision")
     errors.extend(validate_relationships(state))
     errors.extend(validate_v2(state))
+    errors.extend(validate_city_registry(state))
     if state.get("schema_version") == 2:
         errors.extend(validate_graph(state, state.get("knowledge_graph", {})))
     return errors
@@ -441,6 +443,8 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any], event: dict | Non
             if "personal_money_cp" not in resources:
                 raise CampaignError(f"Баланс {who} не импортирован; неизвестное не равно нулю")
             resources["personal_money_cp"] += delta
+    elif t in {"city_patch_record", "city_map_place", "city_map_unplace", "city_adjust_treasury"}:
+        apply_city_operation(state, op)
     elif t == "set_world_field":
         if modern and op["field"] == "timekeeping":
             raise CampaignError("Для продвижения времени использовать advance_time; смена опоры требует миграции")
