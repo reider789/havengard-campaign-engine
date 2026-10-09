@@ -83,6 +83,10 @@
       "payload_sha256": null,
       "revision": 6
     },
+    "RECONCILE-CITY-G1M8-ANIMALS-001": {
+      "payload_sha256": "99aba031b0ba52efd91aeedf87fbb5c2f8642a52fe63d9a84163aaeaaf972b45",
+      "revision": 23
+    },
     "RECONCILE-CITY-G1M8-CENSUS-HOUSING-001": {
       "payload_sha256": "a49cd2e4e023612333912eb8095dabfb08b6a992f9b4f0bd4fa09c8822661c70",
       "revision": 21
@@ -2763,10 +2767,16 @@
       "event_id": "RECONCILE-HERO-SHEETS-G1M8-001",
       "revision": 22,
       "summary": "Сверены и внесены в Campaign Engine карточки и известное имущество четырёх героев; сохранены актуальные боеприпасы, подарки, расходники и подготовка заклинаний по поздней летописи."
+    },
+    {
+      "event_id": "RECONCILE-CITY-G1M8-ANIMALS-001",
+      "revision": 23,
+      "summary": "Из списка животных удалены 7 повторных строк статистики; 4 личные вельмарские лошади отмечены как прибывшие, вне городского табуна. Численность зверей и казна не менялись."
     }
   ],
   "event_unique_keys": {
     "migration:city-g1m8-2026-10-10": "IMPORT-CITY-G1M8-20261010-001",
+    "reconciliation:animals-summary-20261010": "RECONCILE-CITY-G1M8-ANIMALS-001",
     "reconciliation:characters-2026-10-10": "RECONCILE-HERO-SHEETS-G1M8-001",
     "reconciliation:city-g1m8-census-housing-20261010": "RECONCILE-CITY-G1M8-CENSUS-HOUSING-001"
   },
@@ -3419,11 +3429,6 @@
   },
   "recent_events": [
     {
-      "id": "RULES-DAPHNE-SHIELD-001",
-      "summary": "Дафна автоматически использует «Щит», если +5 КД превратит попадание в промах: сначала бесплатное применение Magic Initiate 1/долгий отдых, затем при необходимости обычную ячейку. «Щит» всегда подготовлен.",
-      "visibility": "party"
-    },
-    {
       "id": "COMBAT-ROAD-AMBUSH-001",
       "summary": "Партия разгромила дорожных разбойников в лесистом овраге; седой главарь взят живым и связан.",
       "visibility": "party"
@@ -3517,6 +3522,11 @@
     {
       "id": "RECONCILE-HERO-SHEETS-G1M8-001",
       "summary": "Сверены и внесены в Campaign Engine карточки и известное имущество четырёх героев; сохранены актуальные боеприпасы, подарки, расходники и подготовка заклинаний по поздней летописи.",
+      "visibility": "gm"
+    },
+    {
+      "id": "RECONCILE-CITY-G1M8-ANIMALS-001",
+      "summary": "Из списка животных удалены 7 повторных строк статистики; 4 личные вельмарские лошади отмечены как прибывшие, вне городского табуна. Численность зверей и казна не менялись.",
       "visibility": "gm"
     }
   ],
@@ -3903,7 +3913,7 @@
     "thread_ids": []
   },
   "schema_version": 2,
-  "state_revision": 22,
+  "state_revision": 23,
   "threads": {
     "T001": {
       "pressure": "нет жёсткого таймера",
@@ -4206,54 +4216,12 @@
           "category": "Лошади",
           "combat_statistics": "Не входят в городской парк Хейвенгарда",
           "custodian": "2 — Мелания и Теодор Рейн; 2 — Яр",
-          "location": "В обозе Вельмар → Хейвенгард",
+          "location": "Хейвенгард, личное имущество Яра и семьи Рейн",
           "name_or_group": "Вельмар — награда за «Медный Ключ»",
-          "notes": "Не прибавлять к 28 лошадям Хейвенгарда до фактического прибытия и отдельного решения.",
+          "notes": "4 лошади из Вельмара: 2 личные Яра, 2 подарены семье Рейн. Не включать в 28 лошадей городского конюшенного парка. Подтверждено летописью 017; прежняя отметка «в обозе» устарела.",
           "quantity": "4",
           "source_row": 26,
-          "status": "Переданы законно / распределены"
-        },
-        {
-          "category": "Показатель",
-          "combat_statistics": "Комментарий",
-          "name_or_group": "Значение",
-          "source_row": 28
-        },
-        {
-          "category": "Лошади",
-          "combat_statistics": "Все 28 в городском конюшенном комплексе; после расширения до II уровня проектная вместимость ≈60.",
-          "name_or_group": "28",
-          "source_row": 29
-        },
-        {
-          "category": "Конные повозки / телеги",
-          "combat_statistics": "17 прежних + 3 хозяйственные телеги переселенцев X5.",
-          "name_or_group": "20",
-          "source_row": 30
-        },
-        {
-          "category": "Ручные двухколёсные тележки",
-          "combat_statistics": "2 прежних + 4 ручные тележки переселенцев X5.",
-          "name_or_group": "6",
-          "source_row": 31
-        },
-        {
-          "category": "Живые драки",
-          "combat_statistics": "4 взрослых летающих + 3 малых рудных + 1 гигантский рабочий + 4 летающих детёныша.",
-          "name_or_group": "12",
-          "source_row": 32
-        },
-        {
-          "category": "Яйца драков",
-          "combat_statistics": "Яиц нет: прежние яйца №1–4 успешно вылупились к началу Г1М5.",
-          "name_or_group": "0",
-          "source_row": 33
-        },
-        {
-          "category": "Рабочие волы",
-          "combat_statistics": "6 прежних + 2 рабочих вола X5.",
-          "name_or_group": "8",
-          "source_row": 34
+          "status": "Прибыли в Хейвенгард / не являются собственностью города"
         }
       ],
       "automata_sheet": [
@@ -10512,8 +10480,10 @@
       ],
       "reconciliation": {
         "active_resident_records": 221,
+        "animals_summary_rows_removed": 7,
         "comfortable_housing_reserve": 35,
         "confirmed_population": 221,
+        "horses_velmar_personal": 4,
         "maximum_housing_reserve": 95,
         "nonworking_adults": [
           "Мелания Рейн",
@@ -13446,7 +13416,7 @@
         "kind": "migrated_google_sheet",
         "master_spreadsheet_id": "1lYu1_-4JvXsmyHe1kArcI4YGuhNl8UZoLBNSoJkQxAc",
         "master_title": "Хейвенгард — мастер-книга Г1М8",
-        "note": "Городской действующий реестр находится только в state/world.city. Исходные таблицы Г1М8 содержат устаревшие сводные формулы и служат архивным источником.",
+        "note": "Городской действующий реестр находится только в state/world.city. Исходные таблицы Г1М8 содержат устаревшие сводные формулы и служат архивным источником. Семь повторных сводных строк животных удалены из оперативных животных; источник сохранился в migrations.",
         "source_month": "Г1М8",
         "source_snapshot_path": "migrations/city-g1m8-source-2026-10-10.json",
         "status": "reconciled_census_housing_staff"

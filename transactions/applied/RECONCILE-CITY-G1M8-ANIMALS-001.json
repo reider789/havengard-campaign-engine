@@ -1,15 +1,14 @@
 {
-  "expected_state_revision": 22,
-  "unique_key": "reconciliation:animals-summary-20261010",
   "event": {
     "id": "RECONCILE-CITY-G1M8-ANIMALS-001",
     "summary": "Из списка животных удалены 7 повторных строк статистики; 4 личные вельмарские лошади отмечены как прибывшие, вне городского табуна. Численность зверей и казна не менялись.",
     "visibility": "gm"
   },
+  "expected_state_revision": 22,
   "operations": [
     {
-      "type": "set_world_field",
       "field": "city",
+      "type": "set_world_field",
       "value": {
         "active_rule_sources": {
           "authority": "rules/_campaign-rules.json; this text is imported for local access and may need reconciliation",
@@ -6559,8 +6558,10 @@
         ],
         "reconciliation": {
           "active_resident_records": 221,
+          "animals_summary_rows_removed": 7,
           "comfortable_housing_reserve": 35,
           "confirmed_population": 221,
+          "horses_velmar_personal": 4,
           "maximum_housing_reserve": 95,
           "nonworking_adults": [
             "Мелания Рейн",
@@ -6577,9 +6578,7 @@
           ],
           "staff_assigned": 200,
           "status": "census_housing_staff_verified",
-          "verified_date": "2026-10-10",
-          "animals_summary_rows_removed": 7,
-          "horses_velmar_personal": 4
+          "verified_date": "2026-10-10"
         },
         "residents": [
           {
@@ -12890,5 +12889,6 @@
         ]
       }
     }
-  ]
+  ],
+  "unique_key": "reconciliation:animals-summary-20261010"
 }
