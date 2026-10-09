@@ -119,7 +119,7 @@ def render_scene_context(state: dict, rules: dict, mode: str | None = None) -> s
         lines.append(json.dumps(state.get("play_rules", {}), ensure_ascii=False))
     if mode == "economy":
         source = next((s for s in rules.get("source_registry", []) if s["key"] == "economy_prompt"), {})
-        lines.append(f"Перед расчётом загрузить полный экономический промт: Drive {source.get('drive_id')}.")
+        lines.append(f"Перед расчётом загрузить полный экономический промт из GitHub: {source.get('repository_path', 'rules/economy-full-g1m8.txt')}.")
     lines += ["", "Читать дополнительные разделы правил и карточки, когда они меняют решение/расход/исход. Не считать эту сводку полным инвентарём.",
               "После значимого изменения провести транзакцию; при смене сцены обновить участников, mode, фокус знаний и handoff. Публикация live-файла ещё не означает применённое сохранение."]
     return "\n".join(lines) + "\n"
