@@ -83,6 +83,10 @@
       "payload_sha256": null,
       "revision": 6
     },
+    "RECONCILE-CITY-G1M8-CENSUS-HOUSING-001": {
+      "payload_sha256": "a49cd2e4e023612333912eb8095dabfb08b6a992f9b4f0bd4fa09c8822661c70",
+      "revision": 21
+    },
     "RETURN-HAVENGARD-RELATIONSHIPS-001": {
       "origin": "legacy_history",
       "payload_sha256": "775245b6d8d147a4a3d8d8e36957b91f1ee7128c31fc0e1a3044daba1fb6ac0c",
@@ -524,10 +528,16 @@
       "event_id": "IMPORT-CITY-G1M8-20261010-001",
       "revision": 20,
       "summary": "Перенесены городские реестры Г1М8 из мастер-книги: жители, рабочие точки, жильё, инвентарь, животные, обучение, планы и справочные слои; игровые события и время не менялись."
+    },
+    {
+      "event_id": "RECONCILE-CITY-G1M8-CENSUS-HOUSING-001",
+      "revision": 21,
+      "summary": "По летописи 017 в реестр включены Мелания и Теодор Рейн; теперь 221 действующих жителей, 205 занятых мест в обычных домах, Рейны временно живут в усадьбе Яра. Сотрудники, финансы, время и боевые ресурсы не менялись."
     }
   ],
   "event_unique_keys": {
-    "migration:city-g1m8-2026-10-10": "IMPORT-CITY-G1M8-20261010-001"
+    "migration:city-g1m8-2026-10-10": "IMPORT-CITY-G1M8-20261010-001",
+    "reconciliation:city-g1m8-census-housing-20261010": "RECONCILE-CITY-G1M8-CENSUS-HOUSING-001"
   },
   "knowledge": {
     "K001": {
@@ -1178,11 +1188,6 @@
   },
   "recent_events": [
     {
-      "id": "EV002",
-      "summary": "Яр и Дафна провели время на крыше башни; отношения остаются близкими и устойчивыми.",
-      "visibility": "party"
-    },
-    {
       "id": "RULES-COMBAT-001",
       "summary": "Правила боя: игрок управляет Яром, Лютобором, Дафной и Радой; перед их ходами показываются прежде всего дистанции до врагов и только существенные тактические статусы.",
       "visibility": "party"
@@ -1276,6 +1281,11 @@
     {
       "id": "IMPORT-CITY-G1M8-20261010-001",
       "summary": "Перенесены городские реестры Г1М8 из мастер-книги: жители, рабочие точки, жильё, инвентарь, животные, обучение, планы и справочные слои; игровые события и время не менялись.",
+      "visibility": "gm"
+    },
+    {
+      "id": "RECONCILE-CITY-G1M8-CENSUS-HOUSING-001",
+      "summary": "По летописи 017 в реестр включены Мелания и Теодор Рейн; теперь 221 действующих жителей, 205 занятых мест в обычных домах, Рейны временно живут в усадьбе Яра. Сотрудники, финансы, время и боевые ресурсы не менялись.",
       "visibility": "gm"
     }
   ],
@@ -1662,7 +1672,7 @@
     "thread_ids": []
   },
   "schema_version": 2,
-  "state_revision": 20,
+  "state_revision": 21,
   "threads": {
     "T001": {
       "pressure": "нет жёсткого таймера",
@@ -5485,12 +5495,12 @@
       ],
       "housing": [
         {
-          "available": "33 комфортно / 93 максимум",
+          "available": "35 комфортно / 95 максимум",
           "capacity": "240 комфортно / 300 максимум",
           "counted_in_population": "Да",
-          "current_occupants": "207",
+          "current_occupants": "205",
           "name": "Обычные жилые дома",
-          "notes": "40 домов / 80 семейных секций. При 219 активных постоянных жителях: 219 − 14 подтверждённо живущих отдельно = 205 жителей в обычных домах.",
+          "notes": "40 домов / 80 семейных секций. Население 221, из них отдельно живут 16 (семья Харрика 4, Астэры 3, Мара и Тишан плюс Мелания и Теодор Рейн в усадьбе 4, караульный дом 4, Мирэль 1), в обычных домах 205. Рейны временно в гостевой комнате Яра, пока их дом строится — летопись 017.",
           "ordinary_housing": "Да",
           "source_row": 5,
           "type_or_building_status": "Городской жилфонд"
@@ -5531,10 +5541,10 @@
         {
           "available": "не считать как городской резерв",
           "capacity": "6 спален; предельная вместимость в людях отдельно не фиксировалась",
-          "counted_in_population": "Частично: 2 из 6 жильцов входят в 219",
-          "current_occupants": "6",
+          "counted_in_population": "Частично: 4 из 8 жильцов входят в постоянное население 221",
+          "current_occupants": "8",
           "name": "Усадьба Яра — основной дом",
-          "notes": "Живут Яр, Дафна, Лютобор, Рада, Мара и Тишан. Герои не входят в 219; Мара и Тишан входят в 219, но не занимают обычные городские дома.",
+          "notes": "Яр, Дафна, Лютобор, Рада (не включены в население), Мара, Тишан, Мелания и Теодор Рейн (четверо включены). Рейны временно живут в свободной гостевой комнате до окончания собственного дома, согласно летописи 017. Не считать свободные комнаты усадьбы городским жилым резервом.",
           "ordinary_housing": "Нет",
           "source_row": 9,
           "type_or_building_status": "Дом героев + жилые комнаты Мары и Тишана"
@@ -8269,6 +8279,28 @@
           "status": "Строится — 7 полных дней завершены, идёт 8-й; ~7 дней осталось"
         }
       ],
+      "reconciliation": {
+        "active_resident_records": 221,
+        "comfortable_housing_reserve": 35,
+        "confirmed_population": 221,
+        "maximum_housing_reserve": 95,
+        "nonworking_adults": [
+          "Мелания Рейн",
+          "Теодор Рейн"
+        ],
+        "note": "Не создавать вторую запись населения или доходы от Рейнов при завершении стройки; тогда изменится только их место проживания.",
+        "ordinary_housing_occupants": 205,
+        "separate_resident_occupants": 16,
+        "source_evidence": [
+          "017.txt: прибытие Рейнов на ПМЖ и временное проживание в усадьбе",
+          "Население!232-249: 221 = 219 ранее учтённых + 2 Рейна",
+          "Жильё!5-11: предыдущие 14 отдельно проживающих",
+          "Рабочие точки!5-43: 200 назначенных жителей"
+        ],
+        "staff_assigned": 200,
+        "status": "census_housing_staff_verified",
+        "verified_date": "2026-10-10"
+      },
       "residents": [
         {
           "age": "45",
@@ -11150,6 +11182,32 @@
           "status": "Мигрант границы Г1М7→Г1М8. Редкая магическая профессия выпала случайно; оборудование автоматически не покупалось.",
           "training": "Начало работы с Г1М8",
           "worksite": "Рунная мастерская Хейвенгарда"
+        },
+        {
+          "age_group": "взрослый",
+          "name": "Мелания Рейн",
+          "profession": "не назначена",
+          "qualification": "—",
+          "race": "человек",
+          "residence": "Усадьба Яра — гостевая комната до завершения собственного дома",
+          "source_chronicle": "017.txt",
+          "source_event": "RETURN-HAVENGARD-RELATIONSHIPS-001",
+          "specialization": "не назначена",
+          "status": "Постоянный житель; пока не занят в городских рабочих точках",
+          "worksite": "—"
+        },
+        {
+          "age_group": "взрослый",
+          "name": "Теодор Рейн",
+          "profession": "не назначена",
+          "qualification": "—",
+          "race": "человек",
+          "residence": "Усадьба Яра — гостевая комната до завершения собственного дома",
+          "source_chronicle": "017.txt",
+          "source_event": "RETURN-HAVENGARD-RELATIONSHIPS-001",
+          "specialization": "не назначена",
+          "status": "Постоянный житель; пока не занят в городских рабочих точках",
+          "worksite": "—"
         }
       ],
       "schema_version": 1,
@@ -11157,10 +11215,10 @@
         "kind": "migrated_google_sheet",
         "master_spreadsheet_id": "1lYu1_-4JvXsmyHe1kArcI4YGuhNl8UZoLBNSoJkQxAc",
         "master_title": "Хейвенгард — мастер-книга Г1М8",
-        "note": "Do not restore stale values from snapshot after newer game transactions.",
+        "note": "Городской действующий реестр находится только в state/world.city. Исходные таблицы Г1М8 содержат устаревшие сводные формулы и служат архивным источником.",
         "source_month": "Г1М8",
         "source_snapshot_path": "migrations/city-g1m8-source-2026-10-10.json",
-        "status": "imported_needs_reconciliation"
+        "status": "reconciled_census_housing_staff"
       },
       "training": [
         {
@@ -13764,21 +13822,7 @@
           "worksite": "Рунная мастерская Хейвенгарда"
         }
       ],
-      "unresolved_source_discrepancies": [
-        {
-          "description": "Some spreadsheet narrative summaries still say 219; engine/panel/current finances show 221. Do not silently change or recreate residents.",
-          "engine_value": 221,
-          "key": "city_population"
-        },
-        {
-          "description": "Жильё shows 207 in occupancy cell, while its comment calculates 205 for 219 population; reconcile against roster before using free places.",
-          "key": "housing_ordinary_occupied"
-        },
-        {
-          "description": "Excel personnel counts and employment notes must be checked against active roster; do not create extra workers.",
-          "key": "staff_coverage"
-        }
-      ],
+      "unresolved_source_discrepancies": [],
       "worksites": [
         {
           "equipment": "4 × Отличное+ ×1,30; 4 × Отличное ×1,20; 1 × Обычное ×1,00",

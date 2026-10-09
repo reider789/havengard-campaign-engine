@@ -1,15 +1,14 @@
 {
-  "expected_state_revision": 20,
-  "unique_key": "reconciliation:city-g1m8-census-housing-20261010",
   "event": {
     "id": "RECONCILE-CITY-G1M8-CENSUS-HOUSING-001",
     "summary": "По летописи 017 в реестр включены Мелания и Теодор Рейн; теперь 221 действующих жителей, 205 занятых мест в обычных домах, Рейны временно живут в усадьбе Яра. Сотрудники, финансы, время и боевые ресурсы не менялись.",
     "visibility": "gm"
   },
+  "expected_state_revision": 20,
   "operations": [
     {
-      "type": "set_world_field",
       "field": "city",
+      "type": "set_world_field",
       "value": {
         "active_rule_sources": {
           "authority": "rules/_campaign-rules.json; this text is imported for local access and may need reconciliation",
@@ -6599,6 +6598,28 @@
             "status": "Строится — 7 полных дней завершены, идёт 8-й; ~7 дней осталось"
           }
         ],
+        "reconciliation": {
+          "active_resident_records": 221,
+          "comfortable_housing_reserve": 35,
+          "confirmed_population": 221,
+          "maximum_housing_reserve": 95,
+          "nonworking_adults": [
+            "Мелания Рейн",
+            "Теодор Рейн"
+          ],
+          "note": "Не создавать вторую запись населения или доходы от Рейнов при завершении стройки; тогда изменится только их место проживания.",
+          "ordinary_housing_occupants": 205,
+          "separate_resident_occupants": 16,
+          "source_evidence": [
+            "017.txt: прибытие Рейнов на ПМЖ и временное проживание в усадьбе",
+            "Население!232-249: 221 = 219 ранее учтённых + 2 Рейна",
+            "Жильё!5-11: предыдущие 14 отдельно проживающих",
+            "Рабочие точки!5-43: 200 назначенных жителей"
+          ],
+          "staff_assigned": 200,
+          "status": "census_housing_staff_verified",
+          "verified_date": "2026-10-10"
+        },
         "residents": [
           {
             "age": "45",
@@ -9482,30 +9503,30 @@
             "worksite": "Рунная мастерская Хейвенгарда"
           },
           {
-            "name": "Мелания Рейн",
-            "race": "человек",
             "age_group": "взрослый",
+            "name": "Мелания Рейн",
             "profession": "не назначена",
-            "specialization": "не назначена",
             "qualification": "—",
-            "worksite": "—",
+            "race": "человек",
             "residence": "Усадьба Яра — гостевая комната до завершения собственного дома",
-            "status": "Постоянный житель; пока не занят в городских рабочих точках",
+            "source_chronicle": "017.txt",
             "source_event": "RETURN-HAVENGARD-RELATIONSHIPS-001",
-            "source_chronicle": "017.txt"
+            "specialization": "не назначена",
+            "status": "Постоянный житель; пока не занят в городских рабочих точках",
+            "worksite": "—"
           },
           {
-            "name": "Теодор Рейн",
-            "race": "человек",
             "age_group": "взрослый",
+            "name": "Теодор Рейн",
             "profession": "не назначена",
-            "specialization": "не назначена",
             "qualification": "—",
-            "worksite": "—",
+            "race": "человек",
             "residence": "Усадьба Яра — гостевая комната до завершения собственного дома",
-            "status": "Постоянный житель; пока не занят в городских рабочих точках",
+            "source_chronicle": "017.txt",
             "source_event": "RETURN-HAVENGARD-RELATIONSHIPS-001",
-            "source_chronicle": "017.txt"
+            "specialization": "не назначена",
+            "status": "Постоянный житель; пока не занят в городских рабочих точках",
+            "worksite": "—"
           }
         ],
         "schema_version": 1,
@@ -12905,30 +12926,9 @@
             "status": "I уровень / завершено к началу Г1М8 / действует",
             "type": "Обычная коммерческая"
           }
-        ],
-        "reconciliation": {
-          "status": "census_housing_staff_verified",
-          "verified_date": "2026-10-10",
-          "confirmed_population": 221,
-          "active_resident_records": 221,
-          "nonworking_adults": [
-            "Мелания Рейн",
-            "Теодор Рейн"
-          ],
-          "ordinary_housing_occupants": 205,
-          "separate_resident_occupants": 16,
-          "comfortable_housing_reserve": 35,
-          "maximum_housing_reserve": 95,
-          "staff_assigned": 200,
-          "source_evidence": [
-            "017.txt: прибытие Рейнов на ПМЖ и временное проживание в усадьбе",
-            "Население!232-249: 221 = 219 ранее учтённых + 2 Рейна",
-            "Жильё!5-11: предыдущие 14 отдельно проживающих",
-            "Рабочие точки!5-43: 200 назначенных жителей"
-          ],
-          "note": "Не создавать вторую запись населения или доходы от Рейнов при завершении стройки; тогда изменится только их место проживания."
-        }
+        ]
       }
     }
-  ]
+  ],
+  "unique_key": "reconciliation:city-g1m8-census-housing-20261010"
 }
