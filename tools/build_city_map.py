@@ -54,8 +54,8 @@ def make_data(project: Path = ROOT) -> dict:
     city = world["city"]
     sites = {int(item["id"]): item for item in city["worksites"]}
     houses = {item["name"]: item for item in city["housing"]}
-    if len(layout["objects"]) != 101:
-        raise ValueError("Expected 101 distinct original v3 map objects")
+    if len(layout["objects"]) < 101 or len({o["id"] for o in layout["objects"]}) != len(layout["objects"]):
+        raise ValueError("Map baseline must retain 101 original v3 objects with unique IDs")
     objects = []
     for shape in layout["objects"]:
         item = dict(shape)
@@ -92,22 +92,30 @@ def make_data(project: Path = ROOT) -> dict:
         mark in str(r.get("status", "")).lower() for mark in ("погиб", "умер", "выбыл"))]
     if len(active) != world["city_population"]:
         raise ValueError("City population and live resident roster disagree")
-    if int(house["current_occupants"]) != city["reconciliation"]["ordinary_housing_occupants"]:
-        raise ValueError("Ordinary housing occupancy and reconciliation disagree")
+    # City facts must reconcile with the current census, not with frozen G1M8 figures.
+    from city_registry import validate_city_registry
+    problems = validate_city_registry(state)
+    if problems:
+        raise ValueError("City consistency failed: " + "; ".join(problems))
     target = world["city_food_target_pe"]
     reserve = world["city_food_reserve_pe"]
     if abs((target - reserve) - world["city_food_shortfall_pe"]) > 0.01:
         raise ValueError("Food shortfall does not match authoritative reserve and target")
+    cap_match = re.search(r"\d+", house.get("capacity", ""))
+    if not cap_match:
+        raise ValueError("Ordinary housing comfortable capacity is unknown")
+    month_row = next((r for r in city.get("financial_current_sheet", []) if r.get("source_row") == 6), None)
+    month = str(month_row["cells"][1]) if month_row else str(world.get("date_label", "Не указан"))
     return {
         "schema": "hayvengard.map.snapshot.v1",
         "revision": state["state_revision"],
-        "month": "Г1М8",
+        "month": month,
         "source": "state/_campaign-state.json",
         "objects": objects,
         "saved_positions": authoritative_positions,
         "population": world["city_population"],
         "ordinary_occupied": int(house["current_occupants"]),
-        "comfortable_capacity": 240,
+        "comfortable_capacity": int(cap_match.group(0)),
         "separate_residents": len(active) - int(house["current_occupants"]),
         "treasury_gp": _gps(world["city_treasury_cp"]),
         "food_reserve_pe": _decimal(reserve),
