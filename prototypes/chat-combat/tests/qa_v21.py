@@ -75,6 +75,14 @@ with sync_playwright() as p:
     assert state['units']['yar']['hp']==110
     assert state['units']['enemy_1']['enemyAttack']['count']==2
     assert state['battleName']==sample['name']
+    tamper=json.loads(json.dumps(cp))
+    tamper['session']['scenario']['terrain']['walls']=['99,5']
+    try:
+        page.evaluate(f'(x)=>{api}.load(x)',tamper)
+        raise AssertionError('Tampered scene accepted')
+    except Exception as exc:
+        if 'Tampered scene accepted' in str(exc):raise
+    assert page.evaluate(f'{api}.snapshot().units.yar.hp')==110, 'Bad import mutated the battle'
     assert 'wall' in page.locator('[data-tile="6,1"]').get_attribute('class'), 'Custom wall not loaded'
     page.locator('[data-op="reset"]').click()
     state=page.evaluate(f'{api}.snapshot()')
