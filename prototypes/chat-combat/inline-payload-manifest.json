@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "encoding": "gzip+base64",
+  "engine": "v21",
+  "bytes_original": 272237,
+  "bytes_gzip": 77543,
+  "bytes_base64": 103392,
+  "sha256_original": "e40e9634c7f547752237a37960c2678fb93941a95baa6662924126964bd292b5",
+  "sha256_gzip": "681bde3a9d3f81d294d1aa672f541faa9685d8a38a79e914ecd14b2eafacc07c",
+  "same_as_source": true,
+  "runtime_network_requests": 0
+}
