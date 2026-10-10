@@ -76,7 +76,7 @@ def build(root: Path) -> dict:
     state = json.loads((root / 'state/_campaign-state.json').read_text(encoding='utf-8'))
     old_ref_path = root / 'prototypes/combat/app/runtime/latest.json'
     old_ref = json.loads(old_ref_path.read_text(encoding='utf-8')) if old_ref_path.exists() else {}
-    source_path = root / 'prototypes/chat-combat/engine-v20.html'
+    source_path = root / 'prototypes/chat-combat/engine-v21.html'
     source = source_path.read_text(encoding='utf-8')
     if '<div id="hv12">' not in source or '<script>' not in source:
         raise ValueError('Unknown combat HTML format')
@@ -89,7 +89,7 @@ def build(root: Path) -> dict:
     result = source.replace('<div id="hv12">', '<div id="hv12">\n' + tag, 1)
     output = root / 'prototypes/chat-combat/current-chat-battle.html'
     output.write_text(result, encoding='utf-8')
-    metadata = {'schema_version': 1, 'engine': 'engine-v20.html',
+    metadata = {'schema_version': 1, 'engine': 'engine-v21.html',
                 'bundle': 'current-chat-battle.html',
                 'source_revision': state['state_revision'], 'hero_count': len(runtime['characters']),
                 'usage': 'Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.',
