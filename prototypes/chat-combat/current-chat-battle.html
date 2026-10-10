@@ -851,7 +851,7 @@ function v20ValidatedEnemy(raw){
  if(!raw||typeof raw!=='object')throw Error('Ожидалась карточка противника');
  const name=v20SafeName(raw.name),x=v20Numbers(raw.x,0,10,-1),y=v20Numbers(raw.y,0,7,-1);
  const hp=v20Numbers(raw.hp,1,2000,-1),ac=v20Numbers(raw.ac,1,30,-1),initiative=v20Numbers(raw.initiative,-10,40,0);
- const attack=raw.attack||{},bonus=v20Numbers(attack.bonus,-10,25,4),count=v20Numbers(attack.count,1,12,1),die=v20Numbers(attack.die,4,12,6),flat=v20Numbers(attack.flat,-10,40,2),range=v20Numbers(attack.range,5,600,5);
+ const attack=raw.attack||raw.enemyAttack||{},bonus=v20Numbers(attack.bonus,-10,25,4),count=v20Numbers(attack.count,1,12,1),die=v20Numbers(attack.die,4,12,6),flat=v20Numbers(attack.flat,-10,40,2),range=v20Numbers(attack.range,5,600,5);
  if(!name||x===-1||y===-1||hp===-1||ac===-1||![4,6,8,10,12].includes(die)||range%5!==0)throw Error('Проверь имя, клетку, ПЗ, КД и параметры атаки');
  const sav=raw.saves||{},saves={};for(const stat of ['STR','DEX','CON','INT','WIS','CHA'])saves[stat]=v20Numbers(sav[stat],-10,25,0);
  return {name,x,y,hp,ac,initiative,enemyAttack:{bonus,count,die,flat,range},enemySaves:saves,initiativeRoll:initiative,abilities:Array.isArray(raw.abilities)?raw.abilities.map(v=>v20SafeName(v)).filter(Boolean).slice(0,12):[]};
@@ -969,6 +969,16 @@ hostSave=function(){try{const r=v20BeforeHostSave();return r}catch(err){return f
 if(globalThis.__HV_ENABLE_TEST_APIS===true){
  Object.assign(globalThis.__HV_TEST_API,{addEnemy:v20AddEnemy,checkpoint:v20CreateCheckpoint,load:v20LoadSession,validate:v20ValidateSession,resume:()=>v19AdvanceSpellStack()});
 }
+// Every state change is checkpointed to the host when available; this also catches movement steps,
+// target selection, phase changes, and interrupted reactions that older versions did not always save.
+// Avoid sending redundant host updates when only the UI redraws.
+let v20LastSavedSnapshot='';
+const v20Draw=render;
+render=function(){
+ v20Draw();
+ let signature='';try{signature=JSON.stringify(s)}catch(e){return}
+ if(signature!==v20LastSavedSnapshot){v20LastSavedSnapshot=signature;hostSave()}
+};
 // Preserve original initial demo (Daphne's first turn); no simulated combat is committed to campaign.
 render();
 
