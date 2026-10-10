@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "description": "Per-character effects inspector for combat UI. Read-only card selection independent from initiative, action target and ongoing draft. Explicit Bless targeting and disclosure.",
+  "ui_state": {
+    "inspected_character": "independent",
+    "acting_character": "initiative_pointer",
+    "target_character": "separate",
+    "draft_targets": "confirmed on cast"
+  },
+  "bless": {
+    "cast_target_count": 3,
+    "within_ft_at_cast": 30,
+    "bonus": "1d4 to attack rolls and saving throws; not damage, AC or checks",
+    "duration": "1 minute / 10 rounds",
+    "concentration": true,
+    "range_after_cast": "no continued proximity requirement",
+    "tracked_fields": [
+      "owner",
+      "targets",
+      "start_turn",
+      "expire_boundary",
+      "concentration_status"
+    ],
+    "visibility": [
+      "buff on target card",
+      "concentration and target list on caster card",
+      "map icon",
+      "detailed bonus in attack and saving throw log"
+    ]
+  },
+  "panel_groups": [
+    "active effects received",
+    "passives currently in force",
+    "reactions and resources"
+  ],
+  "notes": [
+    "Casting Bless never changes selected inspector automatically unless player opts for it.",
+    "This is UI design metadata, not canonical battle state or complete implementation."
+  ]
+}
