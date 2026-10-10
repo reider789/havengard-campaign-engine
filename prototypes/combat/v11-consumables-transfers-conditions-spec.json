@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "noncanonical": true,
+  "source_state_revision": 27,
+  "source_inventory": "prototypes/combat/inventory-interactions-g1m8-v1.json",
+  "visualization_prototype": "Havengard V11 in-chat interaction",
+  "changes": {
+    "removed": [
+      "between-scenes mode",
+      "armor don/doff buttons",
+      "defense test laboratory"
+    ],
+    "kept": [
+      "11x8 combat grid",
+      "hero inspector",
+      "movement preview and cell-wise movement",
+      "attack, basic spells and reaction choices",
+      "full abilities reference list"
+    ],
+    "added": [
+      "consume potion with explicit target, resource and effect",
+      "transfer one consumable between adjacent heroes, one free interaction per turn, next uses action",
+      "switch owned weapon without stand-alone action",
+      "smoke-cloud 10-ft-radius cell overlay lasting 1 min",
+      "burning and toxin badges on tokens",
+      "extinguish fire using action, enemy decides to put out flames",
+      "automatic burning 1d4 fire at start of affected actor turn",
+      "toxic poison hit causes no reactions until start of next turn",
+      "no automatic canonical save"
+    ]
+  },
+  "smoke_bomb": {
+    "source": "campaign inventory descriptions contain no exact mechanics",
+    "status": "PROPOSED_PLAYTEST_NOT_CANON",
+    "radius_ft": 10,
+    "throw_range_ft": 30,
+    "duration_rounds": 10,
+    "obscuration": "heavily obscured",
+    "wind": "DM can disperse",
+    "combat_cost": "1 main action",
+    "affects_visibility_in_v11": true
+  },
+  "acid": {
+    "target": "one creature or object",
+    "range_ft": 20,
+    "damage": "2d6 acid on failed DEX save",
+    "aoe_radius_ft": 0,
+    "cost": "replaces one Attack action attack"
+  },
+  "alchemists_fire": {
+    "target": "one creature or object",
+    "range_ft": 20,
+    "damage": "1d4 fire and burning on failed DEX save",
+    "aoe_radius_ft": 0,
+    "burning": "1d4 fire at beginning of afflicted creature's turn, action to roll prone and extinguish, dousing also allowed"
+  },
+  "fast_predator_poison": {
+    "campaign_rule": "CON DC14, 2d6 poison on fail, half on success, suppress reactions on fail until start of victim next turn",
+    "note": "suppressed reactions is not the Poisoned condition"
+  },
+  "inventory_transfer": {
+    "range_ft": 5,
+    "qty_per_interaction": 1,
+    "source_owner": "acting hero",
+    "recipient": "adjacent hero",
+    "confirmation_required": true,
+    "resource_cost": "first object interaction free, additional one requires action",
+    "transaction": "atomic decrement giver, increment recipient, journal",
+    "scope": "consumables; weapon and magic item transfers queued for validation"
+  },
+  "qa": {
+    "js_syntax": "pass",
+    "headless_chromium": [
+      "renders 88 tiles",
+      "renders five right-hand tabs",
+      "Daphne->Yar transfers one healing potion",
+      "smoke cloud appears on tactical cells",
+      "inspector selection leaves current actor unchanged",
+      "movement does not remove action and end-turn controls",
+      "Rada alchemist fire applies burning on failed save",
+      "weapon switch Yar sword->storm preserves main action"
+    ],
+    "known_gaps": [
+      "This is a prototype and not a full D&D 2024 combat rules implementation.",
+      "Turn-timing and concentrations need exact initiative-boundary tracking.",
+      "Proposed smoke characteristics require explicit approval to become canonical.",
+      "Potion of Speed, growth, flare/trap remain manual/blocked to avoid incorrect resource spends.",
+      "Other consumables with only partially simulated benefits require audit.",
+      "Other abilities from the character registry still need handlers and regression tests.",
+      "Weapon swapping currently treats listed owned weapons as immediately selectable; carrying / stowing hands still needs detailed implementation.",
+      "A full integration with the previous v10 action list remains incomplete."
+    ]
+  }
+}
