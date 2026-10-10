@@ -1,0 +1,35 @@
+name: Package offline ChatGPT combat payload
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'prototypes/chat-combat/current-chat-battle.html'
+      - 'prototypes/chat-combat/build_inline_payload.py'
+      - '.github/workflows/inline-chat-bundle.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: offline-combat-payload
+  cancel-in-progress: false
+jobs:
+  encode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compress and verify complete inline bundle
+        run: python prototypes/chat-combat/build_inline_payload.py
+      - name: Commit offline payload
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add prototypes/chat-combat/current-chat-battle.gzip.b64 prototypes/chat-combat/inline-payload-manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'build(chat-combat): refresh offline inline payload [skip ci]'
+            git -c pull.rebase=true pull --rebase origin main
+            git push origin HEAD:main
+          fi
