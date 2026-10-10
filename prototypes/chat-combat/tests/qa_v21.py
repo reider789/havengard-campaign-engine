@@ -82,6 +82,18 @@ with sync_playwright() as p:
     assert state.get('battleName') is None
     assert 'wall' not in page.locator('[data-tile="6,1"]').get_attribute('class'), 'Custom terrain leaked into reset'
     assert 'wall' in page.locator('[data-tile="5,2"]').get_attribute('class'), 'Original terrain lost'
+    # Maximum supported enemy roster: skipping dead enemies must cross to round 2.
+    extra=json.loads(json.dumps(sample))
+    extra['name']='Большое сражение'
+    reserved={'E6','B7','D6','C6','G2','F4'}
+    cells=[chr(ord('A')+x)+str(y) for y in range(1,9) for x in range(11)
+           if chr(ord('A')+x)+str(y) not in reserved]
+    extra['enemies']=[dict(sample['enemies'][0],name='Враг '+str(i+1),cell=cells[i]) for i in range(20)]
+    page.evaluate(f'(d)=>{api}.newScenario(d)',extra)
+    page.evaluate(f'{api}.set(s=>{{s.index=3;for(const id of Object.keys(s.units))if(id.startsWith("enemy_"))s.units[id].hp=0;}})')
+    page.evaluate(f'{api}.advance()')
+    long_round=page.evaluate(f'{api}.snapshot()')
+    assert long_round['round']==2 and long_round['index']==0, 'Dead enemy turns interrupted round transition'
     assert not errors, errors
     print('V21 PACKAGED CHAT ENGINE QA PASSED')
     browser.close()
