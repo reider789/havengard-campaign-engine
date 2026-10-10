@@ -14,7 +14,7 @@ class ChatBundleTest(unittest.TestCase):
             root=Path(work)
             (root/'state').mkdir()
             (root/'prototypes/chat-combat').mkdir(parents=True)
-            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v20.html',root/'prototypes/chat-combat/engine-v20.html')
+            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v21.html',root/'prototypes/chat-combat/engine-v21.html')
             state={'state_revision':38,'characters':{}}
             for h in ('yar','daphne','lyutobor','rada'):
                 state['characters'][h]={
