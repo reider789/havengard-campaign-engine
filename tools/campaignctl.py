@@ -15,7 +15,7 @@ from campaign_model import (current_fact, integer, normalize_resource, player_vi
                             transaction_hash, validate_v2)
 from sync_time_dependent_state import synchronize
 from city_registry import apply_city_operation, validate_city_registry
-from character_catalog import validate_character_catalogs
+from character_catalog import validate_character_catalogs, validate_known_ammunition, sync_ammunition_catalog
 from knowledgegraph import validate_graph, render_scene_slice
 
 SCHEMA_VERSION = 2
@@ -123,6 +123,7 @@ def validate_state(state: dict[str, Any]) -> list[str]:
     errors.extend(validate_v2(state))
     errors.extend(validate_city_registry(state))
     errors.extend(validate_character_catalogs(state))
+    errors.extend(validate_known_ammunition(state))
     if state.get("schema_version") == 2:
         errors.extend(validate_graph(state, state.get("knowledge_graph", {})))
     return errors
@@ -432,6 +433,8 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any], event: dict | Non
             value = value[str(op["level"])]
         if isinstance(value, dict):
             value["current"] += op["delta"]
+            if key == "arrows":
+                sync_ammunition_catalog(state, op["id"], key)
         elif key.endswith("_money_cp"):
             resources[key] += op["delta"]
         else:
@@ -474,6 +477,8 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any], event: dict | Non
             if old_caps != new_caps and not op.get("capacity_reason"):
                 raise CampaignError("Изменение максимума требует capacity_reason с основанием")
         state["characters"][cid].setdefault("resources", {})[key] = value
+        if key == "arrows":
+            sync_ammunition_catalog(state, cid, key)
     elif t == "remove_character_item":
         cid = op["id"]
         item = op["item"]
@@ -483,6 +488,33 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any], event: dict | Non
         if item not in inv:
             raise CampaignError(f"{item} отсутствует у {cid}")
         inv.remove(item)
+        state["characters"][cid].get("inventory_catalog", {}).pop(item, None)
+    elif t == "adjust_item_quantity":
+        cid, item_id, delta = op["id"], op["item"], op.get("delta")
+        if cid not in state["characters"]:
+            raise CampaignError(f"неизвестный персонаж {cid}")
+        if not integer(delta) or delta == 0:
+            raise CampaignError("adjust_item_quantity: требуется ненулевое целое delta")
+        char = state["characters"][cid]
+        if item_id not in char.get("inventory", []):
+            raise CampaignError("Предмет отсутствует у персонажа")
+        record = char.get("inventory_catalog", {}).get(item_id)
+        if not isinstance(record, dict) or not integer(record.get("quantity")):
+            raise CampaignError("Количество предмета неизвестно, списывать нельзя")
+        amount = record["quantity"] + delta
+        if amount < 0:
+            raise CampaignError("Недостаточно предметов для списания")
+        if record.get("name") == "Стрелы" and "arrows" in char.get("resources", {}):
+            arrow_resource = char["resources"]["arrows"]
+            if amount > arrow_resource["max"]:
+                raise CampaignError("Количество стрел превысит максимум")
+            arrow_resource["current"] = amount
+            sync_ammunition_catalog(state, cid, "arrows")
+        elif amount == 0:
+            char["inventory"].remove(item_id)
+            del char["inventory_catalog"][item_id]
+        else:
+            record["quantity"] = amount
     elif t == "set_knowledge_status":
         kid = op["id"]
         if kid not in state["knowledge"]:
