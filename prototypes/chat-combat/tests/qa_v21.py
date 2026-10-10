@@ -49,7 +49,10 @@ with sync_playwright() as p:
         if 'were accepted' in str(exc):raise
     assert page.evaluate(f'{api}.snapshot().units.guard.hp')==28
     # Fully new encounter: arbitrary opponent and custom terrain, with correct initiative.
-    page.evaluate(f'(d)=>{api}.newScenario(d)',sample)
+    page.locator('[data-v21-new]').click()
+    assert page.locator('#v21json').count()==1
+    page.locator('#v21json').fill(json.dumps(sample,ensure_ascii=False))
+    page.locator('[data-v21-create]').click()
     state=page.evaluate(f'{api}.snapshot()')
     assert state['battleName']==sample['name']
     assert state['units']['guard']['hp']==0 and state['units']['archer']['hp']==0
