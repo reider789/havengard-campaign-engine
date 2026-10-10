@@ -1,0 +1,2605 @@
+{
+  "schema_version": 1,
+  "name": "Havengard Character Capability Registry - source inventory",
+  "purpose": "Non-canonical, source-indexed source of ALL known character features, spells, attacks and held items for future in-chat battle UI. These entries are an inventory, not a fully implemented rules engine.",
+  "source_priority": [
+    "latest_confirmed_player_decision",
+    "latest_confirmed_played_event",
+    "state/_campaign-state.json dynamic resources and status",
+    "character source snapshots immutable for reconciliation",
+    "rules/_campaign-rules.json and applicable campaign modules"
+  ],
+  "source_commit_shas": {
+    "state/_campaign-state.json": "2e6ff8b1b114009fe54cc81452f533c032955bfa",
+    "rules/_campaign-rules.json": "94f805945855075aa5e54018d6e83f19c322561d",
+    "migrations/character-g1m8-yar-source-2026-10-10.json": "ae21c0c18a1480e1ad34d8e3c16b7bfaa820318e",
+    "migrations/character-g1m8-daphne-source-2026-10-10.json": "6821e6287a5cdc2a796d52757d09acf6343f1153",
+    "migrations/character-g1m8-lyutobor-source-2026-10-10.json": "767f4a72b5a8e4732db3db2b4f261a799e8b5b8c",
+    "migrations/character-g1m8-rada-source-2026-10-10.json": "081eca74f56ca451ea3e67896d3a7dda09eff208"
+  },
+  "state_revision": 27,
+  "campaign_combat_policy": {
+    "rules": [
+      "В бою игрок управляет Яром, Лютобором, Дафной и Радой; ведущий управляет врагами, окружением и последствиями.",
+      "Настоящий бой вести по инициативе и не пропускать ходы; несколько полноценных ходов подряд допустимы только при механическом основании.",
+      "Перед ходом каждого персонажа игрока останавливаться и давать минимальный тактический брифинг: дистанции, существенные статусы/укрытия и важный рельеф.",
+      "Не выбирать за персонажей игрока атаки, заклинания, движение и необязательные реакции.",
+      "Автоматические пассивные эффекты учитывать автоматически; авто-Щит Дафны действует по закреплённому правилу.",
+      "Честно вести HP, AC, концентрацию, реакции, ячейки, боеприпасы, состояния и расход ресурсов; состояние после боя переносится дальше, пока не восстановлено правилом.",
+      "Тактика и окружение должны иметь реальное значение; разумные враги действуют по своим целям и доступной информации.",
+      "Опасность и смерть реальны; не давать сюжетную броню, но и не создавать смертельность искусственно ради шока.",
+      "Обычные зоны используют монстров/ловушки, опасные — элит/мини-боссов, крупные данжи/ветки — полноценного босса с фазами или легендарными возможностями, когда это уместно."
+    ]
+  },
+  "party_combat_controls": {
+    "assistant_must_not_choose_optional_party_actions": true,
+    "automatic_defensive_reactions": {
+      "daphne_shield": {
+        "always_prepared": true,
+        "automatic": true,
+        "effect_note": "+5 КД действует до начала следующего хода Дафны, поэтому не применять повторно, пока текущий «Щит» ещё действует.",
+        "exception": "Не применять автоматически, если реакция уже потрачена или эффект заведомо не изменит попадание на промах.",
+        "free_cast_recovery": "long_rest",
+        "priority": [
+          "free_cast_1_per_long_rest",
+          "lowest_available_spell_slot"
+        ],
+        "source": "Magic Initiate",
+        "trigger": "Когда Дафна становится целью атаки, которая попала бы по её текущему КД, и +5 КД от «Щита» превратит это попадание в промах, при доступной реакции автоматически применить «Щит»."
+      }
+    },
+    "automatic_passives_are_checked_automatically": true,
+    "gm_controls": [
+      "enemies",
+      "environment",
+      "npc_reactions",
+      "consequences"
+    ],
+    "optional_reactions_require_player_choice": true,
+    "party_controlled_by_player": [
+      "yar",
+      "lyutobor",
+      "daphne",
+      "rada"
+    ],
+    "stop_before_each_player_character_turn": true,
+    "turn_briefing": {
+      "default_hide": [
+        "ally_positions",
+        "obvious_movement_commentary",
+        "opportunity_attack_explanations_unless_material_or_asked"
+      ],
+      "default_show": [
+        "visible_enemy_distances",
+        "enemy_cover_or_key_status",
+        "major_terrain_obstacles_if_relevant"
+      ],
+      "principle": "Давать минимальную тактическую информацию, достаточную игроку для выбора действия; детали по запросу."
+    }
+  },
+  "execution_contract": {
+    "passive": "Apply without prompts if eligibility is established and mechanically mandatory.",
+    "automatic_conditional": "Apply automatically only if the campaign policy says automatic (e.g. Daphne Shield).",
+    "optional": "Pause at exact trigger, show all eligible options, do not act before player choice.",
+    "persistent": "Keep exact turn boundary and duration, check concentration and movement-based aura eligibility.",
+    "unimplemented": "Listed in the all-abilities panel but not executable until rules handler is built and tested; do not silently consume resources.",
+    "core_actions": "Include D&D common actions, opportunity attacks, free interactions, movement, reactions and special rulings in a separate shared rules library."
+  },
+  "timing_hooks": [
+    "turn_start",
+    "on_movement_cell_enter",
+    "on_leaving_reach",
+    "attack_declared",
+    "before_attack_roll",
+    "after_attack_roll_before_hit_final",
+    "on_attack_miss",
+    "on_attack_hit_before_damage",
+    "on_saving_throw_roll",
+    "on_failed_saving_throw",
+    "before_damage_applied",
+    "after_damage_reduction",
+    "on_damage_taken",
+    "after_damage_taken",
+    "after_healing",
+    "after_second_wind",
+    "turn_end",
+    "effect_duration_boundary",
+    "concentration_end"
+  ],
+  "trigger_examples": [
+    {
+      "id": "yar.tactical_shift",
+      "owner": "yar",
+      "trigger": "after_second_wind",
+      "mode": "prompt_optional",
+      "consumes": "no_additional_resource",
+      "effect": "move_up_to_15_ft_no_opportunity_attacks",
+      "source": "yar-source-row-28"
+    },
+    {
+      "id": "yar.precision_attack",
+      "owner": "yar",
+      "trigger": "after_failed_weapon_attack_roll",
+      "mode": "prompt_optional",
+      "consumes": "superiority_die_d10",
+      "source": "yar-source-row-32"
+    },
+    {
+      "id": "yar.riposte",
+      "owner": "yar",
+      "trigger": "after_enemy_misses_melee_attack_on_yar",
+      "mode": "prompt_optional",
+      "consumes": "reaction_and_superiority_die_d10",
+      "source": "yar-source-row-34"
+    },
+    {
+      "id": "yar.vaeltir_cloak",
+      "owner": "yar",
+      "trigger": "after_attack_hits_yar_before_damage",
+      "mode": "prompt_optional",
+      "consumes": "reaction_and_cloak_charge",
+      "effect": "plus_3_ac_against_triggering_attack",
+      "source": "yar-source-row-61"
+    },
+    {
+      "id": "yar.root_ring_transfer",
+      "owner": "yar",
+      "trigger": "after_damage_reduction_daphne_per_damage_instance",
+      "mode": "automatic_if_eligible",
+      "effect": "transfer_floor_of_50_75_or_100_percent_according_to_d6_without_secondary_reduction",
+      "source": "yar-source-row-60"
+    },
+    {
+      "id": "daphne.magic_initiate_shield",
+      "owner": "daphne",
+      "trigger": "on_incoming_attack_hit_that_plus_5_ac_would_prevent",
+      "mode": "automatic_if_eligible",
+      "consumes": "reaction_and_free_cast_or_lowest_available_spell_slot",
+      "effect": "plus_5_ac_until_start_of_next_turn",
+      "source": "state.play_rules.combat_control.automatic_defensive_reactions.daphne_shield"
+    },
+    {
+      "id": "daphne.sculpt_spells",
+      "owner": "daphne",
+      "trigger": "when_evocation_spell_save_area_is_confirmed",
+      "mode": "player_selects_allies",
+      "effect": "eligible_allies_auto_succeed_and_take_zero_half_on_save_damage",
+      "source": "daphne-source-row-32"
+    },
+    {
+      "id": "lyutobor.protection",
+      "owner": "lyutobor",
+      "trigger": "before_attack_roll_against_adjacent_ally",
+      "mode": "prompt_optional",
+      "consumes": "reaction",
+      "source": "lyutobor-source-row-29"
+    },
+    {
+      "id": "lyutobor.shield_mark",
+      "owner": "lyutobor",
+      "trigger": "on_critical_hit_against_visible_ally_within_30_ft",
+      "mode": "prompt_optional",
+      "consumes": "reaction_and_shield_mark_charge",
+      "effect": "critical_becomes_normal_hit",
+      "source": "lyutobor-source-row-30"
+    },
+    {
+      "id": "lyutobor.aura_of_protection",
+      "owner": "lyutobor",
+      "trigger": "on_saving_throw_in_aura_10_ft",
+      "mode": "automatic_passive",
+      "effect": "plus_2_all_saving_throws",
+      "source": "lyutobor-source-row-25"
+    },
+    {
+      "id": "lyutobor.shield_save_bonus",
+      "owner": "lyutobor",
+      "trigger": "on_ally_saving_throw_within_5_ft",
+      "mode": "automatic_passive",
+      "effect": "plus_1_saving_throws",
+      "source": "lyutobor-source-row-30"
+    },
+    {
+      "id": "lyutobor.shield_master",
+      "owner": "lyutobor",
+      "trigger": "after_successful_melee_weapon_attack_on_own_turn",
+      "mode": "prompt_optional",
+      "source": "lyutobor-source-row-35"
+    },
+    {
+      "id": "rada.uncanny_dodge",
+      "owner": "rada",
+      "trigger": "on_hit_by_attack_from_visible_attacker",
+      "mode": "prompt_optional",
+      "consumes": "reaction",
+      "effect": "halve_attack_damage",
+      "source": "rada-source-row-30"
+    },
+    {
+      "id": "rada.evasion",
+      "owner": "rada",
+      "trigger": "on_dex_save_for_half_damage",
+      "mode": "automatic_passive",
+      "effect": "0_on_success_half_on_failure",
+      "source": "rada-source-row-31"
+    },
+    {
+      "id": "rada.sneak_attack",
+      "owner": "rada",
+      "trigger": "on_qualifying_weapon_hit_once_per_turn",
+      "mode": "prompt_optional",
+      "effect": "plus_5d6_or_cunning_strike",
+      "source": "rada-source-row-26"
+    },
+    {
+      "id": "rada.cunning_strike",
+      "owner": "rada",
+      "trigger": "after_qualifying_sneak_attack_hit_before_damage",
+      "mode": "prompt_optional",
+      "effect": "trade_sneak_attack_dice_for_effect",
+      "source": "rada-source-row-27"
+    },
+    {
+      "id": "rada.leaf_step",
+      "owner": "rada",
+      "trigger": "after_hit_with_last_leaf_bow_on_own_turn",
+      "mode": "prompt_optional",
+      "consumes": "leaf_step_use_and_available_movement",
+      "source": "rada-source-row-60"
+    },
+    {
+      "id": "rada.living_arrow",
+      "owner": "rada",
+      "trigger": "after_hit_with_last_leaf_bow",
+      "mode": "prompt_optional",
+      "consumes": "living_arrow_use",
+      "source": "rada-source-row-60"
+    }
+  ],
+  "characters": {
+    "yar": {
+      "name": "Яр",
+      "level": 10,
+      "class_and_level": "Воин 10 / Мастер боевых приёмов • Градодержатель Хейвенгарда",
+      "status": "здоров",
+      "stats": {
+        "ИНТ": "8 (-1)",
+        "ЛОВ": "12 (+1)",
+        "МДР": "13 (+1)",
+        "СИЛ": "20 (+5)",
+        "ТЕЛ": "17 (+3)",
+        "ХАР": "8 (-1)"
+      },
+      "armor_class": "11 сейчас без лат; 14 против одной атаки реакцией Плаща. В полном боевом комплекте 19 / 22, пока Кольцо Защиты не настроено.",
+      "initiative": "+1",
+      "speed": "30 фт",
+      "resources": {
+        "action_surge": {
+          "current": 1,
+          "max": 1
+        },
+        "hp": {
+          "current": 114,
+          "max": 114
+        },
+        "personal_money_cp": 1870389,
+        "storm_thrower_ammo": {
+          "current": 20,
+          "max": 28
+        }
+      },
+      "state_features": [],
+      "attacks": [
+        {
+          "source_row": 16,
+          "category": "attack",
+          "columns": [
+            "Меч Меткого Удара",
+            "+12",
+            "2d6+6",
+            "Основное оружие. В Attack action с GWM: 2d6+10. Graze: при промахе 5 рубящего, это не попадание.",
+            null,
+            "Атлетика",
+            "+9",
+            "Лазание, прыжки, силовые действия, удержание/прорыв, толчки и борьба."
+          ]
+        },
+        {
+          "source_row": 17,
+          "category": "attack",
+          "columns": [
+            "Hew",
+            "+12",
+            "2d6+6",
+            "После крита или сведения врага к 0 HP — бонусная атака. В кампании бонус урона GWM к этой бонусной атаке не добавляется.",
+            null,
+            "Акробатика",
+            "+5",
+            "Баланс, сложные перемещения, удержаться на ногах и другие задачи на ловкость тела."
+          ]
+        },
+        {
+          "source_row": 18,
+          "category": "attack",
+          "columns": [
+            "Грозовой метатель",
+            "+8",
+            "2d8+2 молнией",
+            "90/240 фт; 9 рабочих накопителей; текущий боезапас 22/28. Длительный отдых боеприпасы не восстанавливает.",
+            null,
+            "Восприятие",
+            "+5",
+            "Замечать скрытых врагов, ловушки, следы движения и детали окружения."
+          ]
+        },
+        {
+          "source_row": 19,
+          "category": "attack",
+          "columns": [
+            "Молот Великой Кузни",
+            "+9",
+            "2d6+5",
+            "Вторичное Heavy-оружие; GWM в Attack action: 2d6+9. Магические свойства требуют настройки.",
+            null,
+            "Проницательность",
+            "+5",
+            "Считывать намерения, эмоции, ложь и сомнения собеседника."
+          ]
+        }
+      ],
+      "class_species_feats": [
+        {
+          "source_row": 25,
+          "category": "feature",
+          "columns": [
+            "Extra Attack",
+            null,
+            "Действием Attack делаешь 2 атаки. С Action Surge обычно получаешь ещё одно действие Attack и ещё 2 атаки."
+          ]
+        },
+        {
+          "source_row": 26,
+          "category": "feature",
+          "columns": [
+            "Second Wind — 4/4",
+            null,
+            "Бонусное действие: лечение 1d10+10. Этот же ресурс питает Tactical Mind. Короткий отдых возвращает 1 использование; долгий — все."
+          ]
+        },
+        {
+          "source_row": 27,
+          "category": "feature",
+          "columns": [
+            "Tactical Mind",
+            null,
+            "После проваленной проверки характеристики можешь потратить Second Wind и добавить 1d10 к проверке. Это помогает вытянуть важную силовую, тактическую или социальную проверку. Если проверка всё ещё не успешна, использование Second Wind не расходуется."
+          ]
+        },
+        {
+          "source_row": 28,
+          "category": "feature",
+          "columns": [
+            "Tactical Shift",
+            null,
+            "Сразу после Second Wind можешь переместиться до половины скорости — 15 фт — без провоцирования атак по возможности."
+          ]
+        },
+        {
+          "source_row": 29,
+          "category": "feature",
+          "columns": [
+            "Action Surge — 1/1",
+            null,
+            "Получаешь дополнительное действие в свой ход. Для Яра чаще всего это ещё одно Attack = ещё 2 атаки. В версии 2024 дополнительным действием нельзя выполнить действие Магия. Восстановление — короткий или длительный отдых."
+          ]
+        },
+        {
+          "source_row": 30,
+          "category": "feature",
+          "columns": [
+            "Know Your Enemy",
+            null,
+            "Бонусным действием изучи видимое существо в пределах 30 фт и узнай его иммунитеты, сопротивления и уязвимости к типам урона. Особенно полезно перед расходом сильной магии и редких боеприпасов."
+          ]
+        },
+        {
+          "source_row": 31,
+          "category": "feature",
+          "columns": [
+            "Кости превосходства — 5/5 к10",
+            null,
+            "5/5 костей к10; СЛ манёвров 17. Все потраченные кости восстанавливаются после короткого или длительного отдыха."
+          ]
+        },
+        {
+          "source_row": 32,
+          "category": "feature",
+          "columns": [
+            "Precision Attack",
+            null,
+            "После неудачной атаки потрать к10 и добавь его к броску атаки. Лучший выбор, когда важное попадание промахнулось совсем немного."
+          ]
+        },
+        {
+          "source_row": 33,
+          "category": "feature",
+          "columns": [
+            "Trip Attack",
+            null,
+            "После попадания добавь к10 к урону; цель Большого размера или меньше делает спасбросок СИЛ СЛ17, при провале падает ничком."
+          ]
+        },
+        {
+          "source_row": 34,
+          "category": "feature",
+          "columns": [
+            "Riposte",
+            null,
+            "Когда существо промахивается по Яру рукопашной атакой, реакцией потрать к10 и сделай ответную рукопашную атаку; при попадании добавь к10 к урону. Конкурирует за реакцию с Проводящим плащом."
+          ]
+        },
+        {
+          "source_row": 35,
+          "category": "feature",
+          "columns": [
+            "Maneuvering Attack",
+            null,
+            "После попадания добавь к10 к урону и выбери союзника, который тебя видит или слышит: он может реакцией переместиться до половины скорости, не провоцируя атаку по возможности от поражённой цели."
+          ]
+        },
+        {
+          "source_row": 36,
+          "category": "feature",
+          "columns": [
+            "Pushing Attack",
+            null,
+            "После попадания добавь к10 к урону; цель Большого размера или меньше делает спасбросок СИЛ СЛ17, при провале отбрасывается до 15 фт."
+          ]
+        },
+        {
+          "source_row": 37,
+          "category": "feature",
+          "columns": [
+            "Провоцирующая атака",
+            null,
+            "После попадания добавь к10 к урону. Цель делает спасбросок МДР СЛ17; при провале до конца следующего хода Яра получает помеху на атаки по всем существам, кроме Яра."
+          ]
+        },
+        {
+          "source_row": 38,
+          "category": "feature",
+          "columns": [
+            "Приманка и смена",
+            null,
+            "Потрать к10 и поменяйся местами с согласным союзником в пределах 5 фт, если ни один из вас не недееспособен. Перемещение не провоцирует атаки по возможности. Затем добавь результат к10 к КД Яра или союзника до начала следующего хода Яра."
+          ]
+        },
+        {
+          "source_row": 39,
+          "category": "feature",
+          "columns": [
+            "Боевые черты",
+            null,
+            "Great Weapon Fighting: 1–2 на кубах урона двуручного оружия считаются 3. Great Weapon Master: +4 урона подходящему тяжёлому попаданию в действие Атака; бонусная атака после крита/добивания остаётся без +4 по правилу кампании. Savage Attacker: раз за ход брось кости урона оружия дважды и возьми лучший результат. Мастер тяжёлых доспехов: в тяжёлом доспехе подходящий дробящий, колющий и рубящий урон от атак уменьшается на PB = 4 за попадание. Крепкий: +2 максимальных ПЗ за каждый уровень; на 10 уровне даёт суммарно +20 ПЗ и уже учтён в максимуме 114."
+          ]
+        },
+        {
+          "source_row": 40,
+          "category": "feature",
+          "columns": [
+            "Молот Великой Кузни",
+            null,
+            "Кузнечный резонанс: 3 заряда/долгий отдых; после попадания +1d8 громом, СИЛ СЛ17; при провале — толчок 10 фт ИЛИ без реакций до начала следующего хода Яра. Разбивающий удар удваивает урон оружия по предметам и конструкциям."
+          ]
+        },
+        {
+          "source_row": 41,
+          "category": "feature",
+          "columns": [
+            "Несгибаемость — 1/1",
+            null,
+            "Когда Яр ПРОВАЛИЛ спасбросок, можно сразу перебросить d20 и добавить к новому броску +10 (уровень воина). Новый результат обязателен. 1 применение, восстанавливается после длительного отдыха."
+          ]
+        },
+        {
+          "source_row": 42,
+          "category": "feature",
+          "columns": [
+            "Тактическое мастерство",
+            null,
+            "Для КАЖДОЙ атаки оружием, мастерством которого Яр владеет, можно вместо обычного свойства оружия выбрать одно из трёх: ТОЛЧОК — при попадании оттолкнуть цель Большого размера или меньше до 10 фт прямо от Яра; ОСЛАБЛЕНИЕ — после попадания следующая атака цели до начала следующего хода Яра совершается с помехой; ЗАМЕДЛЕНИЕ — при попадании и нанесении урона скорость цели уменьшается на 10 фт до начала следующего хода Яра. Выбранное свойство заменяет обычное мастерство только для этой атаки."
+          ]
+        }
+      ],
+      "spell_reference": [],
+      "spell_preparation_note": null,
+      "items": [
+        {
+          "catalog_key": "bandit_consumables_001",
+          "description": "Состав уже включён в записи конкретных расходников: повторно не прибавлять к ним.",
+          "kind": "historical_bundle_reference",
+          "name": "Ссылка на пакет расходников Серых Псов",
+          "quantity": null
+        },
+        {
+          "catalog_key": "storm_thrower",
+          "description": "Магико-техническое дальнобойное оружие; +8, 2d8+2 молнией, 90/240 фт; 9 накопителей; текущий боезапас 20/28.",
+          "name": "Грозовой метатель",
+          "quantity": 1,
+          "source_sheet_row": 50,
+          "source_snapshot": "Яр",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "yar-bandit-Дымовая бомба",
+          "description": " | Один экземпляр из добычи.",
+          "name": "Дымовая бомба",
+          "quantity": 1,
+          "source_sheet_row": null,
+          "status": "При Яре"
+        },
+        {
+          "catalog_key": "yar-bandit-Обычное лечебное зелье",
+          "description": " | Три удержанных после разгрома Серых Псов; предыдущие два израсходованы в Астрале.",
+          "name": "Обычное лечебное зелье",
+          "quantity": 3,
+          "source_sheet_row": null,
+          "status": "При Яре"
+        },
+        {
+          "catalog_key": "yar-source-row-45",
+          "description": "Магический greatsword; +3 к атаке, +1 к урону; настройка не требуется.",
+          "name": "Меч Меткого Удара",
+          "quantity": 1,
+          "source_sheet_row": 45,
+          "source_snapshot": "Яр",
+          "status": "Экипирован"
+        },
+        {
+          "catalog_key": "yar-source-row-46",
+          "description": "Запасное оружие; Sap.",
+          "name": "Цеп",
+          "quantity": 1,
+          "source_sheet_row": 46,
+          "source_snapshot": "Яр",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "yar-source-row-47",
+          "description": "Латы Великой Кузни +1 дают КД 19. Кольцо Защиты сейчас не настроено: текущий боевой КД в латах 19, реакцией плаща — 22. Если настройка Кольца Защиты будет восстановлена, КД в латах станет 20. Сейчас Яр без лат; их надевание отдельно не отыграно.",
+          "name": "Латы Великой Кузни +1",
+          "quantity": 1,
+          "source_sheet_row": 47,
+          "source_snapshot": "Яр",
+          "status": "Подогнаны / сейчас не надеты"
+        },
+        {
+          "catalog_key": "yar-source-row-48",
+          "description": "Сняты после перехода на Латы Великой Кузни +1; не проданы и автоматически никому не переданы.",
+          "name": "Обычные латы",
+          "quantity": 1,
+          "source_sheet_row": 48,
+          "source_snapshot": "Яр",
+          "status": "Личный резерв"
+        },
+        {
+          "catalog_key": "yar-source-row-49",
+          "description": "+1 КД и +1 ко всем спасброскам; сейчас временно не настроено ради Звёздной мантии, поэтому бонусы Кольца Защиты не действуют.",
+          "name": "Кольцо Защиты",
+          "quantity": 1,
+          "source_sheet_row": 49,
+          "source_snapshot": "Яр",
+          "status": "Временно не настроено"
+        },
+        {
+          "catalog_key": "yar-source-row-51",
+          "description": "6 стандартных ×3, 2 малых ×2, 1 двойной ×6; текущий боезапас 20/28 после двух выстрелов Саэлина. Длительный отдых потраченные заряды метателя не восстанавливает.",
+          "name": "Накопители метателя",
+          "quantity": 9,
+          "source_sheet_row": 51,
+          "source_snapshot": "Яр",
+          "status": "Все при Яре / 20 из 28 зарядов"
+        },
+        {
+          "catalog_key": "yar-source-row-52",
+          "description": "Maul; требует настройки. Кузнечный резонанс 3 заряда; Разбивающий удар по объектам.",
+          "name": "Молот Великой Кузни",
+          "quantity": 1,
+          "source_sheet_row": 52,
+          "source_snapshot": "Яр",
+          "status": "При Яре"
+        },
+        {
+          "catalog_key": "yar-source-row-54",
+          "description": "4d4+4 HP.",
+          "name": "Улучшенное лечебное зелье",
+          "quantity": 1,
+          "source_sheet_row": 54,
+          "source_snapshot": "Яр",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "yar-source-row-55",
+          "description": "Походный запас. | Два дополнительных из добычи, итого три.",
+          "name": "Противоядие",
+          "quantity": 3,
+          "source_sheet_row": 55,
+          "source_snapshot": "Яр",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "yar-source-row-56",
+          "description": "Одноразовый расходник; можно заменить им одну атаку. | Один дополнительный из добычи, итого два.",
+          "name": "Алхимический огонь",
+          "quantity": 2,
+          "source_sheet_row": 56,
+          "source_snapshot": "Яр",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "yar-source-row-57",
+          "description": "Редкий аварийный боевой расходник.",
+          "name": "Зелье скорости",
+          "quantity": 1,
+          "source_sheet_row": 57,
+          "source_snapshot": "Яр",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "yar-source-row-59",
+          "description": "Куплена у Велемира в Г1 М2 за 90 зм; земля, выработка, старые постройки, права на добычу и портал на территории.",
+          "name": "Каменоломня Холодного Холма",
+          "quantity": 1,
+          "source_sheet_row": 59,
+          "source_snapshot": "Яр",
+          "status": "Личная собственность"
+        },
+        {
+          "catalog_key": "yar-source-row-60",
+          "description": "Оба кольца настроены; один план, расстояние до 60 фт, Яр в сознании и выше 0 ПЗ. После сопротивлений/снижения Дафны бросить 1к6 за каждый случай её урона: 1–3 → Яру 50%; 4–5 → 75%; 6 → 100%. Перенос округлить вниз, остаток получает Дафна. Тип урона сохраняется; Яр не снижает и не перенаправляет перенесённый урон повторно. Пока связь активна, ощущаются сознание и примерное направление партнёра.",
+          "name": "Кольцо Корня",
+          "quantity": 1,
+          "source_sheet_row": 60,
+          "source_snapshot": "Яр",
+          "status": "Экипировано / настроено"
+        },
+        {
+          "catalog_key": "yar-source-row-61",
+          "description": "Магический плащ Ваэльтира, настроен на Яра. 2/2 заряда. Когда атака попадает по Яру, он может реакцией потратить 1 заряд и получить +3 КД против этой конкретной атаки; может превратить попадание в промах. Заряд тратится даже если +3 не спасло. Сейчас при временно ненастроенном Кольце Защиты: без лат КД 11 → 14 против одной атаки; в Латах Великой Кузни +1 КД 19 → 22. Заряды полностью восстанавливаются после длительного отдыха. Пассивного бонуса к КД и спасброскам нет.",
+          "name": "Проводящий плащ Ваэльтира",
+          "quantity": 1,
+          "source_sheet_row": 61,
+          "source_snapshot": "Яр",
+          "status": "Экипирован / настроен"
+        },
+        {
+          "catalog_key": "yar-source-row-62",
+          "description": "Редкий чудесный предмет; подарок Саэр-Вала и совета таэрнов. Разворачивается в отверстие диаметром 6 фт и внегабаритное пространство глубиной 10 фт (≈8,01 м³); настройка не требуется. Не помещать в Сумку хранения, Ранец Хьюарда или другие несовместимые внегабаритные контейнеры. Полное текущее содержимое ведётся отдельным разделом «Дыра — содержимое» ниже.",
+          "name": "Переносная дыра",
+          "quantity": 1,
+          "source_sheet_row": 62,
+          "source_snapshot": "Яр",
+          "status": "При Яре / дипломатический дар"
+        },
+        {
+          "catalog_key": "yar-source-row-63",
+          "description": "Не активирован; едет в Хейвенгард с группой. Полный человеческий энергетический боевой доспех, модуль синхронизации, технические пластины/образцы и переводы. Рабочие заряженные кристаллы оставлены Саэлину и Варроку для ремонта станции; личные вещи погибших им возвращены.",
+          "name": "Астральные находки — комплект",
+          "quantity": 1,
+          "source_sheet_row": 63,
+          "source_snapshot": "Яр",
+          "status": "Доставлено в Хейвенгард / групповое имущество"
+        },
+        {
+          "catalog_key": "yar-source-row-64",
+          "description": "Астральный навигационный камень, куплен в Каэр-Мире за 15 зм. В Астрале указывает направление на навигационный маяк Каэр-Миры; по мере приближения светится ярче. Точное расстояние не показывает. Дополняется записанным маршрутом станция Саэлина/Варрока ↔ Каэр-Мира.",
+          "name": "Путевой камень Каэр-Миры",
+          "quantity": 1,
+          "source_sheet_row": 64,
+          "source_snapshot": "Яр",
+          "status": "При Яре / настроен на маяк Каэр-Миры"
+        },
+        {
+          "catalog_key": "yar-source-row-65",
+          "description": "Магический обруч-переводчик, куплен в Каэр-Мире за 220 зм. Носится на голове как тонкий обруч/диадема; настройка не требуется. Тарин понимает сразу. Для нового незнакомого языка должен некоторое время слышать живую речь: постепенно начинает передавать смысл услышанного. Сам по себе не обучает Яра свободно говорить на новом языке; обратный перевод речи возможен только для уже поддерживаемого/усвоенного обручем языка. Точные пределы по числу языков и времени обучения пока не выяснены.",
+          "name": "Астральный переводящий обруч",
+          "quantity": 1,
+          "source_sheet_row": 65,
+          "source_snapshot": "Яр",
+          "status": "При Яре / куплен в Каэр-Мире"
+        },
+        {
+          "catalog_key": "yar-source-row-66",
+          "description": "Две из четырёх лошадей, законно переданных по итогам дела «Медного Ключа». Ещё две Яр окончательно подарил Мелании и Теодору Рейн. Эти две запряжены в повозки на обратной дороге и не входят в городской табун Хейвенгарда.",
+          "name": "Лошади Вельмара — остаток награды",
+          "quantity": 2,
+          "source_sheet_row": 66,
+          "source_snapshot": "Яр",
+          "status": "Личная собственность / прибыли в Хейвенгард"
+        },
+        {
+          "catalog_key": "yar-source-row-67",
+          "description": "Две повозки для возвращения в Хейвенгард: одна получена законно по итогам дела «Медного Ключа», одна куплена в Вельмаре за 35 зм для переезда семьи Рейн. В пути: по 2 лошади на повозку; городской транспорт Хейвенгарда до фактического прибытия не увеличивать.",
+          "name": "Повозки Вельмара",
+          "quantity": 2,
+          "source_sheet_row": 67,
+          "source_snapshot": "Яр",
+          "status": "Личная собственность / прибыли в Хейвенгард"
+        },
+        {
+          "catalog_key": "yar-source-row-70",
+          "description": "Редкий магический предмет; настройка не требуется. Ограничивает самостоятельную телепортацию и межпланарное перемещение связанного существа; найден у Повелителя Зверей.",
+          "name": "Межпространственные оковы",
+          "quantity": 1,
+          "source_sheet_row": 70,
+          "source_snapshot": "Яр",
+          "status": "В Переносной дыре / после сворачивания крепости",
+          "unit": "шт."
+        },
+        {
+          "catalog_key": "yar-source-row-72",
+          "description": "Складной стол, 6 стульев, 2 хозяйственных короба, отдельное рабочее место Дафны, 1 безопасный магический обогреватель, 1 основной магический светильник, стойка для оружия и щитов у входа. Перед сворачиванием башни всё вернуть в Переносную дыру.",
+          "name": "Комплект Даэрна — базовое оснащение / нижний этаж",
+          "quantity": 1,
+          "source_sheet_row": 72,
+          "source_snapshot": "Яр",
+          "status": "В Переносной дыре / после сворачивания крепости",
+          "unit": "набор"
+        },
+        {
+          "catalog_key": "yar-source-row-73",
+          "description": "4 складные кровати, 4 сжимаемых адаптивных матраса, 2 гостевых спальных места, личный запираемый короб Рады, складное зеркало Дафны, 1 безопасный магический обогреватель и 1 основной магический светильник. Перед сворачиванием башни всё вернуть в Переносную дыру.",
+          "name": "Комплект Даэрна — базовое оснащение / спальный этаж",
+          "quantity": 1,
+          "source_sheet_row": 73,
+          "source_snapshot": "Яр",
+          "status": "В Переносной дыре / после сворачивания крепости",
+          "unit": "набор"
+        },
+        {
+          "catalog_key": "yar-source-row-74",
+          "confirmation": "Подтверждено игроком: комплект был приобретён и получен в Вельморе до возвращения; летопись 016 подтверждает оплату, летопись 017 — использование гамака из этого же заказа.",
+          "description": "Нижний этаж: кухонный шкаф-сундук, аптечный шкаф с фиксаторами, умывальная стойка, складной рабочий стол Теодора, 2 пищевых ларя для хлеба/овощей, складная сушилка, трёхрежимная магическая плита, 2 рабочие магические лампы, холодный ларь, полный кухонный набор (2 котла, сковорода, чайник, ножи, доски, миски, кружки, половники, щипцы, полотенца, ёмкости для специй), 2 скатерти. Снаружи башни: складная походная печь — использовать ТОЛЬКО на открытом воздухе. Всё отдельно стоящее; после сворачивания — в Переносную дыру.",
+          "name": "Расширение Даэрна — кухня и хозяйство",
+          "quantity": 1,
+          "source_order": "Ирвен Таль, Велмор, дополнительный заказ 620 зм (уплачен ранее)",
+          "source_sheet_row": 74,
+          "source_snapshot": "migrations/character-g1m8-yar-source-2026-10-10.json",
+          "status": "Получен, в походном имуществе; при сложенной крепости — в Переносной дыре",
+          "unit": "комплект"
+        },
+        {
+          "catalog_key": "yar-source-row-75",
+          "confirmation": "Подтверждено игроком: комплект был приобретён и получен в Вельморе до возвращения; летопись 016 подтверждает оплату, летопись 017 — использование гамака из этого же заказа.",
+          "description": "6 запасных комплектов постельного белья, 6 тёплых шерстяных одеял, 6 прикроватных сундуков, 6 безопасных ночных магических ламп, 2 складные ширмы, 2 больших короба для белья (чистое / грязное), складная напольная вешалка для одежды. Запасное бельё и одеяла хранить в личных сундуках/коробах. Перед сворачиванием — всё в Переносную дыру.",
+          "name": "Расширение Даэрна — спальный этаж",
+          "quantity": 1,
+          "source_order": "Ирвен Таль, Велмор, дополнительный заказ 620 зм (уплачен ранее)",
+          "source_sheet_row": 75,
+          "source_snapshot": "migrations/character-g1m8-yar-source-2026-10-10.json",
+          "status": "Получен, в походном имуществе; при сложенной крепости — в Переносной дыре",
+          "unit": "комплект"
+        },
+        {
+          "catalog_key": "yar-source-row-76",
+          "confirmation": "Подтверждено игроком: комплект был приобретён и получен в Вельморе до возвращения; летопись 016 подтверждает оплату, летопись 017 — использование гамака из этого же заказа.",
+          "description": "Складной навес на собственной тяжёлой раме, 4 складных кресла, маленький складной стол, 4 тёплых пледа и закрытый переносной ящик для мелочей. Ничего не крепится к крыше. При сильном ветре навес не ставить. Перед сворачиванием всё убрать в Переносную дыру. Полученный гамак учтён отдельно в строке 79.",
+          "name": "Расширение Даэрна — крыша",
+          "quantity": 1,
+          "source_order": "Ирвен Таль, Велмор, дополнительный заказ 620 зм (уплачен ранее)",
+          "source_sheet_row": 76,
+          "source_snapshot": "migrations/character-g1m8-yar-source-2026-10-10.json",
+          "status": "Получен, в походном имуществе; при сложенной крепости — в Переносной дыре",
+          "unit": "комплект"
+        },
+        {
+          "catalog_key": "yar-source-row-79",
+          "description": "Бесплатный гамак из заказа Ирвена. Наличие подтверждено прямым действием Яра в первый вечер обратной дороги. Собственная стойка, без креплений к башне. Перед складыванием крепости убрать гамак и стойку в Переносную дыру.",
+          "name": "Двухместный складной гамак со стойкой",
+          "quantity": 1,
+          "source_sheet_row": 79,
+          "source_snapshot": "Яр",
+          "status": "В Переносной дыре / после сворачивания крепости",
+          "unit": "шт."
+        },
+        {
+          "catalog_key": "yar-star-mantle",
+          "description": "Очень редкий чудесный предмет. +1 ко всем спасброскам; 6/6 звёзд, каждая магическим действием даёт «Волшебную стрелу» V круга без ячейки; в сумерках возвращается 1к6 потраченных звёзд, максимум 6; магическим действием позволяет перейти в Астральный план и затем вернуться. Сейчас временно настроена на Яра после эксперимента; Дафна сняла настройку и пока не восстановила третий слот другим предметом.",
+          "name": "Звёздная мантия",
+          "quantity": 1,
+          "source_sheet_row": 82,
+          "source_snapshot": "Дафна",
+          "status": "При Яре / настроена на Яра"
+        }
+      ],
+      "source_reference": {
+        "path": "migrations/character-g1m8-yar-source-2026-10-10.json",
+        "sha": "ae21c0c18a1480e1ad34d8e3c16b7bfaa820318e"
+      },
+      "source_cards_remaining_unclassified_rows": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        20,
+        21,
+        23,
+        24,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79
+      ]
+    },
+    "daphne": {
+      "name": "Дафна",
+      "level": 10,
+      "class_and_level": "Волшебница 10 / Школа Воплощения • Личный помощник и писарь градодержателя",
+      "status": "беременность подтверждена; наблюдается у Мирэль",
+      "stats": {
+        "ИНТ": "20 (+5)",
+        "ЛОВ": "14 (+2)",
+        "МДР": "12 (+1)",
+        "СИЛ": "8 (-1)",
+        "ТЕЛ": "14 (+2)",
+        "ХАР": "10 (+0)"
+      },
+      "armor_class": "12 сейчас; «Доспехи мага» не активны",
+      "initiative": "+6",
+      "speed": "30 фт",
+      "resources": {
+        "arcane_recovery": {
+          "current": 1,
+          "max": 1
+        },
+        "concentration": "нет",
+        "hp": {
+          "current": 62,
+          "max": 62
+        },
+        "mage_armor": "не активен",
+        "prepared_spells": {
+          "current": 15,
+          "max": 15,
+          "note": "15-е заклинание — Рука Бигби"
+        },
+        "shield_magic_initiate": {
+          "current": 1,
+          "max": 1,
+          "note": "бесплатное применение за долгий отдых; затем обычные ячейки"
+        },
+        "spell_slots": {
+          "1": {
+            "current": 4,
+            "max": 4
+          },
+          "2": {
+            "current": 3,
+            "max": 3
+          },
+          "3": {
+            "current": 3,
+            "max": 3
+          },
+          "4": {
+            "current": 3,
+            "max": 3
+          },
+          "5": {
+            "current": 2,
+            "max": 2
+          }
+        }
+      },
+      "state_features": [
+        "Magic Initiate: Shield (always prepared)"
+      ],
+      "attacks": [
+        {
+          "source_row": 24,
+          "category": "attack",
+          "columns": [
+            "Огненный снаряд",
+            "+11",
+            "2d10+5 огнём",
+            "Дальняя атака заклинанием. Potent Cantrip по трактовке кампании — половина выпавшего урона при промахе, без доп. эффекта.",
+            null,
+            "Аркана",
+            "+13",
+            "Магия, руны, магические устройства, принципы заклинаний и аномалий. Expertise."
+          ]
+        },
+        {
+          "source_row": 25,
+          "category": "attack",
+          "columns": [
+            "Луч холода",
+            "+11",
+            "2d8+5 холодом",
+            "При полноценном попадании скорость цели −10 фт.",
+            null,
+            "История",
+            "+9",
+            "Исторические события, государства, традиции, древние места и документы."
+          ]
+        },
+        {
+          "source_row": 26,
+          "category": "attack",
+          "columns": [
+            "Расщепление разума",
+            "СЛ 19",
+            "2d6 психического",
+            "При провале: −1d4 к следующему спасброску. Полезно перед контролем союзников.",
+            null,
+            "Расследование",
+            "+9",
+            "Логический поиск улик, механизмы, скрытые закономерности, разбор сложных сцен."
+          ]
+        },
+        {
+          "source_row": 27,
+          "category": "attack",
+          "columns": [
+            "Огненный шар",
+            "СЛ 19",
+            "8d6+5 огнём",
+            "150 фт, радиус 20 фт; ЛОВ, при успехе половина. Sculpt Spells помогает защищать союзников.",
+            null,
+            "Проницательность",
+            "+5",
+            "Намерения и эмоциональное состояние собеседника."
+          ]
+        },
+        {
+          "source_row": 28,
+          "category": "attack",
+          "columns": [
+            "Наручи Грозового Контура",
+            "СЛ 16 / +8",
+            "Сфера бури IV",
+            "1 заряд = Сфера бури IV; сейчас 2/2. Без ячейки; концентрация; максимум 2 применения между длительными отдыхами. Отдельная зарядка не восстанавливается длительным отдыхом.",
+            null,
+            "Восприятие",
+            "+5",
+            "Замечать угрозы, детали местности и скрытое движение."
+          ]
+        }
+      ],
+      "class_species_feats": [
+        {
+          "source_row": 32,
+          "category": "feature",
+          "columns": [
+            "Sculpt Spells",
+            null,
+            "Для подходящего заклинания Воплощения со спасброском защищает выбранных союзников в области: они автоматически успешно спасаются и не получают урон, если при успехе обычно была бы половина."
+          ]
+        },
+        {
+          "source_row": 33,
+          "category": "feature",
+          "columns": [
+            "Potent Cantrip",
+            null,
+            "Закреплённая трактовка кампании: наносящий урон заговор при промахе или успешном спасброске всё равно наносит половину выпавшего урона; дополнительный эффект не срабатывает."
+          ]
+        },
+        {
+          "source_row": 34,
+          "category": "feature",
+          "columns": [
+            "Усиленное Воплощение",
+            null,
+            "Когда Дафна применяет заклинание волшебника школы Воплощения и бросает урон, она добавляет модификатор Интеллекта +5 к одному броску урона этого заклинания."
+          ]
+        },
+        {
+          "source_row": 35,
+          "category": "feature",
+          "columns": [
+            "Заговоры — 5",
+            null,
+            "Огненный снаряд; Луч холода; Расщепление разума; Магическая рука; Фокусы. «Магическая рука» и «Фокусы» закреплены при оформлении 10 уровня; один из них закрывает старый незафиксированный 4-й заговор, второй — новый заговор 10 уровня."
+          ]
+        },
+        {
+          "source_row": 36,
+          "category": "feature",
+          "columns": [
+            "Знаток Воплощения",
+            null,
+            "Когда Дафна впервые открывает новый круг ячеек, она бесплатно добавляет в книгу одно заклинание школы Воплощения этого круга. На 9 уровне этим заклинанием выбран «Конус холода» V круга."
+          ]
+        },
+        {
+          "source_row": 37,
+          "category": "feature",
+          "columns": [
+            "Магическое восстановление",
+            null,
+            "1 раз после длительного отдыха во время короткого отдыха Дафна восстанавливает потраченные ячейки суммарным уровнем до 5. Арканный гримуар остаётся её книгой заклинаний, но больше не настроен, поэтому прежний дополнительный +1 к пределу Магического восстановления не действует."
+          ]
+        },
+        {
+          "source_row": 38,
+          "category": "feature",
+          "columns": [
+            "Ячейки и подготовка",
+            null,
+            "После длительного отдыха в Хейвенгарде: I — 4/4; II — 3/3; III — 3/3; IV — 3/3; V — 2/2. Подготовлено 15 из 15; концентрации нет."
+          ]
+        },
+        {
+          "source_row": 39,
+          "category": "feature",
+          "columns": [
+            "Стандартная подготовка — 15 из 15",
+            null,
+            "Доспехи мага; Волшебная стрела; Громовая волна; Туманное облако; Палящий луч; Туманный шаг; Огненный шар; Замедление; Контрзаклинание; Дверь в измерение; Высшая невидимость; Конус холода; Кажущаяся внешность; Удержание чудовища; Рука Бигби."
+          ]
+        },
+        {
+          "source_row": 40,
+          "category": "feature",
+          "columns": [
+            "Книга заклинаний",
+            null,
+            "На 10 уровне в книгу добавлены «Силовая стена» и «Рука Бигби». Ранее на 9 уровне добавлены «Конус холода», «Кажущаяся внешность» и «Удержание чудовища». «Рука Бигби» входит в текущую стандартную подготовку 15/15; «Силовая стена» сейчас не подготовлена."
+          ]
+        },
+        {
+          "source_row": 41,
+          "category": "feature",
+          "columns": [
+            "Наручи Грозового Контура",
+            null,
+            "Настроены на Дафну. 2/2 заряда; 1 заряд = Сфера бури IV без ячейки. Перезарядка от внешнего накопителя ≈10 минут вне боя; длительный отдых сам заряды не возвращает."
+          ]
+        }
+      ],
+      "spell_reference": [
+        {
+          "source_row": 43,
+          "category": "spell",
+          "columns": [
+            "Доспехи мага",
+            "I",
+            "Действие",
+            "Касание",
+            "Нет",
+            "8 ч",
+            "Подготовлено. КД цели без брони = 13 + ЛОВ; для Дафны КД15."
+          ]
+        },
+        {
+          "source_row": 44,
+          "category": "spell",
+          "columns": [
+            "Волшебная стрела",
+            "I",
+            "Действие",
+            "120 фт",
+            "Нет",
+            "Мгновенно",
+            "Подготовлено. 3 автоматически попадающих снаряда по 1d4+1 силового; ячейкой выше — больше снарядов. Усиленное Воплощение +5 применяется к одному броску урона; учитывать по принятому в кампании порядку бросков."
+          ]
+        },
+        {
+          "source_row": 45,
+          "category": "spell",
+          "columns": [
+            "Огненные ладони",
+            "I",
+            "Действие",
+            "Конус 15 фт",
+            "Нет",
+            "Мгновенно",
+            "В книге, не в стандартной подготовке. Ближний конус огня теперь обычно уступает более сильным заклинаниям Дафны."
+          ]
+        },
+        {
+          "source_row": 46,
+          "category": "spell",
+          "columns": [
+            "Громовая волна",
+            "I",
+            "Действие",
+            "Куб от себя",
+            "Нет",
+            "Мгновенно",
+            "Подготовлено. ТЕЛ; громовой урон и отталкивание при провале."
+          ]
+        },
+        {
+          "source_row": 47,
+          "category": "spell",
+          "columns": [
+            "Туманное облако",
+            "I",
+            "Действие",
+            "120 фт",
+            "Да",
+            "До 1 ч",
+            "Подготовлено. Сильно заслоняющая область; ломает линии обзора и дальние атаки."
+          ]
+        },
+        {
+          "source_row": 48,
+          "category": "spell",
+          "columns": [
+            "Палящий луч",
+            "II",
+            "Действие",
+            "120 фт",
+            "Нет",
+            "Мгновенно",
+            "Подготовлено. 3 отдельные атаки заклинанием по 2d6 огнём; лучи можно делить. Усиленное Воплощение: +5 только к одному броску урона за применение, не к каждому лучу."
+          ]
+        },
+        {
+          "source_row": 49,
+          "category": "spell",
+          "columns": [
+            "Туманный шаг",
+            "II",
+            "Бонусное действие",
+            "На себя",
+            "Нет",
+            "Мгновенно",
+            "Подготовлено. Телепортация до 30 фт в видимое свободное место."
+          ]
+        },
+        {
+          "source_row": 50,
+          "category": "spell",
+          "columns": [
+            "Паутина",
+            "II",
+            "Действие",
+            "60 фт",
+            "Да",
+            "До 1 ч",
+            "В книге. Контролирующая область; хороша против плотной группы."
+          ]
+        },
+        {
+          "source_row": 51,
+          "category": "spell",
+          "columns": [
+            "Огненный шар",
+            "III",
+            "Действие",
+            "150 фт",
+            "Нет",
+            "Мгновенно",
+            "Подготовлено. Радиус 20 фт, ЛОВ СЛ19, 8d6+5 огнём; Sculpt Spells защищает союзников."
+          ]
+        },
+        {
+          "source_row": 52,
+          "category": "spell",
+          "columns": [
+            "Замедление",
+            "III",
+            "Действие",
+            "120 фт",
+            "Да",
+            "До 1 мин",
+            "Подготовлено. Сильный массовый контроль скорости и действий."
+          ]
+        },
+        {
+          "source_row": 53,
+          "category": "spell",
+          "columns": [
+            "Контрзаклинание",
+            "III",
+            "Реакция",
+            "60 фт",
+            "Нет",
+            "Мгновенно",
+            "Подготовлено. Срывает опасную вражескую магию; беречь реакцию для действительно важных эффектов."
+          ]
+        },
+        {
+          "source_row": 54,
+          "category": "spell",
+          "columns": [
+            "Рассеивание магии",
+            "III",
+            "Действие",
+            "120 фт",
+            "Нет",
+            "Мгновенно",
+            "В книге, не в стандартной подготовке. Снимает действующее заклинание или магический эффект."
+          ]
+        },
+        {
+          "source_row": 55,
+          "category": "spell",
+          "columns": [
+            "Полёт",
+            "III",
+            "Действие",
+            "Касание",
+            "Да",
+            "До 10 мин",
+            "В книге, не в стандартной подготовке. Скорость полёта; полезно для мобильности и доступа к высоте."
+          ]
+        },
+        {
+          "source_row": 56,
+          "category": "spell",
+          "columns": [
+            "Дверь в измерение",
+            "IV",
+            "Действие",
+            "500 фт",
+            "Нет",
+            "Мгновенно",
+            "Подготовлено. Дафна телепортируется и может взять одного согласного союзника рядом; сильное спасение и тактическое перемещение."
+          ]
+        },
+        {
+          "source_row": 57,
+          "category": "spell",
+          "columns": [
+            "Стена огня",
+            "IV",
+            "Действие",
+            "120 фт",
+            "Да",
+            "До 1 мин",
+            "В книге; бесплатное от Evocation Savant. Огненная стена делит поле боя и наказывает проход через опасную сторону."
+          ]
+        },
+        {
+          "source_row": 58,
+          "category": "spell",
+          "columns": [
+            "Полиморф",
+            "IV",
+            "Действие",
+            "60 фт",
+            "Да",
+            "До 1 ч",
+            "В книге, не в стандартной подготовке. Превращает существо в другую форму; универсальная опция контроля и спасения."
+          ]
+        },
+        {
+          "source_row": 59,
+          "category": "spell",
+          "columns": [
+            "Высшая невидимость",
+            "IV",
+            "Действие",
+            "Касание",
+            "Да",
+            "До 1 мин",
+            "Подготовлено. Даёт цели состояние Невидимый на всё время концентрации; атаки и заклинания цели не прекращают эффект. Хорошо усиливает Раду, Яра или саму Дафну."
+          ]
+        },
+        {
+          "source_row": 60,
+          "category": "spell",
+          "columns": [
+            "Устойчивая сфера Отилюка",
+            "IV",
+            "Действие",
+            "30 фт",
+            "Да",
+            "До 1 мин",
+            "В книге, пока не в стандартной подготовке. Существо Большого размера или меньше; нежелающая цель делает спасбросок ЛОВ СЛ19. Сфера полностью изолирует цель от внешних атак, энергии и заклинаний."
+          ]
+        },
+        {
+          "source_row": 61,
+          "category": "spell",
+          "columns": [
+            "Конус холода",
+            "V",
+            "Действие",
+            "Конус 60 фт",
+            "Нет",
+            "Мгновенно",
+            "Подготовлено. Действие, конус 60 фт. Все существа в конусе делают спасбросок ТЕЛ СЛ19: провал — 8к8+5 урона холодом, успех — половина. Союзников в области Дафна может защитить «Скульптурой заклинаний»: они автоматически успешно спасаются и получают 0 урона. Существо, погибшее от заклинания, замерзает до оттаивания."
+          ]
+        },
+        {
+          "source_row": 62,
+          "category": "spell",
+          "columns": [
+            "Кажущаяся внешность",
+            "V",
+            "Действие",
+            "30 фт",
+            "Нет",
+            "8 ч",
+            "Подготовлено. Дафна даёт иллюзорную внешность каждому выбранному ею существу, которое видит в пределах 30 фт; можно по-разному изменить тело и вид снаряжения, сделать цель примерно на 1 фут выше или ниже и визуально тяжелее или легче. Физический контакт может выдать иллюзию; изучив цель, существо может распознать маскировку проверкой Интеллекта (Расследование) против СЛ19. Нежелающая цель может сопротивляться спасброском Харизмы."
+          ]
+        },
+        {
+          "source_row": 63,
+          "category": "spell",
+          "columns": [
+            "Удержание чудовища",
+            "V",
+            "Действие",
+            "90 фт",
+            "Да",
+            "До 1 мин",
+            "Подготовлено. Действие, 90 фт, концентрация до 1 минуты. Одна видимая цель делает спасбросок МДР СЛ19; при провале становится Парализованной. В конце каждого своего хода повторяет спасбросок и при успехе освобождается. Пока цель парализована, атаки по ней имеют преимущество, а попадания с расстояния до 5 фт становятся критическими — особенно хорошо под Яра, Лютобора и Раду."
+          ]
+        },
+        {
+          "source_row": 64,
+          "category": "spell",
+          "columns": [
+            "Силовая стена",
+            "V",
+            "Действие",
+            "120 фт",
+            "Да",
+            "До 10 мин",
+            "В книге с 10 уровня. Создаёт почти непроходимую невидимую силовую преграду без спасброска; обычное «Рассеивание магии» её не снимает. Очень сильный контроль поля."
+          ]
+        },
+        {
+          "source_row": 65,
+          "category": "spell",
+          "columns": [
+            "Рука Бигби",
+            "V",
+            "Действие",
+            "120 фт",
+            "Да",
+            "До 1 мин",
+            "В книге с 10 уровня. Создаёт огромную магическую руку: может бить, толкать, хватать или прикрывать. Сжатый кулак — 5к8 силового урона; последующее управление — бонусным действием. Усиленное Воплощение +5 — к одному броску урона за всё применение, не к каждому последующему удару."
+          ]
+        }
+      ],
+      "spell_preparation_note": "Current prepared spells specified in source-row-39; do not assume all spell_reference items are prepared.",
+      "items": [
+        {
+          "catalog_key": "daphne-source-row-68",
+          "description": "Основная книга заклинаний Дафны. Боевой бонус +1 всё равно перекрывался Фокусом Ваэльтира +2. После снятия настройки больше не даёт +1 к пределу Магического восстановления; текущий предел восстановления — 5 уровней ячеек.",
+          "name": "Арканный гримуар +1",
+          "quantity": 1,
+          "source_sheet_row": 68,
+          "source_snapshot": "Дафна",
+          "status": "Основная книга / не настроен"
+        },
+        {
+          "catalog_key": "daphne-source-row-69",
+          "description": "Памятный магический предмет; боевых бонусов нет.",
+          "name": "Браслет Сердечного Тепла",
+          "quantity": 1,
+          "source_sheet_row": 69,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-70",
+          "description": "Полевая половина пары; второй камень в администрации.",
+          "name": "Камень послания",
+          "quantity": 1,
+          "source_sheet_row": 70,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-71",
+          "description": "3 заряда; на 10 минут подавляет магическую защиту замка/двери.",
+          "name": "Пластина подавления печатей",
+          "quantity": 1,
+          "source_sheet_row": 71,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-72",
+          "description": "2d4+2 HP.",
+          "name": "Обычное лечебное зелье",
+          "quantity": 2,
+          "source_sheet_row": 72,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-73",
+          "description": "Походный запас.",
+          "name": "Противоядие",
+          "quantity": 1,
+          "source_sheet_row": 73,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-74",
+          "description": "Алхимический расходник.",
+          "name": "Кислота",
+          "quantity": 1,
+          "source_sheet_row": 74,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-75",
+          "description": "Алхимический расходник.",
+          "name": "Дымовая бомба",
+          "quantity": 1,
+          "source_sheet_row": 75,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-76",
+          "description": "Редкий расходник.",
+          "name": "Зелье лазания",
+          "quantity": 1,
+          "source_sheet_row": 76,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-77",
+          "description": "СИЛ 21 на 1 час, если не была выше.",
+          "name": "Зелье силы холмового великана",
+          "quantity": 1,
+          "source_sheet_row": 77,
+          "source_snapshot": "Дафна",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "daphne-source-row-78",
+          "description": "2/2 заряда; Сфера бури IV без ячейки; собственная СЛ16 / +8 по предмету; максимум 2 применения между длительными отдыхами. Перезарядка только от внешнего накопителя.",
+          "name": "Наручи Грозового Контура",
+          "quantity": 1,
+          "source_sheet_row": 78,
+          "source_snapshot": "Дафна",
+          "status": "Экипированы / настроены"
+        },
+        {
+          "catalog_key": "daphne-source-row-79",
+          "description": "Требует настройки волшебником. После настройки и использования как фокуса: +1 к атакам заклинаниями и +1 к СЛ заклинаний волшебника; Нажим Кроны 1/долгий отдых даёт ещё +1 СЛ одному Воплощению I+ со спасброском. Сейчас не настроен; основной фокус Дафны — Фокус Ваэльтира, поэтому текущие показатели +11 / СЛ19.",
+          "name": "Фокус Серебряной Кроны",
+          "quantity": 1,
+          "source_sheet_row": 79,
+          "source_snapshot": "Дафна",
+          "status": "При себе / требует настройки"
+        },
+        {
+          "catalog_key": "daphne-source-row-80",
+          "description": "Основной боевой фокус. +2 к атакам заклинаниями и СЛ заклинаний; с другими предметными бонусами не складывается. Итог Дафны: +11 / СЛ19. 2/2 заряда; 1 заряд действием = Истощающая волна, 30-футовый конус, ТЕЛ СЛ19, 4d6 некротического, половина при успехе; заряды восстанавливаются после длительного отдыха.",
+          "name": "Магический фокус Ваэльтира",
+          "quantity": 1,
+          "source_sheet_row": 80,
+          "source_snapshot": "Дафна",
+          "status": "Экипирован / настроен"
+        },
+        {
+          "catalog_key": "daphne-source-row-81",
+          "description": "Оба кольца настроены; один план, расстояние до 60 фт, Яр в сознании и выше 0 ПЗ. После сопротивлений/снижения Дафны бросить 1к6 за каждый случай её урона: 1–3 → Яру 50%; 4–5 → 75%; 6 → 100%. Перенос округлить вниз, остаток получает Дафна. Тип урона сохраняется; Яр не снижает и не перенаправляет перенесённый урон повторно. Пока связь активна, ощущаются сознание и примерное направление партнёра.",
+          "name": "Кольцо Листа",
+          "quantity": 1,
+          "source_sheet_row": 81,
+          "source_snapshot": "Дафна",
+          "status": "Экипировано / настроено"
+        },
+        {
+          "catalog_key": "daphne-source-row-83",
+          "description": "Огранённый лунный камень стоимостью 100 зм из добычи III яруса Башни Пяти Цепей; Дафна выбрала его себе после возвращения домой.",
+          "name": "Лунный камень с III яруса Башни",
+          "quantity": 1,
+          "source_sheet_row": 83,
+          "source_snapshot": "Дафна",
+          "status": "Личный трофей"
+        }
+      ],
+      "source_reference": {
+        "path": "migrations/character-g1m8-daphne-source-2026-10-10.json",
+        "sha": "6821e6287a5cdc2a796d52757d09acf6343f1153"
+      },
+      "source_cards_remaining_unclassified_rows": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        30,
+        31,
+        42,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85
+      ]
+    },
+    "lyutobor": {
+      "name": "Лютобор",
+      "level": 10,
+      "class_and_level": "Паладин 10 / Клятва Преданности • Защитник передней линии",
+      "status": "здоров",
+      "stats": {
+        "ИНТ": "8 (-1)",
+        "ЛОВ": "10 (+0)",
+        "МДР": "12 (+1)",
+        "СИЛ": "19 (+4)",
+        "ТЕЛ": "14 (+2)",
+        "ХАР": "14 (+2)"
+      },
+      "armor_class": "20",
+      "initiative": "+0",
+      "speed": "30 фт",
+      "resources": {
+        "hp": {
+          "current": 104,
+          "max": 104
+        },
+        "lay_on_hands": {
+          "current": 50,
+          "max": 50
+        },
+        "spell_slots": {
+          "1": {
+            "current": 4,
+            "max": 4
+          },
+          "2": {
+            "current": 3,
+            "max": 3
+          },
+          "3": {
+            "current": 2,
+            "max": 2
+          }
+        }
+      },
+      "state_features": [],
+      "attacks": [
+        {
+          "source_row": 16,
+          "category": "attack",
+          "columns": [
+            "Длинный меч",
+            "+8",
+            "1d8+4",
+            "Мастерство: Ослабление. Дополнительная атака = 2 атаки действием Атака.",
+            null,
+            "Атлетика",
+            "+8",
+            "Силовые действия, удержание проходов, лазание, толчки и борьба."
+          ]
+        },
+        {
+          "source_row": 17,
+          "category": "attack",
+          "columns": [
+            "Священное оружие + меч",
+            "+10",
+            "1d8+4",
+            "При активном Божественном канале к атакам добавляется +2 за ХАР.",
+            null,
+            "Запугивание",
+            "+6",
+            "Давление и угроза, когда авторитет/сила важнее дипломатии."
+          ]
+        },
+        {
+          "source_row": 18,
+          "category": "attack",
+          "columns": [
+            "Джавелин",
+            "+8",
+            "По оружию",
+            "Мастерство: Замедление; точное личное количество ранее надёжно не фиксировалось.",
+            null,
+            "Проницательность",
+            "+5",
+            "Читать намерения и эмоциональное состояние."
+          ]
+        },
+        {
+          "source_row": 19,
+          "category": "attack",
+          "columns": [
+            "Божественная кара",
+            "После попадания",
+            "По заклинанию",
+            "Можно использовать бесплатное применение 1/долгий отдых или подходящую ячейку.",
+            null,
+            "Убеждение",
+            "+6",
+            "Переговоры, примирение, просьбы и аргументация."
+          ]
+        }
+      ],
+      "class_species_feats": [
+        {
+          "source_row": 24,
+          "category": "feature",
+          "columns": [
+            "Наложение рук — 50/50 ПЗ",
+            null,
+            "После длительного отдыха запас Наложения рук полностью восстановлен: 50/50 ПЗ."
+          ]
+        },
+        {
+          "source_row": 25,
+          "category": "feature",
+          "columns": [
+            "Aura of Protection",
+            null,
+            "Лютобор и союзники в 10 фт получают +2 ко всем спасброскам. Особенно важно держать группу рядом против магии и массовых эффектов."
+          ]
+        },
+        {
+          "source_row": 26,
+          "category": "feature",
+          "columns": [
+            "Aura of Devotion",
+            null,
+            "Лютобор и союзники внутри Aura of Protection невосприимчивы к состоянию Charmed / Очарован. Уже действующее Очарование подавляется, пока существо остаётся в ауре."
+          ]
+        },
+        {
+          "source_row": 27,
+          "category": "feature",
+          "columns": [
+            "Аура отваги",
+            null,
+            "Лютобор и союзники внутри его Ауры защиты имеют иммунитет к состоянию Испуган. Если уже испуганный союзник входит в ауру, страх не действует на него, пока он остаётся внутри."
+          ]
+        },
+        {
+          "source_row": 28,
+          "category": "feature",
+          "columns": [
+            "Крепкий",
+            null,
+            "Максимум ПЗ увеличивается на 2 за каждый уровень персонажа. На 10 уровне суммарно даёт +20 ПЗ и уже учтён в базовом максимуме 104."
+          ]
+        },
+        {
+          "source_row": 29,
+          "category": "feature",
+          "columns": [
+            "Protection",
+            null,
+            "Реакцией защищает союзника рядом от атаки по закреплённой механике кампании. Помни: реакция одна и конкурирует со Знаком Непоколебимого Стража."
+          ]
+        },
+        {
+          "source_row": 30,
+          "category": "feature",
+          "columns": [
+            "Знак Непоколебимого Стража",
+            null,
+            "Пассивно союзники в 5 фт получают +1 к спасброскам. 3 заряда: реакцией превратить крит по видимому союзнику в пределах 30 фт в обычное попадание."
+          ]
+        },
+        {
+          "source_row": 31,
+          "category": "feature",
+          "columns": [
+            "Мастер тяжёлых доспехов",
+            null,
+            "В тяжёлом доспехе снижает подходящий дробящий, колющий или рубящий урон от атак на 4."
+          ]
+        },
+        {
+          "source_row": 32,
+          "category": "feature",
+          "columns": [
+            "Божественный канал / Священное оружие",
+            null,
+            "2 использования Божественного канала. Священное оружие добавляет +2 к атакам выбранным рукопашным оружием за ХАР; длинный меч становится +10."
+          ]
+        },
+        {
+          "source_row": 33,
+          "category": "feature",
+          "columns": [
+            "Верный скакун и ячейки",
+            null,
+            "Верный скакун всегда подготовлен; бесплатное применение 1/1 за длительный отдых. Текущие ячейки после отдыха: I — 4/4; II — 3/3; III — 2/2. Обычная подготовка — 9 заклинаний; клятвенные сверх лимита."
+          ]
+        },
+        {
+          "source_row": 34,
+          "category": "feature",
+          "columns": [
+            "Изгнание врагов",
+            null,
+            "Действие магии; тратит 1 использование Божественного канала. Лютобор выбирает до 2 видимых существ в пределах 60 фт (по модификатору ХАР +2). Каждая цель делает спасбросок МДР СЛ14. При провале она Испугана Лютобором до 1 минуты ИЛИ пока не получит любой урон. Пока цель испугана именно этой способностью, в свой ход она может сделать только ОДНО из трёх: переместиться, выполнить действие или выполнить бонусное действие. Полезно, чтобы временно выключить нескольких опасных врагов и выиграть время; если союзник ударит такую цель, эффект на ней сразу закончится."
+          ]
+        },
+        {
+          "source_row": 35,
+          "category": "feature",
+          "columns": [
+            "Мастер щита",
+            null,
+            "Раз за свой ход после попадания рукопашным оружием в рамках действия Атака по цели в 5 фт можно сразу ударить щитом: спасбросок СИЛ СЛ16, при провале — оттолкнуть цель на 5 фт или сбить с ног. Если эффект позволяет спасбросок ЛОВ для половины урона, можно реакцией при успешном спасброске получить 0 урона, пока щит в руке."
+          ]
+        }
+      ],
+      "spell_reference": [
+        {
+          "source_row": 38,
+          "category": "spell",
+          "columns": [
+            "Bless",
+            "I",
+            "Действие",
+            "30 фт",
+            "Да",
+            "До 1 мин",
+            "+1d4 к атакам и спасброскам выбранных союзников. Сильный старт боя."
+          ]
+        },
+        {
+          "source_row": 39,
+          "category": "spell",
+          "columns": [
+            "Cure Wounds",
+            "I",
+            "Действие",
+            "Касание",
+            "Нет",
+            "Мгновенно",
+            "Прямое лечение; расход ячейки."
+          ]
+        },
+        {
+          "source_row": 40,
+          "category": "spell",
+          "columns": [
+            "Heroism",
+            "I",
+            "Действие",
+            "Касание",
+            "Да",
+            "До 1 мин",
+            "Защита от испуга и временные HP."
+          ]
+        },
+        {
+          "source_row": 41,
+          "category": "spell",
+          "columns": [
+            "Command",
+            "I",
+            "Действие",
+            "60 фт",
+            "Нет",
+            "1 раунд",
+            "Короткий приказ; при провале спасброска цель следует ему."
+          ]
+        },
+        {
+          "source_row": 42,
+          "category": "spell",
+          "columns": [
+            "Compelled Duel",
+            "I",
+            "Бонусное действие",
+            "30 фт",
+            "Да",
+            "До 1 мин",
+            "Заставляет одного врага фокусироваться на Лютоборе."
+          ]
+        },
+        {
+          "source_row": 43,
+          "category": "spell",
+          "columns": [
+            "Protection from Evil and Good",
+            "I",
+            "Действие",
+            "Касание",
+            "Да",
+            "До 10 мин",
+            "Защита от ряда сверхъестественных типов существ."
+          ]
+        },
+        {
+          "source_row": 44,
+          "category": "spell",
+          "columns": [
+            "Shield of Faith",
+            "I",
+            "Бонусное действие",
+            "60 фт",
+            "Да",
+            "До 10 мин",
+            "+2 КД выбранной цели."
+          ]
+        },
+        {
+          "source_row": 45,
+          "category": "spell",
+          "columns": [
+            "Aid",
+            "II",
+            "Действие",
+            "30 фт",
+            "Нет",
+            "8 ч",
+            "Повышает максимум и текущие HP нескольких существ; использовать заранее."
+          ]
+        },
+        {
+          "source_row": 46,
+          "category": "spell",
+          "columns": [
+            "Lesser Restoration",
+            "II",
+            "Действие",
+            "Касание",
+            "Нет",
+            "Мгновенно",
+            "Снимает одно из тяжёлых состояний: ослепление, глухоту, паралич или отравление."
+          ]
+        },
+        {
+          "source_row": 47,
+          "category": "spell",
+          "columns": [
+            "Zone of Truth",
+            "II",
+            "Действие",
+            "60 фт",
+            "Нет",
+            "10 мин",
+            "Область, где провалившим спасбросок трудно сознательно лгать."
+          ]
+        },
+        {
+          "source_row": 48,
+          "category": "spell",
+          "columns": [
+            "Warding Bond / Защитная связь",
+            "II",
+            "Действие",
+            "Касание",
+            "Нет",
+            "1 ч",
+            "ПОДГОТОВЛЕНО. Цель получает +1 КД, +1 к спасброскам и сопротивление всему урону; Лютобор получает столько же урона, сколько проходит по цели. Нужна пара платиновых колец стоимостью не менее 50 зм каждое — наличие компонентов пока не подтверждено и автоматически не покупается."
+          ]
+        },
+        {
+          "source_row": 49,
+          "category": "spell",
+          "columns": [
+            "Маяк надежды",
+            "III",
+            "Действие",
+            "30 фт",
+            "Да",
+            "До 1 мин",
+            "Всегда подготовлено Клятвой Преданности. Действие, 30 фт, концентрация до 1 минуты. Лютобор выбирает любое число существ в пределах 30 фт. Они получают преимущество на спасброски МДР и спасброски от смерти, а ЛЮБОЕ лечение восстанавливает им максимально возможное число ПЗ. Например, лечение 2к6 под Маяком всегда даст 12 ПЗ."
+          ]
+        },
+        {
+          "source_row": 50,
+          "category": "spell",
+          "columns": [
+            "Рассеивание магии",
+            "III",
+            "Действие",
+            "120 фт",
+            "Нет",
+            "Мгновенно",
+            "Всегда подготовлено Клятвой Преданности. Действие, 120 фт, мгновенно. Выбери существо, предмет или магический эффект. Все действующие на цели заклинания III круга и ниже заканчиваются автоматически. Для каждого заклинания IV круга и выше Лютобор делает проверку Харизмы 1к20+2 с СЛ 10 + круг заклинания; при успехе оно заканчивается. Если наложить Рассеивание ячейкой более высокого круга, заклинания не выше этой ячейки снимаются автоматически."
+          ]
+        },
+        {
+          "source_row": 51,
+          "category": "spell",
+          "columns": [
+            "Мантия крестоносца",
+            "III",
+            "Действие",
+            "На себя, аура 30 фт",
+            "Да",
+            "До 1 мин",
+            "Подготовлено. Действие, концентрация до 1 минуты; вокруг Лютобора аура 30 фт. Пока союзник находится в ауре, КАЖДОЕ его попадание атакой оружием наносит дополнительно 1к4 сияющего урона. Сам Лютобор тоже получает бонус. Особенно сильна, когда Яр, Рада, Лютобор и другие бойцы делают много атак за раунд."
+          ]
+        },
+        {
+          "source_row": 52,
+          "category": "spell",
+          "columns": [
+            "Аура жизненной силы",
+            "III",
+            "Действие",
+            "На себя, аура 30 фт",
+            "Да",
+            "До 1 мин",
+            "Подготовлено. Действие, концентрация до 1 минуты; вокруг Лютобора аура 30 фт. Сразу при создании ауры и затем в начале каждого своего хода, пока заклинание действует, Лютобор может восстановить 2к6 ПЗ одному существу в ауре, включая себя. Для этого не требуется ни действие, ни бонусное действие — нужно только сохранять концентрацию."
+          ]
+        }
+      ],
+      "spell_preparation_note": "Check preparation and oath spells from the character sheet; do not assume every spell_reference item is prepared.",
+      "items": [
+        {
+          "catalog_key": "lyutobor-source-row-55",
+          "description": "КД 18; без помехи Скрытности и без требования СИЛ.",
+          "name": "Мифриловые латы",
+          "quantity": 1,
+          "source_sheet_row": 55,
+          "source_snapshot": "Лютобор",
+          "status": "Экипированы"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-56",
+          "description": "КД +2; союзники 5 фт +1 saves; 3 заряда отмены крита.",
+          "name": "Щит / Знак Непоколебимого Стража",
+          "quantity": 1,
+          "source_sheet_row": 56,
+          "source_snapshot": "Лютобор",
+          "status": "Экипирован"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-57",
+          "description": "Основное оружие; Sap.",
+          "name": "Длинный меч",
+          "quantity": 1,
+          "source_sheet_row": 57,
+          "source_snapshot": "Лютобор",
+          "status": "Экипирован"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-58",
+          "description": "Точное количество ранее надёжно не зафиксировано.",
+          "name": "Джавелины",
+          "quantity": null,
+          "quantity_status": "unknown_not_zero",
+          "source_sheet_row": 58,
+          "source_snapshot": "Лютобор",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-59",
+          "description": "2d4+2 HP.",
+          "name": "Обычное лечебное зелье",
+          "quantity": 2,
+          "source_sheet_row": 59,
+          "source_snapshot": "Лютобор",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-60",
+          "description": "4d4+4 HP.",
+          "name": "Улучшенное лечебное зелье",
+          "quantity": 1,
+          "source_sheet_row": 60,
+          "source_snapshot": "Лютобор",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-61",
+          "description": "Походный запас.",
+          "name": "Противоядие",
+          "quantity": 1,
+          "source_sheet_row": 61,
+          "source_snapshot": "Лютобор",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-62",
+          "description": "Одноразовый расходник.",
+          "name": "Алхимический огонь",
+          "quantity": 1,
+          "source_sheet_row": 62,
+          "source_snapshot": "Лютобор",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-63",
+          "description": "Сопротивление огню на 1 час.",
+          "name": "Зелье сопротивления огню",
+          "quantity": 1,
+          "source_sheet_row": 63,
+          "source_snapshot": "Лютобор",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-64",
+          "description": "Размер +1; преимущество СИЛ; +1d4 урона оружием.",
+          "name": "Зелье роста",
+          "quantity": 1,
+          "source_sheet_row": 64,
+          "source_snapshot": "Лютобор",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-65",
+          "description": "После настройки: 1/долгий отдых действием до 4 согласных существ в пределах 15 фт получают по 8 временных ПЗ. Факт настройки после получения в 009 не зафиксирован.",
+          "name": "Амулет Тихой Рощи",
+          "quantity": 1,
+          "source_sheet_row": 65,
+          "source_snapshot": "Лютобор",
+          "status": "При себе / требует настройки"
+        },
+        {
+          "catalog_key": "lyutobor-source-row-66",
+          "description": "Редкий чудесный предмет; адамантиновая статуэтка-башня. Требует настройки, настройка на Лютобора завершена. Постоянный походный укреплённый лагерь группы; перед складыванием все посторонние предметы и модули должны быть вынесены.",
+          "name": "Мгновенная крепость Даэрна",
+          "quantity": 1,
+          "source_sheet_row": 66,
+          "source_snapshot": "Лютобор",
+          "status": "Сложена / у Лютобора / настроена"
+        }
+      ],
+      "source_reference": {
+        "path": "migrations/character-g1m8-lyutobor-source-2026-10-10.json",
+        "sha": "767f4a72b5a8e4732db3db2b4f261a799e8b5b8c"
+      },
+      "source_cards_remaining_unclassified_rows": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        20,
+        22,
+        23,
+        36,
+        37,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66
+      ]
+    },
+    "rada": {
+      "name": "Рада",
+      "level": 10,
+      "class_and_level": "Плут 10 / Вор • Разведка и специальные задачи",
+      "status": "здорова",
+      "stats": {
+        "ИНТ": "10 (+0)",
+        "ЛОВ": "20 (+5)",
+        "МДР": "14 (+2)",
+        "СИЛ": "8 (-1)",
+        "ТЕЛ": "12 (+1)",
+        "ХАР": "14 (+2)"
+      },
+      "armor_class": "17",
+      "initiative": "+9",
+      "speed": "30 фт; лазание 30 фт",
+      "resources": {
+        "arrows": {
+          "current": 57,
+          "max": 60
+        },
+        "hp": {
+          "current": 63,
+          "max": 63
+        }
+      },
+      "state_features": [],
+      "attacks": [
+        {
+          "source_row": 16,
+          "category": "attack",
+          "columns": [
+            "Лук Последнего Листа",
+            "+11",
+            "1d6+7",
+            "Настроен; короткий лук +2; Vex; при подходящих условиях Скрытая атака 5к6. Шаг листвы 2/долгий отдых; Живая стрела 1/долгий отдых, СИЛ СЛ15.",
+            null,
+            "Скрытность",
+            "+13",
+            "Подкрадывание, укрытие и разведка. Надёжный талант: для владённой проверки d20 ниже 10 считается 10 → минимум 23."
+          ]
+        },
+        {
+          "source_row": 17,
+          "category": "attack",
+          "columns": [
+            "Скимитар",
+            "+9",
+            "1d6+5",
+            "Мастерство Nick; удобен для двух лёгких оружий, сохраняя бонусное действие.",
+            null,
+            "Ловкость рук",
+            "+13",
+            "Замки, карманы и тонкая работа руками. Надёжный талант → минимум 23 до иных модификаторов ситуации."
+          ]
+        },
+        {
+          "source_row": 18,
+          "category": "attack",
+          "columns": [
+            "Короткий меч",
+            "+9",
+            "1d6+5",
+            "Запасной; активного свойства мастерства сейчас нет.",
+            null,
+            "Запугивание",
+            "+10",
+            "Жёсткое давление и угрозы. Надёжный талант → минимум 20."
+          ]
+        },
+        {
+          "source_row": 19,
+          "category": "attack",
+          "columns": [
+            "Кинжал",
+            "+9",
+            "1d4+5",
+            "Запасное / скрытое оружие.",
+            null,
+            "Восприятие",
+            "+10",
+            "Засады, ловушки и наблюдение. Надёжный талант → минимум 20."
+          ]
+        }
+      ],
+      "class_species_feats": [
+        {
+          "source_row": 26,
+          "category": "feature",
+          "columns": [
+            "Скрытая атака — 5к6",
+            null,
+            "Один раз за ход добавь 5к6 при подходящей атаке оружием со свойством Фехтовальное или дальнобойным оружием, если выполняются условия Скрытой атаки."
+          ]
+        },
+        {
+          "source_row": 27,
+          "category": "feature",
+          "columns": [
+            "Хитрый удар — СЛ 17",
+            null,
+            "После Скрытой атаки можешь пожертвовать кубами её урона ради тактического эффекта. При эффекте стоимостью 1к6 у Рады остаётся 4к6 урона Скрытой атаки."
+          ]
+        },
+        {
+          "source_row": 28,
+          "category": "feature",
+          "columns": [
+            "Хитрое действие",
+            null,
+            "Бонусным действием Рывок, Отход или Спрятаться. Главный источник мобильности Рады."
+          ]
+        },
+        {
+          "source_row": 29,
+          "category": "feature",
+          "columns": [
+            "Точный прицел",
+            null,
+            "Если Рада не двигалась, бонусным действием получает преимущество на следующую атаку этого хода; скорость становится 0 до конца хода."
+          ]
+        },
+        {
+          "source_row": 30,
+          "category": "feature",
+          "columns": [
+            "Невероятное уклонение",
+            null,
+            "Реакция, когда видимый враг попал по Раде атакой: уменьшить урон этой атаки вдвое."
+          ]
+        },
+        {
+          "source_row": 31,
+          "category": "feature",
+          "columns": [
+            "Уклонение",
+            null,
+            "Если эффект требует спасбросок ЛОВ и обычно наносит половину урона при успехе: Рада получает 0 при успехе и половину при провале. Реакцию не тратит; не работает, если Рада недееспособна."
+          ]
+        },
+        {
+          "source_row": 32,
+          "category": "feature",
+          "columns": [
+            "Надёжный талант",
+            null,
+            "Когда проверка характеристики использует навык или инструмент, которым Рада владеет, натуральный результат d20 от 1 до 9 считается 10."
+          ]
+        },
+        {
+          "source_row": 33,
+          "category": "feature",
+          "columns": [
+            "Vex",
+            null,
+            "После попадания оружием с Vex получаешь преимущество на следующую атаку по той же цели до конца следующего хода."
+          ]
+        },
+        {
+          "source_row": 34,
+          "category": "feature",
+          "columns": [
+            "Nick",
+            null,
+            "Дополнительная атака лёгким оружием может быть частью Attack action, сохраняя бонусное действие для Cunning Action."
+          ]
+        },
+        {
+          "source_row": 35,
+          "category": "feature",
+          "columns": [
+            "Thief — лазание",
+            null,
+            "Скорость лазания 30 фт. Высота, стены и вертикальные маршруты — полноценная часть тактики и разведки."
+          ]
+        },
+        {
+          "source_row": 36,
+          "category": "feature",
+          "columns": [
+            "Улучшение характеристик",
+            null,
+            "Черта 8 уровня: ЛОВ 18→20. Это повысило КД, инициативу, спасбросок ЛОВ, СЛ Хитрого удара, атаки и урон оружием на ЛОВ, а также навыки, зависящие от ЛОВ."
+          ]
+        },
+        {
+          "source_row": 37,
+          "category": "feature",
+          "columns": [
+            "Меткий стрелок",
+            null,
+            "Черта 10 уровня (2024). +1 ЛОВ не повышает характеристику, потому что ЛОВ уже 20. Дальнобойные атаки оружием игнорируют половинное и три четверти укрытие; нахождение врага в 5 фт не даёт помеху атакам дальнобойным оружием; стрельба на дальней дистанции не совершается с помехой. Старого эффекта −5 к атаке / +10 к урону в версии 2024 нет."
+          ]
+        },
+        {
+          "source_row": 38,
+          "category": "feature",
+          "columns": [
+            "Высшее мастерство скрытности",
+            null,
+            "Новая опция Хитрого удара 9 уровня — «Скрытная атака», стоимость 1к6 Скрытой атаки. Если Рада скрылась действием «Спрятаться» и получила от него состояние Невидимый, то при этой атаке невидимость НЕ прекращается из-за самой атаки, если к концу своего хода Рада снова находится за укрытием на три четверти или полным укрытием. При обычной Скрытой атаке 5к6 после оплаты способности остаётся 4к6 урона. Практика: спряталась → выстрелила с преимуществом → потратила 1к6 → ушла за хорошее укрытие → сохранила состояние Невидимый."
+          ]
+        }
+      ],
+      "spell_reference": [],
+      "spell_preparation_note": null,
+      "items": [
+        {
+          "catalog_key": "rada-source-row-41",
+          "description": "КД 12 + ЛОВ = 17.",
+          "name": "Клёпаная кожаная броня",
+          "quantity": 1,
+          "source_sheet_row": 41,
+          "source_snapshot": "Рада",
+          "status": "Экипирована"
+        },
+        {
+          "catalog_key": "rada-source-row-42",
+          "description": "Основное дальнобойное оружие; +11, 1d6+7, Vex; Скрытая атака 5к6 при подходящих условиях.",
+          "name": "Лук Последнего Листа",
+          "quantity": 1,
+          "source_sheet_row": 42,
+          "source_snapshot": "Рада",
+          "status": "Экипирован / настроен"
+        },
+        {
+          "catalog_key": "rada-source-row-43",
+          "description": "Текущий остаток Campaign Engine: 57 из исходных 60; прежняя карточка отражала исходное число до дорожного боя.",
+          "name": "Стрелы",
+          "quantity": 57,
+          "source_sheet_row": 43,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-44",
+          "description": "Nick.",
+          "name": "Скимитар",
+          "quantity": 1,
+          "source_sheet_row": 44,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-45",
+          "description": "Запасной.",
+          "name": "Короткий меч",
+          "quantity": 1,
+          "source_sheet_row": 45,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-46",
+          "description": "Запасной / скрытый.",
+          "name": "Кинжал",
+          "quantity": 1,
+          "source_sheet_row": 46,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-47",
+          "description": "Набор отравителя.",
+          "name": "Poisoner's Kit",
+          "quantity": 1,
+          "source_sheet_row": 47,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-48",
+          "description": "Плащ Тихой Тени: преимущество на Скрытность против визуального наблюдения; попытки обнаружить скрытую Раду глазами — с помехой. Не делает невидимой и не позволяет скрываться без подходящего укрытия.",
+          "name": "Плащ Тихой Тени",
+          "quantity": 1,
+          "source_sheet_row": 48,
+          "source_snapshot": "Рада",
+          "status": "Экипирован"
+        },
+        {
+          "catalog_key": "rada-source-row-49",
+          "description": "Тёмное зрение и визуальное Восприятие.",
+          "name": "Амулет Звериного Глаза",
+          "quantity": 1,
+          "source_sheet_row": 49,
+          "source_snapshot": "Рада",
+          "status": "Настроен"
+        },
+        {
+          "catalog_key": "rada-source-row-50",
+          "description": "Редкое; защита разума/телепатии.",
+          "name": "Кольцо Скрытого Разума",
+          "quantity": 1,
+          "source_sheet_row": 50,
+          "source_snapshot": "Рада",
+          "status": "Настроено"
+        },
+        {
+          "catalog_key": "rada-source-row-51",
+          "description": "3 заряда; направление к ближайшей скрытой двери/ловушке.",
+          "name": "Жезл секретов",
+          "quantity": 1,
+          "source_sheet_row": 51,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-52",
+          "description": "2d4+2 HP.",
+          "name": "Обычное лечебное зелье",
+          "quantity": 2,
+          "source_sheet_row": 52,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-53",
+          "description": "Походный запас.",
+          "name": "Противоядие",
+          "quantity": 1,
+          "source_sheet_row": 53,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-54",
+          "description": "Алхимический расходник.",
+          "name": "Кислота",
+          "quantity": 2,
+          "source_sheet_row": 54,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-55",
+          "description": "Одноразовый расходник.",
+          "name": "Алхимический огонь",
+          "quantity": 2,
+          "source_sheet_row": 55,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-56",
+          "description": "Алхимический расходник.",
+          "name": "Дымовая бомба",
+          "quantity": 2,
+          "source_sheet_row": 56,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-57",
+          "description": "Сигнал / освещение.",
+          "name": "Сигнальная ракета",
+          "quantity": 2,
+          "source_sheet_row": 57,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-58",
+          "description": "Все 5 переданы Раде.",
+          "name": "Металлическая ловушка",
+          "quantity": 5,
+          "source_sheet_row": 58,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-59",
+          "description": "10 временных HP + Bless без концентрации на 1 час.",
+          "name": "Зелье героизма",
+          "quantity": 1,
+          "source_sheet_row": 59,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-62",
+          "description": "3 боевые дозы из трофеев разлома; одна доза на одно применение. ТЕЛ СЛ14; провал 2d6 ядом и без реакций до начала следующего хода; успех — половина урона.",
+          "name": "Яд быстрого хищника",
+          "quantity": 3,
+          "source_sheet_row": 62,
+          "source_snapshot": "Рада",
+          "status": "При себе"
+        },
+        {
+          "catalog_key": "rada-source-row-63",
+          "description": "Золотая застёжка стоимостью 100 зм из добычи III яруса Башни Пяти Цепей; Рада выбрала её себе как памятную и пригодную для одежды вещь.",
+          "name": "Золотая застёжка Клеймителей III яруса",
+          "quantity": 1,
+          "source_sheet_row": 63,
+          "source_snapshot": "Рада",
+          "status": "Личный трофей / при себе"
+        }
+      ],
+      "source_reference": {
+        "path": "migrations/character-g1m8-rada-source-2026-10-10.json",
+        "sha": "081eca74f56ca451ea3e67896d3a7dda09eff208"
+      },
+      "source_cards_remaining_unclassified_rows": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        20,
+        21,
+        22,
+        24,
+        25,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        62,
+        63
+      ]
+    }
+  }
+}
