@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "canonical": false,
+  "source": "state/_campaign-state.json",
+  "state_revision": 27,
+  "description": "Executable combat UI inventory snapshot, consumable quantities per authoritative Campaign Engine. Opening in-chat UI does not edit campaign state.",
+  "consumables": {
+    "yar": {
+      "smoke_bomb": 1,
+      "healing": 3,
+      "greater_healing": 1,
+      "antitoxin": 3,
+      "alchemist_fire": 2,
+      "potion_speed": 1
+    },
+    "daphne": {
+      "healing": 2,
+      "antitoxin": 1,
+      "acid": 1,
+      "smoke_bomb": 1,
+      "potion_climbing": 1,
+      "hill_giant_strength": 1
+    },
+    "lyutobor": {
+      "healing": 2,
+      "greater_healing": 1,
+      "antitoxin": 1,
+      "alchemist_fire": 1,
+      "potion_fire_resistance": 1,
+      "potion_growth": 1
+    },
+    "rada": {
+      "healing": 2,
+      "antitoxin": 1,
+      "acid": 2,
+      "alchemist_fire": 2,
+      "smoke_bomb": 2,
+      "flare": 2,
+      "trap": 5,
+      "potion_heroism": 1,
+      "fast_predator_poison": 3
+    }
+  },
+  "source_inventory_keys": {
+    "yar": {
+      "smoke_bomb": {
+        "key": "yar-bandit-Дымовая бомба",
+        "name": "Дымовая бомба",
+        "quantity": 1,
+        "status": "При Яре"
+      },
+      "healing": {
+        "key": "yar-bandit-Обычное лечебное зелье",
+        "name": "Обычное лечебное зелье",
+        "quantity": 3,
+        "status": "При Яре"
+      },
+      "greater_healing": {
+        "key": "yar-source-row-54",
+        "name": "Улучшенное лечебное зелье",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "antitoxin": {
+        "key": "yar-source-row-55",
+        "name": "Противоядие",
+        "quantity": 3,
+        "status": "При себе"
+      },
+      "alchemist_fire": {
+        "key": "yar-source-row-56",
+        "name": "Алхимический огонь",
+        "quantity": 2,
+        "status": "При себе"
+      },
+      "potion_speed": {
+        "key": "yar-source-row-57",
+        "name": "Зелье скорости",
+        "quantity": 1,
+        "status": "При себе"
+      }
+    },
+    "daphne": {
+      "healing": {
+        "key": "daphne-source-row-72",
+        "name": "Обычное лечебное зелье",
+        "quantity": 2,
+        "status": "При себе"
+      },
+      "antitoxin": {
+        "key": "daphne-source-row-73",
+        "name": "Противоядие",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "acid": {
+        "key": "daphne-source-row-74",
+        "name": "Кислота",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "smoke_bomb": {
+        "key": "daphne-source-row-75",
+        "name": "Дымовая бомба",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "potion_climbing": {
+        "key": "daphne-source-row-76",
+        "name": "Зелье лазания",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "hill_giant_strength": {
+        "key": "daphne-source-row-77",
+        "name": "Зелье силы холмового великана",
+        "quantity": 1,
+        "status": "При себе"
+      }
+    },
+    "lyutobor": {
+      "healing": {
+        "key": "lyutobor-source-row-59",
+        "name": "Обычное лечебное зелье",
+        "quantity": 2,
+        "status": "При себе"
+      },
+      "greater_healing": {
+        "key": "lyutobor-source-row-60",
+        "name": "Улучшенное лечебное зелье",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "antitoxin": {
+        "key": "lyutobor-source-row-61",
+        "name": "Противоядие",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "alchemist_fire": {
+        "key": "lyutobor-source-row-62",
+        "name": "Алхимический огонь",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "potion_fire_resistance": {
+        "key": "lyutobor-source-row-63",
+        "name": "Зелье сопротивления огню",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "potion_growth": {
+        "key": "lyutobor-source-row-64",
+        "name": "Зелье роста",
+        "quantity": 1,
+        "status": "При себе"
+      }
+    },
+    "rada": {
+      "healing": {
+        "key": "rada-source-row-52",
+        "name": "Обычное лечебное зелье",
+        "quantity": 2,
+        "status": "При себе"
+      },
+      "antitoxin": {
+        "key": "rada-source-row-53",
+        "name": "Противоядие",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "acid": {
+        "key": "rada-source-row-54",
+        "name": "Кислота",
+        "quantity": 2,
+        "status": "При себе"
+      },
+      "alchemist_fire": {
+        "key": "rada-source-row-55",
+        "name": "Алхимический огонь",
+        "quantity": 2,
+        "status": "При себе"
+      },
+      "smoke_bomb": {
+        "key": "rada-source-row-56",
+        "name": "Дымовая бомба",
+        "quantity": 2,
+        "status": "При себе"
+      },
+      "flare": {
+        "key": "rada-source-row-57",
+        "name": "Сигнальная ракета",
+        "quantity": 2,
+        "status": "При себе"
+      },
+      "trap": {
+        "key": "rada-source-row-58",
+        "name": "Металлическая ловушка",
+        "quantity": 5,
+        "status": "При себе"
+      },
+      "potion_heroism": {
+        "key": "rada-source-row-59",
+        "name": "Зелье героизма",
+        "quantity": 1,
+        "status": "При себе"
+      },
+      "fast_predator_poison": {
+        "key": "rada-source-row-62",
+        "name": "Яд быстрого хищника",
+        "quantity": 3,
+        "status": "При себе"
+      }
+    }
+  },
+  "equipment": {
+    "yar": {
+      "armor": "none",
+      "armor_choices": [
+        {
+          "id": "great_forge_plate_plus_1",
+          "ac": 19,
+          "don_minutes": 10,
+          "doff_minutes": 5,
+          "source_item_key": "yar-source-row-47"
+        },
+        {
+          "id": "plate_reserve",
+          "ac": 18,
+          "don_minutes": 10,
+          "doff_minutes": 5,
+          "source_item_key": "yar-source-row-48"
+        }
+      ],
+      "weapon": "precision_sword",
+      "weapon_choices": [
+        "precision_sword",
+        "storm_thrower",
+        "great_forge_maul"
+      ],
+      "shield": false
+    },
+    "daphne": {
+      "armor": "none",
+      "weapon": "vaeltir_focus",
+      "weapon_choices": [
+        "vaeltir_focus"
+      ],
+      "shield": false
+    },
+    "lyutobor": {
+      "armor": "mithral_plate",
+      "ac_base": 18,
+      "shield": true,
+      "weapon": "longsword",
+      "weapon_choices": [
+        "longsword"
+      ],
+      "shield_action": true
+    },
+    "rada": {
+      "armor": "studded_leather",
+      "ac_base": 17,
+      "weapon": "last_leaf_bow",
+      "weapon_choices": [
+        "last_leaf_bow",
+        "scimitar",
+        "shortsword",
+        "dagger"
+      ]
+    }
+  },
+  "rules": {
+    "potions": "bonus action to drink or administer to adjacent ally (2024)",
+    "antitoxin": "bonus action to drink; 1 hour advantage saves avoid/end poisoned",
+    "acid": "replace one Attack-action attack; 20 ft, DEX save DC 8 + DEX mod + proficiency bonus, 2d6 acid on failure",
+    "alchemist_fire": "replace one Attack-action attack; 20 ft, same DEX save, 1d4 fire and burning on failure",
+    "smoke_and_special_alchemy": "Request GM ruling before consuming when no confirmed mechanical specification",
+    "armor_heavy": "don 10 min / doff 5 min, not instant in combat",
+    "armor_light": "don 1 min / doff 1 min",
+    "shield": "Utilize action to equip/unequip",
+    "weapons": "Draw/stow one weapon before or after a weapon attack; other switching interactions must respect hands/actions",
+    "attunement": "never auto-attune or grant bonuses from un-attuned items"
+  },
+  "readiness_note": "Item names and counts are authoritative; status source keys used for audit."
+}
