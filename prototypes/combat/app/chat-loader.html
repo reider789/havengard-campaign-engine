@@ -1,0 +1,30 @@
+<div id="hg-chat-mount" style="font:13px system-ui,sans-serif;padding:16px;border:1px solid #8798aa;border-radius:10px;min-height:100px">
+  Загружаю последнюю версию боевого поля из GitHub…
+</div>
+<script>
+(async()=>{
+ const mount=document.getElementById('hg-chat-mount');
+ if(!mount||mount.dataset.boot)return;
+ mount.dataset.boot='1';
+ const base='https://raw.githubusercontent.com/reider789/havengard-campaign-engine/main/';
+ async function get(url){
+   const response=await fetch(url+'?v='+Date.now(),{cache:'no-store'});
+   if(!response.ok)throw Error('GitHub ответил HTTP '+response.status);
+   return response;
+ }
+ try{
+   const entry=await (await get(base+'prototypes/combat/app/chat-entrypoint.json')).json();
+   const path=entry.current_ui_path;
+   if(!/^prototypes\/combat\/app\/havengard-battle-v\d+\.html$/.test(path))throw Error('Недопустимый путь версии');
+   const text=await (await get(base+path)).text();
+   const doc=new DOMParser().parseFromString(text,'text/html');
+   const ui=doc.querySelector('#hv12'),style=doc.querySelector('style'),logic=doc.querySelector('script:not([data-hg-runtime])');
+   if(!ui||!style||!logic)throw Error('Неполная сборка боевой карты');
+   mount.replaceChildren(document.importNode(style,true),document.importNode(ui,true));
+   const script=document.createElement('script');script.textContent=logic.textContent;mount.appendChild(script);
+ }catch(error){
+   mount.innerHTML='<div style="color:#b96c38;font-weight:600">Не удалось загрузить боевую карту в чате.</div><p></p>';
+   mount.querySelector('p').textContent=String(error?.message||error)+'. Исходный код и данные остаются сохранёнными в GitHub.';
+ }
+})();
+</script>
