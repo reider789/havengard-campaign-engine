@@ -1,0 +1,52 @@
+name: Build Private City Map
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-city-map.yml'
+      - 'state/_campaign-state.json'
+      - 'map/layout-base.json'
+      - 'map/template.html'
+      - 'tools/build_city_map.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hayvengard-map-snapshot
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build from latest private state and publish single-file HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name campaign-map-bot
+          git config user.email campaign-map-bot@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git checkout -B map-publish origin/main
+            python tools/build_city_map.py
+            git add map/offline.html
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git commit -m "[map-generated] Refresh private city map snapshot"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+          done
+          echo "Main was concurrently changed; rerun the workflow safely."
+          exit 1
