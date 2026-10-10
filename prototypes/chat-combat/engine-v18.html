@@ -1,0 +1,511 @@
+<div id="hv12">
+ <header><div><small>ХЕЙВЕНГАРД · БОЕВОЙ ИНТЕРФЕЙС V18 · В ЧАТЕ</small><h2>Старый мост</h2><span>Встроенная боевая карта · новые способности · учебная версия, не канон</span></div><strong id="round">Раунд 1</strong></header>
+ <div class="layout"><section><div class="heading">ТАКТИЧЕСКОЕ ПОЛЕ <span>5 фт / клетка</span></div><div class="axisx" id="axisx"></div><div class="boardrow"><div class="axisy" id="axisy"></div><div class="boardframe"><div class="board" id="board"></div><svg id="pathsvg" viewBox="0 0 1100 800" preserveAspectRatio="none"></svg></div></div><div class="legend">🔵 Герои · 🔴 Враги · ▥ Стена · ◈ Обломки · 🌫 Дым · 🔥 Горит · 🟢 Яд · ✦ Благословение</div><div class="note" id="notice"></div><div id="movement"></div></section>
+ <aside><div class="heading">ХОД И ИНИЦИАТИВА</div><div class="queue" id="queue"></div><div class="actor" id="actor"></div><div class="tabs" id="tabs"></div><div class="heading">ВОЗМОЖНОСТИ <span id="who"></span></div><div class="choices" id="choices"></div><div id="preview"></div><div id="response"></div><div id="endturn"></div></aside></div>
+ <div class="lower"><div class="syncbar"><div id="syncStatus">Источники данных: инициализация…</div><div class="buttons"><button class="btn" data-op="refresh">↻ Новые данные GitHub</button><button class="btn" data-op="save">💾 Сохранить бой</button><button class="btn" data-op="export">⇩ Экспорт JSON</button><button class="btn" data-op="restore">⇧ Импорт JSON</button></div><input type="file" accept="application/json,.json" id="importer" style="display:none"></div><div class="heading">ГЕРОИ <span>Просмотр не меняет ход или цель</span></div><div class="heroes" id="heroes"></div><div class="inspector" id="inspector"></div><div class="heading spaced">ЖУРНАЛ <span id="count"></span></div><div class="journal" id="journal"></div><div class="footer"><button data-op="reset">↻ Начать учебный бой заново</button><button data-op="stop">Завершить бой</button></div></div>
+</div>
+<style>
+#hv12{font:12px system-ui,-apple-system,sans-serif;color:#e8f0f7;background:#142333;border:1px solid #536b7c;border-radius:12px;overflow:hidden}#hv12 *{box-sizing:border-box}#hv12 button{font:inherit;cursor:pointer}#hv12 button:disabled{opacity:.4;cursor:default}
+#hv12 header{display:flex;justify-content:space-between;align-items:center;gap:12px;background:linear-gradient(110deg,#2d4355,#172635);padding:15px;border-bottom:1px solid #4d6578}#hv12 header small{font-size:9px;letter-spacing:1px;font-weight:800;color:#f0c78c}#hv12 header h2{font:normal 25px Georgia,serif;margin:5px 0;color:#ffe3b5}#hv12 header span{color:#b6c8d5;font-size:10px}#hv12 header strong{padding:8px;border:1px solid #bf9c6c;border-radius:6px;white-space:nowrap;color:#f5d5a4;font-size:11px}
+#hv12 .layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(230px,1fr)}#hv12 section,#hv12 aside,#hv12 .lower{padding:12px;min-width:0}#hv12 aside{background:#1b3042;border-left:1px solid #4e657a}#hv12 .heading{font-size:10px;color:#f2c78d;letter-spacing:.5px;font-weight:800;display:flex;justify-content:space-between;gap:10px;margin-bottom:10px}#hv12 .heading span{color:#a7c0d0;letter-spacing:0;font-weight:400}#hv12 .spaced{margin-top:17px}
+#hv12 .axisx{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));text-align:center;margin-left:19px;font-size:9px;color:#b1c5d1}#hv12 .boardrow{display:flex;gap:4px;margin-top:4px}#hv12 .axisy{width:15px;flex:0 0 15px;display:grid;grid-template-rows:repeat(8,minmax(0,1fr));align-items:center;text-align:center;font-size:9px;color:#b1c5d1}#hv12 .boardframe{flex:1;min-width:0;position:relative;border:2px solid #8699a8;border-radius:4px;overflow:hidden}#hv12 .board{display:grid;grid-template-columns:repeat(11,minmax(0,1fr))}
+#hv12 .tile{aspect-ratio:1;min-width:0;padding:0;border:1px solid #ffffff1b;position:relative;display:flex;justify-content:center;align-items:center;background:#3c5145;color:#e9dbba}#hv12 .tile:nth-child(even){background:#42584b}#hv12 .tile.wall{background:repeating-linear-gradient(45deg,#7e8f9a 0 5px,#536675 5px 10px)}#hv12 .tile.rubble{background:#736b54}#hv12 .tile.smoke{background:#617981}#hv12 .tile.aoe{background:#9b573b}#hv12 .tile.targetcell{outline:2px solid #ffdc9c;outline-offset:-3px}#hv12 .tile.aura{box-shadow:inset 0 0 0 2px #83d6ae54}
+#hv12 .unit{width:94%;height:94%;z-index:3;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;background:#397aac;border:1px solid #aedffb;color:#fff;border-radius:5px;line-height:1;font-size:clamp(10px,1.8vw,16px);font-weight:900;position:relative;box-shadow:0 1px 5px #0008}#hv12 .unit.foe{background:#a1514a;border-color:#fad1bd}#hv12 .unit.now{outline:2px solid #ffcc82}#hv12 .unit.armor{box-shadow:0 0 0 2px #6ad0ff,0 0 10px #6ad0ff}#hv12 .unit small{font-size:clamp(7px,1vw,10px)}#hv12 .health{width:78%;height:3px;border-radius:3px;background:#743b43;overflow:hidden}#hv12 .health i{display:block;height:100%;background:#9fe5ab}#hv12 .status{position:absolute;right:-4px;top:-5px;font-size:clamp(8px,1.3vw,13px);line-height:1;text-shadow:0 1px 3px #000;z-index:5}#hv12 .status2{position:absolute;right:-4px;bottom:0;font-size:clamp(8px,1.3vw,13px);z-index:5}#hv12 .step{position:absolute;z-index:5;left:1px;top:0;color:#ffe3a0;font-size:9px;font-weight:900;text-shadow:0 1px 2px #000}#hv12 #pathsvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+#hv12 .legend{margin:11px 0;font-size:10px;color:#b7cbd8;line-height:1.6}#hv12 .note{padding:10px;border:1px solid #5b768a;background:#2c4256;border-radius:7px;line-height:1.5}#hv12 .queue{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}#hv12 .queue span{border:1px solid #648094;border-radius:5px;background:#304d60;padding:5px 7px;min-width:36px;text-align:center;font-size:10px}#hv12 .queue span b{display:block}#hv12 .queue span.on{background:#65503a;border-color:#edc58c}#hv12 .actor{border:1px solid #5e798e;background:#2b4559;border-radius:7px;padding:10px;margin-bottom:12px;line-height:1.6}#hv12 .actor b{font-size:16px;display:block;color:#ffdfb1}#hv12 .actor small{color:#bacbd8}
+#hv12 .tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}#hv12 .tabs button{background:#304e64;border:1px solid #6e8ba0;color:#eff6fb;border-radius:5px;padding:7px;font-size:10px}#hv12 .tabs button.on{background:#67513c;border-color:#f3c890}#hv12 .choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}#hv12 .choice{min-width:0;background:#36576d;border:1px solid #7390a4;border-radius:6px;color:#f0f8fd;padding:9px 7px;text-align:left}#hv12 .choice b{display:block;font-size:11px}#hv12 .choice small{display:block;color:#c1d2df;font-size:9px;line-height:1.4;margin-top:4px}#hv12 .choice.muted{background:#2a4053}#hv12 .choice.chosen{background:#69523d;border-color:#f0c68e}#hv12 .panel{background:#3c372f;border:1px solid #bea075;border-radius:8px;margin-top:10px;padding:11px;line-height:1.5}#hv12 .panel h3{margin:0 0 7px;color:#ffe1b0;font-size:14px}#hv12 .panel p,#hv12 .panel label{font-size:11px;line-height:1.5;margin:7px 0}#hv12 .panel label{display:block}#hv12 .warning{color:#ffc49f;font-size:11px}#hv12 .buttons{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}#hv12 .btn{flex:1;padding:9px 7px;border:1px solid #7795a8;background:#37576d;border-radius:6px;color:#eff6fb;font-weight:800}#hv12 .btn.primary{background:#d3a66c;color:#1d2c3a;border-color:#f1d09b}#hv12 .btn.full{display:block;width:100%;margin-top:10px}
+#hv12 .lower{border-top:1px solid #4a6277}#hv12 .heroes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}#hv12 .hero{background:#2c485c;border:1px solid #648398;border-radius:7px;padding:9px;color:#edf6fc;text-align:left;min-width:0}#hv12 .hero.on{background:#514e41;border-color:#f1c48f}#hv12 .hero b{display:block;font-size:12px}#hv12 .hero small{display:block;font-size:10px;color:#c0d0dd;line-height:1.4;margin-top:5px}#hv12 .inspector{background:#20394b;border:1px solid #6c889b;border-radius:9px;margin-top:11px;padding:11px}#hv12 .inspector h3{font-size:16px;color:#ffe0b2;margin:0 0 11px}#hv12 .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}#hv12 .col{border:1px solid #577589;background:#2b4659;border-radius:7px;padding:9px;min-width:0}#hv12 .col b{font-size:11px;color:#efc990}#hv12 .col p{font-size:10px;line-height:1.45;border-top:1px solid #ffffff16;margin:7px 0 0;padding-top:6px}#hv12 .journal{max-height:240px;overflow:auto;background:#172c3f;border:1px solid #4e6a7d;border-radius:7px;padding:4px 10px}#hv12 .event{font-size:11px;line-height:1.5;padding:7px 0;border-bottom:1px solid #ffffff18}#hv12 .event:last-child{border:0}#hv12 .footer{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}#hv12 .footer button{padding:8px 10px;border-radius:6px;border:1px solid #658399;color:#edf6fc;background:#304b60}
+@media(max-width:700px){#hv12 .layout{grid-template-columns:1fr}#hv12 aside{border-left:0;border-top:1px solid #4d657a}#hv12 .cols{grid-template-columns:1fr}#hv12 .heroes{grid-template-columns:repeat(2,minmax(0,1fr))}#hv12 section,#hv12 aside,#hv12 .lower{padding:10px}}
+#hv12 .syncbar{border:1px solid #607e90;background:#203a4e;border-radius:7px;padding:10px;margin-bottom:13px;color:#d5e4ed;font-size:11px;line-height:1.5}#hv12 .syncbar .buttons{margin-top:7px}#hv12 .synclive{color:#a2e1b1}#hv12 .syncsnap{color:#f4cf95}
+</style>
+<script>
+(async()=>{
+const root=document.getElementById('hv12');if(!root||root.dataset.init)return;root.dataset.init='1';
+const $=x=>root.querySelector('#'+x),names={rada:'Рада',daphne:'Дафна',lyutobor:'Лютобор',yar:'Яр',guard:'Страж',archer:'Арбалетчик'},abbr={rada:'Р',daphne:'Д',lyutobor:'Л',yar:'Я',guard:'С',archer:'А'};
+const heroes=['rada','daphne','lyutobor','yar'],foes=['guard','archer'],order=[...heroes,...foes],init=[27,17,13,10,9,3];
+const walls=new Set(['5,2','5,3','5,4','8,5','8,6']),rubble=new Set(['4,3','4,4','6,4','7,4']);
+const idxy=(x,y)=>x+','+y,pos=(x,y)=>'ABCDEFGHIJK'[x]+(y+1),wall=(x,y)=>walls.has(idxy(x,y)),rough=(x,y)=>rubble.has(idxy(x,y));
+const dist=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))*5,rad=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)*5;
+const die=n=>Math.floor(Math.random()*n)+1,dice=(n,s)=>Array.from({length:n},()=>die(s)),sum=arr=>arr.reduce((x,y)=>x+y,0),esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const item={healing:['Лечебное зелье','2к4+2 ПЗ · бонусное','drink'],greater:['Улучшенное лечебное зелье','4к4+4 ПЗ · бонусное','drink'],antitoxin:['Противоядие','1 час: преимущество против Отравления','drink'],fire:['Алхимический огонь','20 фт · 1к4 и горение','throw'],acid:['Кислота','20 фт · 2к6, одна цель','throw'],smoke:['Дымовая бомба','Домашние настройки: радиус 10 фт / 1 минута / 30 фт','smoke'],speed:['Зелье скорости','Частично: +2 КД на 1 минуту; прочее требует полного обработчика','manual'],climb:['Зелье лазания','Лазание на 1 час (вертикальных клеток пока нет)','drink'],giant:['Зелье силы холмового великана','СИЛ 21 на 1 час; часть проверок ещё не автоматизирована','drink'],fireRes:['Зелье сопротивления огню','Сопротивление огню на 1 час','drink'],growth:['Зелье роста','Часть эффектов ещё не автоматизирована','manual'],heroism:['Зелье героизма','10 временных ПЗ и Благословение 1 час','drink'],poison:['Яд быстрого хищника','Покрыть оружие, следующий удар','poison'],flare:['Сигнальная ракета','Нужна оценка ведущего','manual'],trap:['Металлическая ловушка','Нужна оценка ведущего','manual']};
+const sourceText=root.querySelector('script[data-hg-runtime]')?.textContent;
+const received=globalThis.__bindings?.value;
+const PUBLIC_GITHUB='https://raw.githubusercontent.com/reider789/havengard-campaign-engine/main/';
+const PUBLIC_MANIFEST=(location.hostname.endsWith('github.io')?'./runtime/latest.json':PUBLIC_GITHUB+'prototypes/combat/app/runtime/latest.json');
+const PUBLIC_STATE=PUBLIC_GITHUB+'state/_campaign-state.json';
+let runtime=null,sourceMethod='offline',liveError='',manifestRevision=null;
+async function fetchJSON(url){
+ const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),9000);
+ try{
+  const separator=url.includes('?')?'&':'?';
+  const response=await fetch(url+separator+'hg_refresh='+Date.now(),{cache:'no-store',mode:'cors',signal:controller.signal});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  return await response.json();
+ }finally{clearTimeout(timeout)}
+}
+// The public GitHub is the source for a standalone page. Chat-injected state is
+// honored first because a sandbox may forbid outgoing requests, not because
+// that embedded state is the canonical database.
+try {
+ if(received?.source){runtime=received.source;sourceMethod='chat-connector'}
+ else if(globalThis.HAVENGARD_RUNTIME){runtime=globalThis.HAVENGARD_RUNTIME;sourceMethod='injected'}
+ else if(sourceText){runtime=JSON.parse(sourceText);sourceMethod='injected'}
+ else{
+   const [manifestResult,stateResult]=await Promise.allSettled([
+     fetchJSON(PUBLIC_MANIFEST),fetchJSON(PUBLIC_STATE)]);
+   if(manifestResult.status==='fulfilled'&&manifestResult.value?.characters){
+     runtime=manifestResult.value;sourceMethod='github-manifest';manifestRevision=runtime.source_state_revision;
+   }
+   if(stateResult.status==='fulfilled'&&stateResult.value?.characters){
+     runtime=mergeCurrentCanonical(runtime,stateResult.value);sourceMethod='github-live';
+   }else if(manifestResult.status!=='fulfilled'){
+     liveError=String(stateResult.reason||manifestResult.reason||'Недоступен GitHub').slice(0,120);
+   }
+ }
+}catch(e){liveError=String(e.message||e).slice(0,150);runtime=null;sourceMethod='offline'}
+// Merge from the CURRENT public canonical file rather than a second editable
+// copy. The generated registry contributes classification and older references.
+function mergeCurrentCanonical(manifest,state){
+ const result=manifest&&manifest.characters?JSON.parse(JSON.stringify(manifest)):{schema_version:1,characters:{}};
+ const aliases={healing:'healing',greater_healing:'greater',antitoxin:'antitoxin',alchemist_fire:'fire',acid:'acid',smoke_bomb:'smoke',potion_speed:'speed',potion_climbing:'climb',hill_giant_strength:'giant',potion_fire_resistance:'fireRes',potion_growth:'growth',potion_heroism:'heroism',fast_predator_poison:'poison',flare:'flare',trap:'trap'};
+ const patterns=[[/^Обычное лечебное зелье$/i,'healing'],[/^Улучшенное лечебное зелье$/i,'greater'],[/^Противоядие$/i,'antitoxin'],[/^Алхимический огонь$/i,'fire'],[/^Кислота$/i,'acid'],[/^Дымовая бомба$/i,'smoke'],[/^Зелье скорости$/i,'speed'],[/^Зелье лазания$/i,'climb'],[/^Зелье силы холмового великана$/i,'giant'],[/^Зелье сопротивления огню$/i,'fireRes'],[/^Зелье роста$/i,'growth'],[/^Зелье героизма$/i,'heroism'],[/^Яд быстрого хищника$/i,'poison'],[/^Сигнальная ракета$/i,'flare'],[/^Металлическая ловушка$/i,'trap']];
+ const noteworthy=/зель|бомб|кислот|яд |яда|настой|реактив|эликсир|ракета|ловушка|противояд/i;
+ for(const id of ['yar','daphne','lyutobor','rada']){
+  const live=state.characters[id];if(!live)continue;
+  const old=result.characters[id]||{},sheet=live.character_sheet||{},oldInventory=old.inventory||[];
+  const priorTypeById=Object.fromEntries(oldInventory.filter(e=>e.consumable_type).map(e=>[e.id,aliases[e.consumable_type]||e.consumable_type]));
+  const newInventory=[],consumables={};
+  for(const [key,v] of Object.entries(live.inventory_catalog||{})){
+   const name=String(v.name||key),quantity=Number(v.quantity)||0;
+   const kind=priorTypeById[key]||patterns.find(([pattern])=>pattern.test(name))?.[1]||null;
+   const isManual=!kind&&noteworthy.test(name);
+   newInventory.push({id:key,name,quantity,status:v.status,description:v.description,consumable_type:kind,requires_manual_rule:isManual});
+   if(kind&&quantity>0)consumables[kind]=(consumables[kind]||0)+quantity;
+  }
+  const details=[...(old.skills_attacks_spells||[])], known=new Set(details.map(e=>e.id));
+  for(const row of sheet.combat_reference||[]){
+   const cells=row.cells||[],name=String(cells[0]||'').trim();
+   if(!name||/^(Действие|Заклинание|Способность|Атака|Статус|Навык|Личный инвентарь|Кости хитов)$/i.test(name))continue;
+   const key=id+'-live-'+row.source_row;
+   if(known.has(key))continue;
+   details.push({id:key,name,description:cells.slice(1).filter(x=>x!==null&&x!=='').join(' · ').slice(0,600),category:'live_sheet',source_row:row.source_row,execution_status:'reference_only_unless_combat_handler_verified'});
+   known.add(key);
+  }
+  for(const [i,name] of (live.features||[]).entries()){
+   if(typeof name==='string'&&name.trim()&&!details.some(d=>d.name===name))details.push({id:id+'-feature-'+i,name,description:'Текущая особенность Campaign Engine',category:'live_feature',execution_status:'reference_only_unless_combat_handler_verified'});
+  }
+  result.characters[id]={...old,name:live.name,class_and_level:sheet.class_and_level,ac_description:sheet.armor_class,speed:sheet.speed,resources:live.resources||{},consumables,inventory:newInventory,skills_attacks_spells:details};
+ }
+ result.source_state_revision=state.state_revision;
+ result.source='public-github-live';
+ result.is_canonical=false;
+ return result;
+}
+const fallbackStock={yar:{healing:3,greater:1,antitoxin:3,fire:2,smoke:1,speed:1},daphne:{healing:2,antitoxin:1,acid:1,smoke:1,climb:1,giant:1},lyutobor:{healing:2,greater:1,antitoxin:1,fire:1,fireRes:1,growth:1},rada:{healing:2,antitoxin:1,acid:2,fire:2,smoke:2,flare:2,trap:5,heroism:1,poison:3}};
+const stock=Object.fromEntries(heroes.map(h=>{const raw=runtime?.characters?.[h]?.consumables||fallbackStock[h];const copy=JSON.parse(JSON.stringify(raw));if(copy.fire_resistance!==undefined){copy.fireRes=copy.fire_resistance;delete copy.fire_resistance}if(copy.fast_poison!==undefined){copy.poison=copy.fast_poison;delete copy.fast_poison}return [h,copy]}));
+const sourceDetails=Object.fromEntries(heroes.map(h=>[h,runtime?.characters?.[h]?.skills_attacks_spells||[]]));
+const extraSpells={
+ firebolt:{name:'Огненный снаряд',owner:'daphne',level:0,range:120,target:'enemy'},
+ rayfrost:{name:'Луч холода',owner:'daphne',level:0,range:60,target:'enemy'},
+ mindsliver:{name:'Расщепление разума',owner:'daphne',level:0,range:60,target:'enemy'},
+ cure:{name:'Лечение ран',owner:'lyutobor',level:1,range:5,target:'ally'},
+ lesser:{name:'Малое восстановление',owner:'lyutobor',level:2,range:5,target:'ally'},
+ heroism_spell:{name:'Героизм',owner:'lyutobor',level:1,range:5,target:'ally'},
+ aid:{name:'Подмога',owner:'lyutobor',level:2,range:30,target:'multi'},
+ command:{name:'Приказ: Стой',owner:'lyutobor',level:1,range:60,target:'enemy'}
+};
+const spellNameMap={'Огненный снаряд':'firebolt','Луч холода':'rayfrost','Расщепление разума':'mindsliver','Cure Wounds':'cure','Лечение ран':'cure','Lesser Restoration':'lesser','Малое восстановление':'lesser','Heroism':'heroism_spell','Героизм':'heroism_spell','Aid':'aid','Подмога':'aid','Command':'command','Приказ':'command'};
+function spellKeyFromLabel(label){const name=String(label||'').trim();return Object.entries(spellNameMap).find(([s])=>name===s)?.[1]||null;}
+const handlerNames={yar:['Второе дыхание','Second Wind','Action Surge','Всплеск действий','Меч Меткого Удара','Грозовой метатель'],daphne:['Огненный шар','Доспехи мага'],lyutobor:['Благословение','Bless','Наложение рук','Длинный меч'],rada:['Лук Последнего Листа','Скрытая атака']};
+// Discover new consumables from canonical inventory even when no combat handler exists yet.
+for(const id of heroes){
+ const inv=runtime?.characters?.[id]?.inventory||[];
+ for(const entry of inv){
+  if(!(entry.quantity>0)||entry.consumable_type)continue;
+  if(!/зель|бомб|кислот|яд |яда|настой|реактив|эликсир|ракета|ловушка|противояд/i.test(entry.name))continue;
+  const generic='source_'+entry.id.replace(/[^a-z0-9_-]/gi,'_');
+  if(!item[generic])item[generic]=[entry.name,(entry.description||'Новая вещь из Campaign Engine').slice(0,150),'manual'];
+  stock[id][generic]=entry.quantity;
+ }
+}
+const initialResource=(id,key,fallback)=>runtime?.characters?.[id]?.resources?.[key]?.current??fallback;
+const weapons={yar:[['sword','Меч Меткого Удара','+12 · 2к6+10',12,2,6,10,5],['storm','Грозовой метатель','+8 · 2к8+2 · 90/240 фт · 20/28',8,2,8,2,240],['maul','Молот Великой Кузни','+9 · 2к6+5 (без настройки)',9,2,6,5,5]],daphne:[['focus','Фокус Ваэльтира','Заклинания +11 / СЛ19',11,0,0,0,120]],lyutobor:[['longsword','Длинный меч','+8 · 1к8+4',8,1,8,4,5]],rada:[['bow','Лук Последнего Листа','+11 · 1к6+7',11,1,6,7,320],['scimitar','Скимитар','+9 · 1к6+5',9,1,6,5,5],['shortsword','Короткий меч','+9 · 1к6+5',9,1,6,5,5],['dagger','Кинжал','+9 · 1к4+5',9,1,4,5,20]]};
+const featureNames={yar:['Второе дыхание','Tactical Shift','Всплеск действий','Точная атака','Ответный удар','Опрокидывающая атака','Толкающая атака','Провоцирующая атака','Маневрирующая атака','Приманка и смена','Savage Attacker','Плащ Ваэльтира','Кольцо Корня'],daphne:['Огненный шар','Волшебная стрела','Доспехи мага','Щит','Скульптура заклинаний','Палящий луч','Контрзаклинание','Рука Бигби','Туманный шаг','Конус холода'],lyutobor:['Атака мечом','Благословение','Мантия крестоносца','Наложение рук','Божественная кара','Protection','Знак Стража','Священное оружие','Ауры защиты'],rada:['Атака луком','Скрытая атака','Хитрый удар','Отход','Рывок','Спрятаться','Невероятное уклонение','Живая стрела','Шаг листвы','Vex']};
+for(const id of heroes){if(sourceDetails[id]?.length)featureNames[id]=[...new Set(sourceDetails[id].map(z=>z.name).filter(Boolean))]}
+function newState(){const u=(x,y,hp,more={})=>({x,y,hp,max:hp,action:0,bonus:0,reaction:1,move:0,attacks:0,interaction:false,temp:0,status:[],vex:null,sneakUsed:false,coated:false,...more});return{version:12,sourceRevision:runtime?.source_state_revision??"offline",phase:'active',round:1,index:1,elapsed:0,inspected:'daphne',target:'guard',tab:'actions',showAll:false,draft:null,path:[],manual:false,moving:false,shift:0,pending:null,smoke:[],effects:[],inv:JSON.parse(JSON.stringify(stock)),info:'Ход Дафны. Выбери действие, расходник или персонажа для просмотра. Передача — отдельная вкладка.',history:['Рада: выстрел по стражу, 8 урона. Страж 28/36 ПЗ.','Рада скрылась в E6 (Скрытность 23).'],units:{rada:u(4,5,63,{ac:17,weapon:'bow',arrows:57,hidden:true,leaf:2,living:1}),daphne:u(1,6,62,{ac:12,action:1,bonus:1,move:30,weapon:'focus',slots:[0,4,3,3,3,2],shieldFree:1}),lyutobor:u(3,5,104,{ac:20,weapon:'longsword',slots:[0,4,3,2],lay:50,channel:2,mark:3,smiteFree:1}),yar:u(2,5,114,{ac:11,weapon:'sword',storm:20,cloak:2,wind:4,surge:1,superiority:5}),guard:u(7,3,28,{ac:16}),archer:u(9,2,30,{ac:14})}}}
+let storedSession=null;
+try{storedSession=JSON.parse(localStorage.getItem('havengard-combat-session-v12')||'null')}catch(e){}
+const resumable=received?.session?.version===12?received.session:storedSession?.kind==='havengard-combat-session'&&storedSession?.session?.version===12?storedSession.session:null;
+let s=resumable||newState();
+// Canonical resources are applied only when a NEW tactical session is created, never over in-progress combat.
+function applySourceSeed(state){
+for(const h of heroes){const data=runtime?.characters?.[h];if(!data)continue;const u=state.units[h];u.hp=initialResource(h,'hp',u.hp);u.max=data.resources?.hp?.max??u.max}
+state.units.yar.storm=initialResource('yar','storm_thrower_ammo',state.units.yar.storm);
+state.units.rada.arrows=initialResource('rada','arrows',state.units.rada.arrows);
+state.units.lyutobor.lay=initialResource('lyutobor','lay_on_hands',state.units.lyutobor.lay);
+for(const h of ['daphne','lyutobor']){const slots=runtime?.characters?.[h]?.resources?.spell_slots||{};for(const [lv,item] of Object.entries(slots))state.units[h].slots[+lv]=item.current;}
+return state;
+}
+if(!resumable)applySourceSeed(s);
+function toSaved(){return {kind:'havengard-combat-session',version:12,source_revision:s.sourceRevision,session:s}}
+function hostSave(){
+ let saved=false;
+ const setter=globalThis.__bindings?.setValue;
+ if(typeof setter==='function'){setter({source:runtime,session:JSON.parse(JSON.stringify(s))});saved=true}
+ try{localStorage.setItem('havengard-combat-session-v12',JSON.stringify(toSaved()));saved=true}catch(e){}
+ return saved;
+}
+const turn=()=>order[s.index],me=()=>s.units[turn()],isHero=id=>heroes.includes(id),at=(x,y)=>Object.keys(s.units).find(id=>s.units[id].hp>0&&s.units[id].x===x&&s.units[id].y===y);
+function log(t){s.history.push('Р'+s.round+' · '+t);if(s.history.length>400)s.history.shift()}
+function smokeAt(p){return s.smoke.some(z=>z.until>s.elapsed&&rad(p,z)<=z.radius)}
+function wallLOS(a,b){const steps=Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))*4;for(let i=1;i<steps;i++){const p={x:Math.round(a.x+(b.x-a.x)*i/steps),y:Math.round(a.y+(b.y-a.y)*i/steps)};if(wall(p.x,p.y))return false}return true}
+function smokeBetween(a,b){const steps=Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))*4;for(let i=0;i<=steps;i++){const p={x:Math.round(a.x+(b.x-a.x)*i/(steps||1)),y:Math.round(a.y+(b.y-a.y)*i/(steps||1))};if(smokeAt(p))return true}return false}
+function LOS(a,b){return wallLOS(a,b)&&!smokeBetween(a,b)}
+function hasStatus(id,k){return s.units[id].status.some(z=>z.kind===k&&(z.until===null||z.until>s.elapsed))}
+function addStatus(id,k,until=null){s.units[id].status=s.units[id].status.filter(z=>z.kind!==k);s.units[id].status.push({kind:k,until});log(names[id]+' получает состояние «'+({burn:'Горит',toxic:'Яд — нет реакций',poisoned:'Отравлен',prone:'Лежит'}[k]||k)+'».')}
+function removeStatus(id,k){s.units[id].status=s.units[id].status.filter(z=>z.kind!==k);log(names[id]+': состояние «'+k+'» прекращено.')}
+function effect(id,k){return s.effects.find(e=>e.kind===k&&e.until>s.elapsed&&(e.targets.includes(id)||(k==='mantle'&&isHero(id)&&s.units[e.owner]?.hp>0&&dist(s.units[e.owner],s.units[id])<=30)))}
+function AC(id){return s.units[id].ac+(effect(id,'mage')?3:0)+(effect(id,'shield')?5:0)+(effect(id,'faith')?2:0)+(effect(id,'speed')?2:0)}
+function addBuff(owner,k,targets,duration,concentration=false){if(concentration){s.effects.filter(e=>e.owner===owner&&e.concentration).forEach(e=>log(names[owner]+': концентрация на '+e.kind+' прекращена.'));s.effects=s.effects.filter(e=>e.owner!==owner||!e.concentration)}s.effects.push({owner,kind:k,targets:[...targets],until:s.elapsed+duration,concentration});log(names[owner]+': эффект '+k+' → '+targets.map(id=>names[id]).join(', ')+'.')}
+function expire(){for(const e of s.effects.filter(e=>e.until<=s.elapsed&&e.kind==='aid'))for(const h of e.targets){const u=s.units[h];u.max=Math.max(1,u.max-5);u.hp=Math.min(u.hp,u.max);}s.effects=s.effects.filter(e=>e.until>s.elapsed);s.smoke=s.smoke.filter(e=>e.until>s.elapsed);for(const id of Object.keys(s.units))s.units[id].status=s.units[id].status.filter(z=>z.until===null||z.until>s.elapsed)}
+function saving(id,stat,dc){const b={rada:{DEX:9,CON:1,STR:-1},daphne:{DEX:2,CON:2,STR:-1},yar:{DEX:2,CON:8,STR:5},lyutobor:{DEX:0,CON:2,STR:4},guard:{DEX:1,CON:3,STR:3,WIS:0},archer:{DEX:2,CON:1,STR:1,WIS:1}}[id]?.[stat]||0,ly=s.units.lyutobor,a=isHero(id)&&ly.hp>0&&dist(ly,s.units[id])<=10?2:0,z=isHero(id)&&id!=='lyutobor'&&ly.hp>0&&dist(ly,s.units[id])<=5?1:0,bl=(effect(id,'bless')||effect(id,'heroism'))?die(4):0,d=stat==='DEX'&&effect(id,'speed')?Math.max(die(20),die(20)):die(20);const mind=s.units[id].nextSavePenalty||0;s.units[id].nextSavePenalty=0;if(mind&&hasStatus(id,'sliver'))removeStatus(id,'sliver');const total=d+b+a+z+bl-mind;log(names[id]+': спасбросок '+stat+' '+d+'+'+b+'+'+(a+z)+'(ауры)+'+bl+'(Bless)='+total+' против СЛ'+dc+'.');return total>=dc}
+function hurt(id,n,type='оружие'){const u=s.units[id];if(id==='lyutobor'&&type==='оружие')n=Math.max(0,n-4);if(type==='огонь'&&effect(id,'fireRes'))n=Math.floor(n/2);if(id==='daphne'&&n>0&&s.units.yar.hp>0&&dist(u,s.units.yar)<=60){const d=die(6),part=Math.floor(n*(d<=3?.5:d<=5?.75:1)),y=s.units.yar;n-=part;const buffer=Math.min(y.temp,part);y.temp-=buffer;y.hp=Math.max(0,y.hp-(part-buffer));log('Кольцо Корня: к6 '+d+' → Яр '+part+' урона (без повторного снижения), Дафна '+n+'.');const yrConc=s.effects.find(e=>e.owner==='yar'&&e.concentration);if(yrConc&&part>0&&!saving('yar','CON',Math.max(10,Math.floor(part/2)))){s.effects=s.effects.filter(e=>e!==yrConc);log('Концентрация Яра потеряна от перенесённого урона.')}}const temp=Math.min(n,u.temp);u.temp-=temp;n-=temp;u.hp=Math.max(0,u.hp-n);log(names[id]+': −'+n+' ПЗ ('+type+'), остаток '+u.hp+'/'+u.max+(temp?' · поглощено временными ПЗ '+temp:'')+'.');const conc=s.effects.find(e=>e.owner===id&&e.concentration);if(conc&&n>0&&!saving(id,'CON',Math.max(10,Math.floor(n/2)))){s.effects=s.effects.filter(e=>e!==conc);log('Концентрация '+names[id]+' потеряна.')}if(foes.every(e=>s.units[e].hp<=0)){s.phase='ended';log('Учебная победа.')}}
+function heal(id,n){const u=s.units[id],real=Math.min(n,u.max-u.hp);u.hp+=real;log(names[id]+': лечение '+real+' ПЗ ('+u.hp+'/'+u.max+').')}
+function useAttack(u){if(u.attacks>0)u.attacks--;else{u.action--;u.attacks=['yar','lyutobor'].includes(turn())?1:0}}
+function nearestPath(goal){if(wall(goal.x,goal.y)||at(goal.x,goal.y))return null;const src=me(),q=[{x:src.x,y:src.y,c:0,path:[]}],best={[idxy(src.x,src.y)]:0};while(q.length){q.sort((a,b)=>a.c-b.c);const p=q.shift();if(best[idxy(p.x,p.y)]!==p.c)continue;if(p.x===goal.x&&p.y===goal.y)return p.path;for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){if(!dx&&!dy)continue;const x=p.x+dx,y=p.y+dy;if(x<0||x>10||y<0||y>7||wall(x,y)||at(x,y))continue;const c=p.c+(rough(x,y)?10:5),k=idxy(x,y);if(c<(best[k]??Infinity)){best[k]=c;q.push({x,y,c,path:[...p.path,{x,y}]})}}}return null}
+const pathCost=p=>sum(p.map(z=>rough(z.x,z.y)?10:5));
+function enemyAttack(target,test=false,forced,attacker=turn()){const pal=s.units.lyutobor;if(target!=='lyutobor'&&pal.reaction>0&&pal.hp>0&&dist(pal,s.units[target])<=5){s.pending={kind:'protection',target,test,forced,attacker};return}enemyRoll(target,test,forced,false,attacker)}
+function enemyRoll(target,test,forced,disadvantage,attacker=turn()){const pal=s.units.lyutobor,u=s.units[target],d1=forced!==undefined?forced-5:die(20),d2=(disadvantage||(hasStatus(attacker,'goad')&&target!=='yar')||(hasStatus(target,'prone')&&dist(s.units[attacker],u)>5))?die(20):null,d=d2===null?d1:Math.min(d1,d2),total=d+5,hit=d===20||(d!==1&&total>=AC(target));log(names[attacker]+' атакует '+names[target]+': '+total+' против КД '+AC(target)+(hit?' — попал.':' — промах.'));if(!hit){if(!test)advance();else if(s.moving&&!s.pending)setTimeout(walk,150);return}if(target==='daphne'&&u.reaction>0&&d!==20&&!effect('daphne','shield')&&total<AC(target)+5&&(u.shieldFree>0||u.slots[1]>0)){u.reaction--;if(u.shieldFree>0)u.shieldFree--;else u.slots[1]--;addBuff('daphne','shield',['daphne'],7200);log('Автоматический Щит: КД '+AC('daphne')+', попадание предотвращено.');if(!test)advance();else if(s.moving&&!s.pending)setTimeout(walk,150);return}const ds=dice(d===20?2:1,8),raw=sum(ds)+3,opt=[];if(target==='yar'&&u.reaction&&u.cloak)opt.push('cloak');if(target==='rada'&&u.reaction)opt.push('uncanny');if(d===20&&target!=='lyutobor'&&pal.hp>0&&pal.reaction&&pal.mark&&dist(pal,u)<=30&&LOS(pal,u))opt.push('mark');if(opt.length){s.pending={kind:'defense',target,test,total,crit:d===20,extra:d===20?ds[1]:0,raw,opt};return}hurt(target,raw);if(!test)advance();else if(s.moving&&!s.pending)setTimeout(walk,150)}
+function decide(choice){const p=s.pending;if(!p)return;s.pending=null;if(p.kind==='protection'){if(choice==='yes'){s.units.lyutobor.reaction--;log('Лютобор: Protection, помеха атаке.')}enemyRoll(p.target,p.test,p.forced,choice==='yes',p.attacker);render();return}if(p.kind==='defense'){let n=p.raw;if(choice==='cloak'){s.units.yar.reaction--;s.units.yar.cloak--;if(!p.crit&&p.total<AC('yar')+3){n=0;log('Плащ Ваэльтира предотвращает удар.')}}if(choice==='uncanny'){s.units.rada.reaction--;n=Math.floor(n/2);log('Рада уменьшает урон вдвое.')}if(choice==='mark'){s.units.lyutobor.reaction--;s.units.lyutobor.mark--;n-=p.extra;log('Знак Стража отменяет крит.')}if(n>0)hurt(p.target,n);if(!p.test)advance();else if(s.moving&&!s.pending)setTimeout(walk,150);render();return}if(p.kind==='shift'){if(choice==='yes')s.shift=15;render();return}if(p.kind==='sneak'){let n=p.raw;if(choice==='yes'){const more=sum(dice(5,6));n+=more;s.units.rada.sneakUsed=true;log('Скрытая атака: +'+more+' урона.')}afterWeaponHit('rada',p.target,n);render();return}
+ if(p.kind==='maneuver'){let n=p.raw;const u=s.units.yar;
+ if(choice!=='no'){u.superiority--;const extra=die(10);n+=extra;log('Манёвр «'+choice+'»: +'+extra+' урона (кость превосходства).');
+ if(choice==='trip'&&!saving(p.target,'STR',17))addStatus(p.target,'prone',null);
+ if(choice==='push'&&!saving(p.target,'STR',17)){const foe=s.units[p.target],stepX=Math.sign(foe.x-u.x),stepY=Math.sign(foe.y-u.y);for(let i=0;i<3;i++){const nx=foe.x+stepX,ny=foe.y+stepY;if(nx<0||nx>10||ny<0||ny>7||wall(nx,ny)||at(nx,ny))break;foe.x=nx;foe.y=ny;log(names[p.target]+' отброшен в '+pos(nx,ny)+'.')}}
+ if(choice==='goad'&&!saving(p.target,'WIS',17))addStatus(p.target,'goad',s.elapsed+12);
+ }afterWeaponHit('yar',p.target,n);render();return;}
+ if(p.kind==='smite'){let n=p.raw;const u=s.units.lyutobor;if(choice!=='no'){if(choice==='free')u.smiteFree--;else u.slots[1]--;u.bonus--;const radiant=sum(dice(2,8));n+=radiant;log('Божественная кара: +'+radiant+' сияющего урона.')}afterWeaponHit('lyutobor',p.target,n);render();return;}}
+function startTurnStatus(id){const u=s.units[id];if(hasStatus(id,'burn')){log('🔥 Горение: в начале хода '+names[id]+' бросает 1к4.');hurt(id,die(4),'огонь')}if(hasStatus(id,'toxic'))removeStatus(id,'toxic');if(effect(id,'heroism'))u.temp=Math.max(u.temp,10);if(effect(id,'heroism_spell'))u.temp=Math.max(u.temp,2)}
+function advance(){let safe=0;while(s.phase==='active'&&!s.pending&&safe++<14){s.index++;if(s.index>=order.length){s.index=0;s.round++;s.elapsed+=6;expire();log('Раунд '+s.round+'.')}const id=turn(),u=me();if(u.hp<=0)continue;u.action=1;u.bonus=1;u.reaction=1;u.move=hasStatus(id,'frost')?20:30;u.attacks=0;u.interaction=false;u.disengaged=false;s.path=[];s.draft=null;s.manual=false;s.shift=0;if(id==='daphne')s.effects=s.effects.filter(e=>e.kind!=='shield');if(id==='rada'){u.sneakUsed=false;u.nickUsed=false}if(id==='yar'){u.savageUsed=false;u.hewReady=false;u.lastCrit=false;}u.spellSlotThisTurn=false;startTurnStatus(id);if(u.hp<=0)continue;log('Ход '+names[id]+'.');if(isHero(id)){s.info='Ход '+names[id]+'. Можно выбрать предмет, передачу или действие.';return}if(hasStatus(id,'commanded')){u.action=0;removeStatus(id,'commanded');log(names[id]+' выполняет приказ «Стой»; действие потрачено.');continue}if(hasStatus(id,'burn')){u.action=0;removeStatus(id,'burn');addStatus(id,'prone',s.elapsed+6);log(names[id]+' тратит действие, чтобы потушить огонь перекатыванием.');continue}const attacked=enemyTurn(id);if(s.pending||attacked)return}}
+function enemyTurn(id){const u=me(),targets=heroes.filter(h=>s.units[h].hp>0&&!s.units[h].hidden).sort((a,b)=>dist(u,s.units[a])-dist(u,s.units[b]));const range=id==='archer'?80:5;let target=targets.find(h=>dist(u,s.units[h])<=range&&LOS(u,s.units[h]));if(!target){let best=null;for(let y=0;y<8;y++)for(let x=0;x<11;x++){if(wall(x,y)||at(x,y))continue;const p=nearestPath({x,y});if(!p||pathCost(p)>30)continue;const gap=Math.min(...targets.map(h=>dist({x,y},s.units[h])));if(!best||gap<best.gap)best={x,y,gap}}if(best){log(names[id]+': '+pos(u.x,u.y)+' → '+pos(best.x,best.y)+'.');u.x=best.x;u.y=best.y}target=targets.find(h=>dist(u,s.units[h])<=range&&LOS(u,s.units[h]))}if(target){enemyAttack(target,false,undefined,id);return true}log(names[id]+': не может атаковать из текущей позиции.');return false}
+function afterWeaponHit(id,target,raw){
+ const u=s.units[id],foe=s.units[target]; let extra=0;
+ if(effect(id,'mantle')){extra=die(4);log('Мантия крестоносца: +'+extra+' сияющего урона.');}
+ let n=raw+extra;
+ if(u.coated){const passed=saving(target,'CON',14),poison=sum(dice(2,6));n+=passed?Math.floor(poison/2):poison;
+   if(!passed){foe.reaction=0;addStatus(target,'toxic',null)}
+   u.coated=false;log('Яд быстрого хищника: '+poison+' урона до спасброска (успех — половина).');}
+ if(id==='rada')u.vex=target;
+ hurt(target,n,u.weapon==='storm'?'молния':'оружие');
+}
+function attack(target){
+ const id=turn(),u=me(),w=weapons[id].find(x=>x[0]===u.weapon),t=s.units[target];
+ const first=die(20),normal=u.weapon==='storm'?90:u.weapon==='bow'?80:Infinity;
+ const adv=(id==='rada'&&(u.hidden||u.vex===target||hasStatus(id,'aim')))||Boolean(effect(id,'invisible'))||(hasStatus(target,'prone')&&dist(u,t)<=5),disadv=(dist(u,t)>normal&&!(id==='rada'&&u.weapon==='bow'))||smokeBetween(u,t)||(hasStatus(target,'prone')&&dist(u,t)>5);
+ const second=(adv||disadv)?die(20):null;
+ const r=second===null?first:adv&&disadv?first:adv?Math.max(first,second):Math.min(first,second);
+ const bless=(effect(id,'bless')||effect(id,'heroism'))?die(4):0;
+ useAttack(u);if(u.weapon==='bow')u.arrows--;if(u.weapon==='storm')u.storm--;
+ const holyBonus=id==='lyutobor'&&effect(id,'sacred')?2:0;const hit=r===20||(r!==1&&r+w[3]+bless+holyBonus>=AC(target));const critical=r===20||(hit&&hasStatus(target,'paralyzed')&&dist(u,t)<=5);u.lastCrit=id==='yar'&&critical;
+ log(names[id]+': '+w[1]+' по '+names[target]+', к20 '+first+(second!==null?'/'+second:'')+' + '+w[3]+' + Благословение '+bless+(hit?' — попадание.':' — промах.'));
+ u.hidden=false;
+ if(id==='rada')u.vex=null;
+ if(!hit){if(id==='yar'&&u.superiority>0&&u.weapon!=='storm'&&r!==1){s.pending={kind:'precision',target,weapon:u.weapon,attackTotal:r+w[3]+bless+holyBonus};return}if(id==='yar'&&u.weapon==='sword'){hurt(target,5,'оружие');log('Graze: 5 рубящего урона при промахе.')}return}
+ let pool=dice(w[4]*(critical?2:1),w[5]).map(a=>id==='yar'&&['sword','maul'].includes(u.weapon)?Math.max(3,a):a);if(id==='yar'&&!u.savageUsed){const pool2=dice(w[4]*(critical?2:1),w[5]).map(a=>['sword','maul'].includes(u.weapon)?Math.max(3,a):a);if(sum(pool2)>sum(pool))pool=pool2;u.savageUsed=true;log('Savage Attacker: лучший из двух бросков костей урона.')}let n=sum(pool)+w[6];if(effect(id,'growth'))n+=die(4);if(id==='lyutobor'&&effect(id,'giant'))n++; 
+ if(id==='rada'&&!u.sneakUsed&&(u.weapon==='bow'||u.weapon==='scimitar'||u.weapon==='shortsword'||u.weapon==='dagger')&&(adv||heroes.some(h=>h!=='rada'&&s.units[h].hp>0&&dist(s.units[h],t)<=5))){
+    s.pending={kind:'sneak',target,raw:n};return;
+ }
+ if(id==='yar'&&u.superiority>0&&u.weapon!=='storm'&&!u.hewAttack){s.pending={kind:'maneuver',target,raw:n};return;}
+ if(id==='lyutobor'&&u.bonus>0&&(u.smiteFree||u.slots?.[1]>0)){s.pending={kind:'smite',target,raw:n};return;}
+ afterWeaponHit(id,target,n);
+}
+function throwItem(d){const id=turn(),u=me(),t=d.target,k=d.key,dc=8+({yar:1,daphne:2,lyutobor:0,rada:5}[id]||0)+4;useAttack(u);s.inv[id][k]--;const passed=saving(t,'DEX',dc);log(names[id]+': '+(item[k]?.[0]||k)+' в '+names[t]+(passed?' — спасбросок успешен.':' — спасбросок провален.'));if(!passed){hurt(t,k==='acid'?sum(dice(2,6)):die(4),k==='acid'?'кислота':'огонь');if(k==='fire')addStatus(t,'burn',null)}}
+function choose(k,type){if(s.pending||s.moving)return;s.path=[];s.draft={type,key:k,owner:turn(),target:foes.includes(s.target)?s.target:turn(),point:null,targets:[],protected:[],recipient:null};if(type==='consumable'){const mode=item[k][2];if(mode==='drink')s.draft.target=turn();if(mode==='smoke')s.draft.point={x:s.units[s.target].x,y:s.units[s.target].y}}if(type==='spell'&&k==='fireball'){s.draft.point={x:s.units[s.target].x,y:s.units[s.target].y};s.draft.protected=heroes.filter(h=>s.units[h].hp>0&&rad(s.units[h],s.draft.point)<=20);}if(type==='spell'&&k==='misty')s.draft.point=null;if(k==='lay')s.draft.target=turn();if(k==='faith')s.draft.target=turn();if(extraSpells[k]?.target==='ally')s.draft.target=turn();if(extraSpells[k]?.target==='multi')s.draft.targets=[];render()}
+function check(d){if(!d)return'Не выбрано действие';const u=me(),k=d.key;if(d.owner!==turn())return'Изменилась очередь инициативы';if(d.type==='weapon'){if(u.weapon===k)return'Оружие уже в руках';return null}if(d.type==='transfer'){const itemQty=s.inv[turn()][k]||0,recv=s.units[d.recipient];if(!itemQty)return'Предмет закончился';if(!d.recipient||!isHero(d.recipient)||d.recipient===turn())return'Выбери другого героя';if(!recv||recv.hp<=0||dist(u,recv)>5)return'Получатель должен быть на соседней клетке (5 футов)';if(u.interaction&&u.action<1)return'Свободное взаимодействие потрачено и нет действия';return null}if(d.type==='consumable'){if(!s.inv[turn()][k])return'Нет предмета';const mode=item[k][2];if(mode==='manual')return null;if(mode==='throw'){if(!u.action&&!u.attacks)return'Нет атак';if(!foes.includes(d.target)||s.units[d.target].hp<=0||dist(u,s.units[d.target])>20||!wallLOS(u,s.units[d.target]))return'Цель вне 20 футов или скрыта';return null}if(mode==='smoke'){if(!u.action)return'Основное действие потрачено';if(!d.point||wall(d.point.x,d.point.y)||dist(u,d.point)>30)return'Центр должен быть в пределах 30 футов';return null}if(!u.bonus)return'Бонусное действие потрачено';if(k==='healing'||k==='greater'){if(!isHero(d.target)||s.units[d.target].hp<=0||dist(u,s.units[d.target])>5)return'Цель должна быть рядом в пределах 5 футов'}return null}if(d.type==='spell'){if(extraSpells[k]){
+ const def=extraSpells[k];if(def.owner!==turn())return'Не заклинание действующего персонажа';
+ if(!u.action)return'Действие уже потрачено';
+ if(def.level>0&&!u.slots?.[def.level])return'Нет ячейки '+def.level+' круга';
+ if(def.target==='multi'){if(!d.targets.length||d.targets.length>3||d.targets.some(h=>!isHero(h)||s.units[h].hp<=0||dist(u,s.units[h])>def.range))return'Нужны 1–3 живых союзника не дальше '+def.range+' фт'}
+ else {const target=s.units[d.target];if(!target||target.hp<=0||((def.target==='ally')!==isHero(d.target))||dist(u,target)>def.range||!wallLOS(u,target))return'Выбери допустимую цель не дальше '+def.range+' футов';}
+ return null;
+}if(k==='bless'){if(!u.action||!u.slots[1])return'Нет действия или ячейки I круга';if(!d.targets.length||d.targets.some(id=>dist(u,s.units[id])>30))return'Выбери 1–3 союзников в пределах 30 футов'}if(k==='fireball'){if(!u.action||!u.slots[3])return'Нет действия или ячейки III круга';if(!d.point||wall(d.point.x,d.point.y)||dist(u,d.point)>150||!LOS(u,d.point))return'Выбери доступный центр';if(d.protected.length>4)return'На III круге можно защитить не более 4 существ'}
+if(k==='missile'&&(!u.action||!u.slots[1]))return'Нет действия или ячейки I круга';
+if(k==='scorch'&&(!u.action||!u.slots[2]))return'Нет действия или ячейки II круга';
+if(['missile','scorch'].includes(k)&&(!foes.includes(d.target)||s.units[d.target].hp<=0||dist(u,s.units[d.target])>120||!LOS(u,s.units[d.target])))return'Цель должна быть видимой в пределах 120 футов';
+if(k==='faith'&&(!u.bonus||!u.slots[1]||!isHero(d.target)||dist(u,s.units[d.target])>60))return'Нужны бонусное действие, ячейка и союзник в 60 фт';
+if(k==='mantle'&&(!u.action||!u.slots[3]))return'Нет действия или ячейки III круга';
+if(k==='misty'&&(!u.bonus||!u.slots[2]||!d.point||dist(u,d.point)>30||wall(d.point.x,d.point.y)||at(d.point.x,d.point.y)||!LOS(u,d.point)))return'Выбери видимую свободную клетку в 30 фт';
+return null}if(d.type==='action'){if(k==='extinguish'&&!u.action)return'Нет действия, чтобы потушить огонь';if(k==='attack'){const w=weapons[turn()].find(x=>x[0]===u.weapon);if(!w||!w[4])return'Выбери атакующее оружие';if(!u.action&&!u.attacks)return'Атаки исчерпаны';if(!foes.includes(d.target)||s.units[d.target].hp<=0||dist(u,s.units[d.target])>w[7]||!wallLOS(u,s.units[d.target]))return'Выбери видимую цель в пределах досягаемости';if(u.weapon==='bow'&&!u.arrows)return'Нет стрел';if(u.weapon==='storm'&&!u.storm)return'Нет зарядов'}if(k==='wind'&&(!u.bonus||!u.wind))return'Нет Второго дыхания или бонусного действия';if(k==='surge'&&!u.surge)return'Нет Всплеска действий';if(['dash','disengage','hide'].includes(k)&&!u.bonus)return'Бонусное действие уже потрачено';if(k==='lay'&&(!u.bonus||!u.lay||!isHero(d.target)||dist(u,s.units[d.target])>5))return'Нет запаса лечения, бонусного действия или союзник не рядом';if(k==='mage'&&(!u.action||!u.slots[1]))return'Нет действия или ячейки';if(k==='mage'&&effect('daphne','mage'))return'Доспехи мага уже активны';if(d.type==='spell'&&u.spellSlotThisTurn&&!['firebolt','rayfrost','mindsliver'].includes(k))return'По правилам 2024 — не более одной потраченной ячейки заклинания за ход';return null}return null}
+function castExtraSpell(d){
+ const def=extraSpells[d.key];if(!def)return false;
+ const owner=turn(),u=me(),key=d.key,target=d.target,other=s.units[target];
+ u.action--;if(def.level>0)u.slots[def.level]--;
+ log(names[owner]+' применяет «'+def.name+'» (круг '+def.level+').');
+ if(key==='firebolt'||key==='rayfrost'){
+   const roll=die(20),hit=roll===20||(roll!==1&&roll+11>=AC(target));
+   const base=key==='firebolt'?10:8,rolled=sum(dice(roll===20?4:2,base))+5;
+   const amount=hit?rolled:Math.floor(rolled/2);
+   log(def.name+': к20 '+roll+' +11, '+(hit?'попадание':'промах, Potent Cantrip — половина урона')+'.');
+   hurt(target,amount,key==='firebolt'?'огонь':'холод');
+   if(hit&&key==='rayfrost')addStatus(target,'frost',s.elapsed+6);
+ }
+ if(key==='mindsliver'){
+   const failed=!saving(target,'INT',19),rolled=sum(dice(2,6)),amount=failed?rolled:Math.floor(rolled/2);
+   hurt(target,amount,'психический');
+   if(failed){s.units[target].nextSavePenalty=die(4);addStatus(target,'sliver',s.elapsed+12);}
+ }
+ if(key==='cure'){const rolled=sum(dice(2,8))+2;heal(target,rolled)}
+ if(key==='lesser'){const cur=s.units[target].status.map(z=>z.kind);const removable=['poisoned','paralyzed','blinded','deafened'];
+  const found=removable.find(t=>cur.includes(t));if(found)removeStatus(target,found);else log('На '+names[target]+' нет стандартного снимаемого состояния. Заклинание израсходовано.');}
+ if(key==='heroism_spell'){addBuff(owner,'heroism_spell',[target],60,true);other.temp=Math.max(other.temp,2);}
+ if(key==='aid'){for(const h of d.targets){const v=s.units[h];v.max+=5;v.hp+=5;}addBuff(owner,'aid',d.targets,28800);log('Подмога: максимум и текущие ПЗ +5 для '+d.targets.map(h=>names[h]).join(', ')+'.');}
+ if(key==='command'){const resisted=saving(target,'WIS',14);if(!resisted)addStatus(target,'commanded',s.elapsed+12);else log(names[target]+' сопротивляется приказу.');}
+ return true;
+}
+function apply(){const d=s.draft,e=check(d);if(e){s.info=e;render();return}const id=turn(),u=me(),k=d.key;s.draft=null;
+if(d.type==='weapon'){u.weapon=k;log(names[id]+': переключился на «'+weapons[id].find(x=>x[0]===k)[1]+'» (без траты действия).');render();return}
+if(d.type==='transfer'){s.inv[id][k]--;s.inv[d.recipient][k]=(s.inv[d.recipient][k]||0)+1;if(u.interaction){u.action--;log('Дополнительное взаимодействие: потрачено действие.')}else u.interaction=true;log(names[id]+' передал '+names[d.recipient]+' предмет «'+(item[k]?.[0]||k)+'» ×1.');render();return}
+if(d.type==='action'){if(k==='extinguish'){u.action--;removeStatus(id,'burn');addStatus(id,'prone',s.elapsed+6);log(names[id]+' потушил огонь, упав и перекатившись.')}if(k==='attack')attack(d.target);if(k==='wind'){u.bonus--;u.wind--;heal(id,die(10)+10);s.pending={kind:'shift'}}if(k==='surge'){u.surge--;u.action++;log('Всплеск действий: +1 действие.')}if(k==='lay'){u.bonus--;let n=Math.min(20,u.lay,s.units[d.target].max-s.units[d.target].hp);u.lay-=n;heal(d.target,n)}if(k==='mage'){u.action--;u.slots[1]--;addBuff(id,'mage',[id],28800)}if(k==='dash'){u.bonus--;u.move+=30;log('Рада использует Рывок: +30 фт перемещения.')}if(k==='disengage'){u.bonus--;u.disengaged=true;log('Рада использует Отход.')}if(k==='hide'){u.bonus--;const roll=Math.max(10,die(20))+13;u.hidden=roll>=15&&foes.some(f=>!LOS(s.units[f],u));log('Рада пытается скрыться: '+roll+(u.hidden?' — успешно.':' — на виду.'))}render();return}
+if(d.type==='spell'){
+ if(extraSpells[k]){castExtraSpell(d);if(extraSpells[k].level>0)u.spellSlotThisTurn=true;render();return;}
+ if(k==='bless'){u.action--;u.slots[1]--;addBuff(id,'bless',d.targets,60,true)}
+ if(k==='faith'){u.bonus--;u.slots[1]--;addBuff(id,'faith',[d.target],600,true)}
+ if(k==='mantle'){u.action--;u.slots[3]--;addBuff(id,'mantle',[id],60,true)}
+ if(k==='missile'){u.action--;u.slots[1]--;const bolts=dice(3,4);const dmg=sum(bolts)+3+5;hurt(d.target,dmg,'силовой');log('Волшебная стрела: 3×(к4+1), Усиленное воплощение +5 к одному броску, всего '+dmg+'.')}
+ if(k==='scorch'){u.action--;u.slots[2]--;let buffUsed=false;for(let i=0;i<3;i++){const roll=die(20),hit=roll===20||(roll!==1&&roll+11>=AC(d.target));let amt=hit?sum(dice(roll===20?4:2,6)):0;if(hit&&!buffUsed){amt+=5;buffUsed=true;}log('Палящий луч '+(i+1)+': к20 '+roll+' +11 '+(hit?'попадание':'промах'));if(hit)hurt(d.target,amt,'огонь');if(s.units[d.target].hp<=0)break;}}
+ if(k==='misty'){u.bonus--;u.slots[2]--;u.x=d.point.x;u.y=d.point.y;log('Туманный шаг: '+names[id]+' телепортируется в '+pos(u.x,u.y)+'.')}
+ if(k==='fireball'){u.action--;u.slots[3]--;u.spellSlotThisTurn=true;const raw=sum(dice(8,6))+5;log('Огненный шар, центр '+pos(d.point.x,d.point.y)+', '+raw+' урона.');Object.keys(s.units).filter(t=>s.units[t].hp>0&&rad(s.units[t],d.point)<=20).forEach(t=>{if(d.protected.includes(t)){log('Скульптура: '+names[t]+' защищён, 0 урона.');return}const passed=saving(t,'DEX',19),n=t==='rada'?(passed?0:Math.floor(raw/2)):(passed?Math.floor(raw/2):raw);hurt(t,n,'огонь')})}
+ render();return;
+}
+if(d.type==='consumable'){const mode=item[k][2];if(mode==='manual'){s.info='Эффект '+(item[k]?.[0]||k)+' требует отдельного решения ведущего; предмет не списан.';log(names[id]+': заявил «'+(item[k]?.[0]||k)+'», без списания.');render();return}if(mode==='throw'){throwItem(d);render();return}if(mode==='smoke'){u.action--;s.inv[id][k]--;s.smoke.push({x:d.point.x,y:d.point.y,radius:10,until:s.elapsed+60});log(names[id]+': дымовая бомба в '+pos(d.point.x,d.point.y)+'; радиус 10 фт, 1 минута (предварительное правило).');render();return}if(mode==='poison'){u.bonus--;s.inv[id][k]--;u.coated=true;log(names[id]+': нанёс яд быстрого хищника на оружие.');render();return}u.bonus--;s.inv[id][k]--;if(k==='healing'||k==='greater')heal(d.target,sum(dice(k==='healing'?2:4,4))+(k==='healing'?2:4));if(k==='antitoxin')addBuff(id,'antitoxin',[id],3600);if(k==='climb')addBuff(id,'climb',[id],3600);if(k==='fireRes')addBuff(id,'fireRes',[id],3600);if(k==='giant')addBuff(id,'giant',[id],3600);if(k==='speed')addBuff(id,'speed',[id],60);if(k==='growth')addBuff(id,'growth',[id],3600);if(k==='heroism'){u.temp=Math.max(u.temp,10);addBuff(id,'heroism',[id],3600)}render();return}
+}
+function tileClick(x,y){if(s.pending||s.moving||s.phase!=='active')return;const p={x,y},who=at(x,y);if(s.draft&&((s.draft.type==='consumable'&&s.draft.key==='smoke')||(s.draft.type==='spell'&&['fireball','misty'].includes(s.draft.key)))){s.draft.point=p;if(s.draft.type==='spell'&&s.draft.key==='fireball')s.draft.protected=heroes.filter(h=>s.units[h].hp>0&&rad(s.units[h],p)<=20);render();return}if(s.draft&&who&&(['consumable','action'].includes(s.draft.type)||s.draft.type==='spell'&&(s.draft.key==='faith'||Boolean(extraSpells[s.draft.key]&&extraSpells[s.draft.key].target!=='multi')))){s.draft.target=who;s.target=who;render();return}if(who&&!s.manual){s.target=who;s.path=[];s.draft=null;render();return}if(who||wall(x,y))return;s.draft=null;if(s.manual){const last=s.path.at(-1)||me();if(Math.max(Math.abs(last.x-x),Math.abs(last.y-y))!==1){s.info='Маршрут строится по соседним клеткам.';render();return}s.path.push(p)}else s.path=nearestPath(p)||[];render()}
+function walk(){if(!s.moving||s.pending)return;if(!s.path.length){s.moving=false;s.shift=0;s.info='Перемещение завершено. Действия доступны.';render();return}const u=me(),p=s.path[0];if(!s.shift&&!u.disengaged){for(const foe of foes){const e=s.units[foe];if(e.hp>0&&e.reaction>0&&dist(u,e)<=5&&dist(p,e)>5){e.reaction=0;log(names[foe]+': атака по возможности перед выходом из зоны досягаемости.');enemyAttack(turn(),true,undefined,foe);render();if(!s.pending)setTimeout(walk,150);return}}}s.path.shift();const from=pos(u.x,u.y),spent=rough(p.x,p.y)?10:5;u.x=p.x;u.y=p.y;if(s.shift)s.shift-=spent;else u.move-=spent;log(names[turn()]+': '+from+' → '+pos(p.x,p.y)+'.');render();if(s.path.length)setTimeout(walk,200);else{s.moving=false;s.shift=0;render()}}
+function render(){const id=turn(),u=me(),d=s.draft,view=s.inspected,v=s.units[view];$('syncStatus').innerHTML=runtime?.source_state_revision?
+ '<span class="synclive">✓ '+(sourceMethod==='github-live'?'Актуальный GitHub':sourceMethod==='github-manifest'?'GitHub (сгенерированный снимок)':'Переданный снимок')+' · ревизия '+esc(runtime.source_state_revision)+'</span> · '+
+ ((s.sourceRevision!==runtime.source_state_revision)?'<span class="syncsnap">Бой основан на другой ревизии; новый бой обновит данные.</span>':'боевой сеанс отдельно'):
+ '<span class="syncsnap">⚠ Нет соединения с GitHub: используются резервные учебные данные.'+(liveError?' '+esc(liveError):'')+'</span>'; $('round').textContent=s.phase==='active'?'Раунд '+s.round:'Бой завершён';$('axisx').innerHTML=[...'ABCDEFGHIJK'].map(l=>'<span>'+l+'</span>').join('');$('axisy').innerHTML=Array.from({length:8},(_,i)=>'<span>'+(i+1)+'</span>').join('');$('queue').innerHTML=order.map((n,i)=>`<span class="${s.index===i?'on':''}"><b>${abbr[n]}</b>${init[i]}</span>`).join('');$('actor').innerHTML=`<b>Ход: ${names[id]}</b><small>Действие ${u.action||0} · Бонус ${u.bonus||0} · Реакция ${u.reaction||0} · Движение ${u.move||0} фт · Передача ${u.interaction?'уже была':'доступна'}</small>`;$('notice').textContent=s.info;$('who').textContent=names[id];
+let board='';for(let y=0;y<8;y++)for(let x=0;x<11;x++){const n=at(x,y),p={x,y},z=smokeAt(p),blast=d&&((d.type==='consumable'&&d.key==='smoke')||(d.type==='spell'&&d.key==='fireball'))&&d.point&&rad(p,d.point)<=(d.key==='smoke'?10:20),step=s.path.findIndex(q=>q.x===x&&q.y===y),aura=s.units.lyutobor.hp>0&&dist(s.units.lyutobor,p)<=10,sts=n?s.units[n].status:[],icon=[sts?.some(z=>z.kind==='burn')?'🔥':'',sts?.some(z=>z.kind==='poisoned'||z.kind==='toxic')?'🟢':'',sts?.some(z=>z.kind==='frost')?'❄️':'',sts?.some(z=>z.kind==='sliver')?'🧠':'',(effect(n,'bless')||effect(n,'heroism'))?'✦':''].filter(Boolean).join('');board+=`<button data-tile="${x},${y}" class="tile ${wall(x,y)?'wall':rough(x,y)?'rubble':''} ${z?'smoke':''} ${blast?'aoe':''} ${aura?'aura':''}" ${wall(x,y)?'disabled':''} title="${n?names[n]+' '+s.units[n].hp+'/'+s.units[n].max+' ПЗ':pos(x,y)}">${step>=0?`<span class="step">${step+1}</span>`:''}${n?`<span class="unit ${foes.includes(n)?'foe':''} ${n===id?'now':''} ${effect(n,'mage')?'armor':''}">${abbr[n]}<small>${s.units[n].hp}/${s.units[n].max}</small>${icon?`<span class="status">${icon}</span>`:''}${effect(n,'shield')?'<span class="status2">🛡</span>':''}<span class="health"><i style="width:${Math.max(0,100*s.units[n].hp/s.units[n].max)}%"></i></span></span>`:wall(x,y)?'▥':rough(x,y)?'◈':z?'🌫':''}</button>`} $('board').innerHTML=board;$('pathsvg').innerHTML=s.path.length?`<polyline fill="none" stroke="#ffe3a0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" points="${[u,...s.path].map(p=>(p.x+.5)*100+','+(p.y+.5)*100).join(' ')}"/>`:'';
+$('movement').innerHTML=s.path.length?`<div class="panel"><h3>Маршрут</h3><p>${s.path.map(p=>pos(p.x,p.y)).join(' → ')}</p><p>${pathCost(s.path)}/${s.shift||u.move} футов</p><div class="buttons"><button class="btn" data-op="manual">Ручной / авто</button><button class="btn" data-op="undo">↶ Шаг назад</button><button class="btn primary" data-op="move" ${pathCost(s.path)> (s.shift||u.move)?'disabled':''}>▶ Идти</button></div></div>`:`<div class="buttons"><button class="btn" data-op="manual">${s.manual?'Ручной путь включён':'Прокладывать маршрут вручную'}</button></div>`;
+$('tabs').innerHTML=[['actions','⚔ Действия'],['consumable','🧪 Алхимия'],['weapon','🗡 Оружие'],['transfer','⇄ Передать'],['all','📖 Всё']].map(([x,t])=>`<button class="${s.tab===x?'on':''}" data-tab="${x}">${t}</button>`).join('');let choices='';
+if(isHero(id)&&s.tab==='actions'){let skills=[['attack','Атаковать',weapons[id].find(w=>w[0]===u.weapon)?.[1]||'Оружие']];if(hasStatus(id,'burn'))skills.push(['extinguish','Потушить огонь','Действие · лечь и перекатиться']);if(id==='yar')skills.push(['wind','Второе дыхание','Бонус: лечение и Tactical Shift'],['surge','Всплеск действий','Дополнительное действие']);if(id==='lyutobor')skills.push(['bless','Благословение','До 3 союзников, 1к4'],['lay','Наложение рук','Бонусное лечение'],['faith','Щит веры','I круг · бонусное · +2 КД'],['mantle','Мантия крестоносца','III круг · 30 фт · +1к4 к урону оружием']);if(id==='daphne')skills.push(['firebolt','Огненный снаряд','Заговор · 2к10+5 (при промахе половина)'],['rayfrost','Луч холода','Заговор · 2к8+5, замедление'],['mindsliver','Расщепление разума','Заговор · 2к6 и штраф к спасброску']);if(id==='lyutobor')skills.push(['cure','Лечение ран','I круг · 2к8+2'],['lesser','Малое восстановление','II круг · снимает состояние'],['heroism_spell','Героизм','I круг · концентрация'],['aid','Подмога','II круг · 3 союзника'],['command','Приказ: Стой','I круг · МДР СЛ14']);if(id==='daphne')skills.push(['fireball','Огненный шар','III круг, область 20 фт'],['mage','Доспехи мага','I круг, КД 15'],['missile','Волшебная стрела','I круг, 3 снаряда'],['scorch','Палящий луч','II круг, 3 атаки'],['misty','Туманный шаг','II круг, телепортация 30 фт']);if(id==='rada')skills.push(['dash','Рывок','Бонус · +30 фт'],['disengage','Отход','Бонус · без атак по возможности'],['hide','Спрятаться','Бонус · проверка Скрытности']);choices=skills.map(([x,t,h])=>`<button class="choice ${d?.key===x?'chosen':''}" data-action="${x}"><b>${t}</b><small>${h}</small></button>`).join('')}
+if(isHero(id)&&s.tab==='consumable')choices=Object.entries(s.inv[id]).filter(([k,n])=>n>0).map(([k,n])=>`<button class="choice ${d?.key===k?'chosen':''}" data-item="${k}"><b>${esc(item[k]?.[0]||k)} ×${n}</b><small>${esc(item[k]?.[1]||'Неизвестный расходник: требуется описание') }</small></button>`).join('');
+if(isHero(id)&&s.tab==='weapon')choices=weapons[id].map(w=>`<button class="choice ${u.weapon===w[0]?'chosen':''}" data-weapon="${w[0]}"><b>${w[1]} ${u.weapon===w[0]?'✓':''}</b><small>${w[2]}</small></button>`).join('')+'<p style="grid-column:1/-1;font-size:10px;color:#b7d0dc">Переключение не расходует отдельное действие в этом прототипе. Официальные ограничения на извлечение/убирание оружия зависят от конкретной атаки.</p>';
+if(isHero(id)&&s.tab==='transfer')choices=Object.entries(s.inv[id]).filter(([k,n])=>n>0).map(([k,n])=>`<button class="choice ${d?.key===k?'chosen':''}" data-give="${k}"><b>${(item[k]?.[0]||k)} ×${n}</b><small>Передать 1 шт. соседнему герою</small></button>`).join('')+'<p style="grid-column:1/-1;font-size:10px;color:#b7d0dc">Сначала предмет, затем получатель в окне подтверждения. Только в пределах 5 футов.</p>';
+if(isHero(id)&&s.tab==='all')choices=(sourceDetails[id]?.length?sourceDetails[id]:featureNames[id].map(name=>({name,description:'Справка по способности, обработчик ожидается'}))).map(z=>{const n=z.name||z,tag=spellKeyFromLabel(n)?'✓ Исполняется':'Справка: ведёт мастер';return `<button class="choice muted" data-reference="${esc(n)}"><b>${esc(n)}</b><small>${esc(z.description||'Справка')} · ${tag}</small></button>`}).join('')+'<button class="choice" data-op="custom"><b>Нестандартное действие</b><small>Заявить ведущему</small></button>';
+$('choices').innerHTML=choices;
+let preview='';if(d){const e=check(d);let body='',name=d.type==='weapon'?weapons[id].find(w=>w[0]===d.key)?.[1]:d.type==='consumable'||d.type==='transfer'?(item[d.key]?.[0]||d.key):d.type==='spell'?(Object.assign(Object.fromEntries(Object.entries(extraSpells).map(([key,def])=>[key,def.name])),{bless:'Благословение',fireball:'Огненный шар',faith:'Щит веры',mantle:'Мантия крестоносца',missile:'Волшебная стрела',scorch:'Палящий луч',misty:'Туманный шаг'})[d.key]||d.key):d.key==='attack'?'Атака':d.key==='wind'?'Второе дыхание':d.key==='mage'?'Доспехи мага':d.key==='lay'?'Наложение рук':d.key==='dash'?'Рывок':d.key==='hide'?'Спрятаться':d.key==='disengage'?'Отход':'Всплеск действий';if(d.type==='transfer'){body=`<p>Передаёт ${names[id]}: ${(item[d.key]?.[0]||d.key)} ×1.</p><p>Получатель (5 футов):</p>`+heroes.filter(h=>h!==id).map(h=>`<label><input type="radio" name="receiver" data-receiver="${h}" ${d.recipient===h?'checked':''} ${dist(u,s.units[h])>5?'disabled':''}> ${names[h]} · ${pos(s.units[h].x,s.units[h].y)}${dist(u,s.units[h])>5?' (далеко)':''}</label>`).join('')+`<p>Затрата: ${u.interaction?'основное действие (второе взаимодействие)':'свободное взаимодействие'}. Инвентари обновятся после подтверждения.</p>`}if(d.type==='consumable'){body=`<p>${item[d.key][1]}</p><p>Останется: ${(s.inv[id][d.key]||0)-1}.</p>`;if(['healing','greater'].includes(d.key))body+=heroes.map(h=>`<label><input type="radio" name="heal" data-healtarget="${h}" ${d.target===h?'checked':''} ${dist(u,s.units[h])>5?'disabled':''}> ${names[h]} · ${s.units[h].hp}/${s.units[h].max} ПЗ</label>`).join('');if(['acid','fire'].includes(d.key))body+=`<p>Цель: ${names[d.target]||'не выбрана'} (можно выбрать на карте).</p>`;if(d.key==='smoke')body+=`<p>Центр: ${d.point?pos(d.point.x,d.point.y):'выбери клетку на поле'}. Радиус 10 футов, 1 минута — предварительное правило кампании.</p>`;if(item[d.key][2]==='manual')body+='<p class="warning">Без подтверждённой механики предмет не будет списан.</p>'}if(d.type==='spell'&&d.key==='aid')body+='<p>Подмога: выбери до трёх союзников в 30 фт.</p>'+heroes.map(h=>`<label><input type="checkbox" data-ally="${h}" ${d.targets.includes(h)?'checked':''}> ${names[h]}</label>`).join('');if(d.type==='spell'&&extraSpells[d.key]&&extraSpells[d.key].target!=='multi')body+=`<p>Цель: ${names[d.target]||'нет'} · расстояние ${s.units[d.target]?dist(me(),s.units[d.target]):'—'} фт (выбирается на карте).</p>`;if(d.type==='spell'&&d.key==='bless')body+='<p>Выбери до трёх союзников:</p>'+heroes.map(h=>`<label><input type="checkbox" data-bless="${h}" ${d.targets.includes(h)?'checked':''}> ${names[h]}</label>`).join('');if(d.type==='spell'&&d.key==='fireball'){body+=`<p>Центр ${d.point?pos(d.point.x,d.point.y):'не выбран'}.</p><p>Скульптура: выбери защищаемых союзников (до 4):</p>`+heroes.filter(h=>d.point&&rad(s.units[h],d.point)<=20).map(h=>`<label><input type="checkbox" data-sculpt="${h}" ${d.protected.includes(h)?'checked':''}> ${names[h]}</label>`).join('')}if(d.type==='spell'&&d.key==='misty')body+=`<p>Выбери свободную видимую клетку в пределах 30 фт: ${d.point?pos(d.point.x,d.point.y):'нет'}.</p>`;if(d.type==='spell'&&['missile','scorch'].includes(d.key))body+=`<p>Цель: ${names[d.target]||'нет'} (выбирается на карте).</p>`;if(d.type==='spell'&&d.key==='faith')body+=`<p>Получатель: ${names[d.target]||'нет'}.</p>`;if(d.type==='action'&&d.key==='lay')body+=`<p>Лечение выбранной цели: ${names[d.target]}. Можно выбрать союзника на карте.</p>`;if(d.type==='action'&&d.key==='attack')body+=`<p>Цель: ${names[d.target]||'не выбрана'}, оружие ${weapons[id].find(w=>w[0]===u.weapon)?.[1]||'нет'}.</p>`;preview=`<div class="panel"><h3>${esc(name||'Действие')}</h3>${body}${e?`<p class="warning">${esc(e)}</p>`:''}<div class="buttons"><button class="btn" data-op="cancel">Отмена</button><button class="btn primary" data-op="apply" ${e?'disabled':''}>${item[d.key]?.[2]==='manual'?'Заявить':'✓ Подтвердить'}</button></div></div>`}
+$('preview').innerHTML=preview;let response='';if(s.pending){const p=s.pending,opts=p.kind==='precision'?[['yes','Потратить к10 на Точную атаку'],['no','Сохранить кость']]:p.kind==='riposte'?[['yes','Ответный удар: реакция + к10'],['no','Не отвечать']]:p.kind==='shift'?[['yes','Проложить 15 фт'],['no','Пропустить']]:p.kind==='protection'?[['yes','Protection'],['no','Не применять']]:p.kind==='sneak'?[['yes','Скрытая атака +5к6'],['no','Обычный урон']]:p.kind==='maneuver'?[['trip','Опрокинуть (+к10)'],['push','Оттолкнуть (+к10)'],['goad','Провоцировать (+к10)'],['maneuvering','Маневрирующая (+к10)'],['no','Без манёвра']]:p.kind==='smite'?[...(s.units.lyutobor.smiteFree?[['free','Божественная кара — бесплатно']]:[]),...(s.units.lyutobor.slots[1]>0?[['slot','Божественная кара — ячейка I']]:[]),['no','Без кары']]:p.opt.map(k=>[k,k==='cloak'?'Плащ Яра +3 КД':k==='uncanny'?'Уклонение Рады':'Знак Стража']).concat([['no','Не применять']]);response=`<div class="panel"><h3>⚡ Решение игрока</h3><p>${p.kind==='protection'?'Прикрыть союзника до броска?':p.kind==='shift'?'Tactical Shift после Второго дыхания':p.kind==='sneak'?'Добавить Скрытую атаку?':p.kind==='maneuver'?'Манёвр после попадания?':p.kind==='smite'?'Божественная кара после попадания?':'Выбери защитную реакцию'}</p><div class="buttons">${opts.map(([k,v])=>`<button class="btn ${k==='no'?'':'primary'}" data-choice="${k}">${v}</button>`).join('')}</div></div>`} $('response').innerHTML=response;$('endturn').innerHTML=s.phase==='active'&&isHero(id)?`<button class="btn full" data-op="next" ${s.pending||s.moving?'disabled':''}>Завершить ход ${names[id]} →</button>`:'';
+$('heroes').innerHTML=heroes.map(h=>`<button class="hero ${s.inspected===h?'on':''}" data-inspect="${h}"><b>${names[h]}</b><small>${s.units[h].hp}/${s.units[h].max} ПЗ · КД ${AC(h)}</small><small>${Object.entries(s.inv[h]).filter(([k,n])=>n>0).reduce((a,[k,n])=>a+n,0)} расходных предметов</small></button>`).join('');let passive=[],react=[],timed=[];s.effects.filter(e=>e.targets.includes(view)&&e.until>s.elapsed).forEach(e=>timed.push(e.kind+' · '+(e.kind==='shield'?'до начала следующего хода Дафны':Math.ceil((e.until-s.elapsed)/6)+' раундов')+' · источник '+names[e.owner]));s.effects.filter(e=>e.owner===view&&e.concentration).forEach(e=>timed.push('Концентрация: '+e.kind+' · '+e.targets.map(h=>names[h]).join(', ')));v.status.forEach(e=>timed.push(({burn:'🔥 Горит · 1к4 в начале каждого хода',toxic:'🟢 Яд хищника · без реакций до начала своего следующего хода (НЕ состояние Отравлен)',poisoned:'🟢 Отравлен',prone:'Лежит'}[e.kind]||e.kind)));if(view==='yar'||view==='daphne')passive.push('Кольцо Корня: перенос урона Дафны на Яра');if(view==='lyutobor')passive.push('Ауры 10 фт +2 к спасброскам, щит +1 в 5 фт');if(view==='rada')passive.push('Уклонение, Надёжный талант, скрытая атака');if(view==='yar')react.push('Плащ Ваэльтира '+v.cloak+'/2 · реакция '+v.reaction);if(view==='daphne')react.push('Щит бесплатный '+v.shieldFree+'/1');if(view==='lyutobor')react.push('Protection, Знак Стража '+v.mark+'/3');if(view==='rada')react.push('Невероятное уклонение · реакция '+v.reaction);const col=(title,lines)=>`<div class="col"><b>${title}</b>${lines.length?lines.map(t=>`<p>${esc(t)}</p>`).join(''):'<p>Нет</p>'}</div>`;$('inspector').innerHTML=`<h3>${names[view]} — личная карточка</h3><div class="cols">${col('⏳ Эффекты',timed)}${col('♾ Пассивные',passive)}${col('⚡ Реакции / ресурсы',react.concat(['КД: '+AC(view)+(view==='yar'?' (без лат)':''),'Оружие: '+weapons[view].find(w=>w[0]===v.weapon)?.[1],'Расходники: '+Object.entries(s.inv[view]).filter(([k,n])=>n>0).map(([k,n])=>(item[k]?.[0]||k)+' ×'+n).join(', ')]))}</div>`;$('count').textContent=s.history.length+' событий';$('journal').innerHTML=s.history.slice(-18).reverse().map(t=>`<div class="event">${esc(t)}</div>`).join('');
+}
+root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!root.contains(b))return;const op=b.dataset.op;if(b.dataset.inspect){s.inspected=b.dataset.inspect;render();return}if(b.dataset.choice){decide(b.dataset.choice);hostSave();return}if(op==='refresh'){s.info='В чате актуальные данные передаются при создании новой боевой панели из GitHub. Никакого перезапуска страницы.';render();return}if(op==='save'){const saved=hostSave();s.info=saved?'Учебная сессия сохранена локально, НЕ в каноническом GitHub; для резервной копии нажми «Экспорт JSON».':'Не удалось сохранить локально. Используй «Экспорт JSON».';render();return}
+if(op==='export'){const json=JSON.stringify(toSaved(),null,2);const blob=new Blob([json],{type:'application/json'});const a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download='havengard-battle-v16.json';root.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);hostSave();return}
+if(op==='restore'){$('importer').click();return}
+if(op==='reset'){s=applySourceSeed(newState());s.sourceRevision=runtime?.source_state_revision??'offline';render();hostSave();return}if(op==='stop'){s.phase='ended';s.pending=null;s.moving=false;log('Демонстрация завершена. Канон не изменён.');render();return}if(s.phase!=='active'||s.pending||s.moving)return;if(b.dataset.tab){s.tab=b.dataset.tab;s.draft=null;render();return}if(b.dataset.action){choose(b.dataset.action,(['bless','fireball','faith','mantle','missile','scorch','misty'].includes(b.dataset.action)||Boolean(extraSpells[b.dataset.action]))?'spell':'action');return}if(b.dataset.item){if(!item[b.dataset.item]){s.info='Новый предмет добавлен из GitHub, но правила его применения не описаны: без списания.';render();return}choose(b.dataset.item,'consumable');return}if(b.dataset.weapon){choose(b.dataset.weapon,'weapon');return}if(b.dataset.give){choose(b.dataset.give,'transfer');return}if(b.dataset.reference){const ability=b.dataset.reference,known=spellKeyFromLabel(ability),def=extraSpells[known];if(def&&def.owner===turn()){choose(known,'spell');return}log(names[turn()]+' заявляет «'+ability+'» (ожидает решения ведущего, без списания ресурсов).');s.info='«'+ability+'»: ещё нет проверенного обработчика. Ресурсы не потрачены.';render();hostSave();return}if(b.dataset.tile){const [x,y]=b.dataset.tile.split(',').map(Number);tileClick(x,y);return}if(op==='custom'){s.info='Опиши нестандартное действие в чате; ресурсы без решения ведущего не потрачены.';render();return}if(op==='cancel'){s.draft=null;render();return}if(op==='apply'){apply();hostSave();return}if(op==='next'){log(names[turn()]+' завершает ход.');advance();render();hostSave();return}if(op==='manual'){s.manual=!s.manual;s.path=[];render();return}if(op==='undo'){s.path.pop();render();return}if(op==='move'&&s.path.length&&pathCost(s.path)<=(s.shift||me().move)){s.moving=true;s.draft=null;render();setTimeout(walk,180)}});
+root.addEventListener('change',e=>{const t=e.target,d=s.draft;if(!d)return;if(t.dataset.receiver){d.recipient=t.dataset.receiver;render()}if(t.dataset.healtarget){d.target=t.dataset.healtarget;render()}if(t.dataset.sculpt){const h=t.dataset.sculpt;d.protected=t.checked?[...new Set([...d.protected,h])]:d.protected.filter(x=>x!==h);render()}if(t.dataset.ally){const id=t.dataset.ally;if(t.checked&&!d.targets.includes(id)&&d.targets.length<3)d.targets.push(id);else if(!t.checked)d.targets=d.targets.filter(x=>x!==id);render()}if(t.dataset.bless){const id=t.dataset.bless;if(t.checked&&!d.targets.includes(id)&&d.targets.length<3)d.targets.push(id);else if(!t.checked)d.targets=d.targets.filter(x=>x!==id);render()}});
+$('importer').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{const obj=JSON.parse(await f.text());if(obj?.kind!=='havengard-combat-session'||obj?.version!==12)throw new Error('Неверный формат сессии');if(!obj.session||!obj.session.units||!obj.session.inv)throw new Error('Неполный файл');s=obj.session;s.moving=false;s.pending=null;s.path=[];s.info='Восстановлен боевой сеанс из файла. Источник: ревизия '+String(obj.source_revision)+'.';hostSave();render()}catch(err){s.info='Ошибка импорта: '+err.message;render()}finally{e.target.value=''}});
+// BEGIN V18 CHAT COMBAT EXTENSION: deterministic state transition rules.
+// No remote JavaScript. Canonical campaign data remain read-only.
+const v18Catalogue={
+ yar:[
+  ['know','Тактический анализ (Know Your Enemy)','Бонусное: сведения о сопротивлениях цели','bonus','enemy'],
+  ['bait','Приманка и смена','Переставить соседнего союзника и прибавить к10 к КД','free','ally'],
+  ['indomitable','Несгибаемость','Переброс проваленного спасброска +10','reaction','self'],
+  ['tactical','Тактический разум','Поднять проваленную проверку ценой Второго дыхания','special','self'],
+  ['savage','Savage Attacker','На первом попадании за ход перебросить кости урона','passive','self'],
+  ['forge','Кузнечный резонанс','После попадания молотом: +1к8 громом, СЛ 17','reaction','enemy'],
+  ['hewrule','Hew: добивающая атака','Бонусная атака после крита/добивания','bonus','enemy']
+ ],
+ daphne:[
+  ['thunder','Громовая волна','Куб 15 фт, ТЕЛ СЛ19, 2к8+5 грома','action','area'],
+  ['fog','Туманное облако','Область радиус 20 фт, концентрация','action','area'],
+  ['slow','Замедление','До 6 целей, МДР СЛ19, концентрация','action','area'],
+  ['invisible','Высшая невидимость','Невидимость одному союзнику, концентрация','action','ally'],
+  ['cone','Конус холода','Конус 60 фт, ТЕЛ СЛ19, 8к8+5','action','area'],
+  ['hold','Удержание чудовища','Паралич одной цели, МДР СЛ19, концентрация','action','enemy'],
+  ['dimension','Дверь в измерение','Телепортация в свободную точку','action','point'],
+  ['bigby','Рука Бигби','Создать управляемую руку, концентрация','action','point'],
+  ['bigbyStrike','Удар рукой Бигби','Бонусное действие: атака рукой +11, 4к8 силой','bonus','enemy'],
+  ['bigbyGrasp','Захват рукой Бигби','Бонусное действие: захват цели, проверка СИЛ','bonus','enemy'],
+  ['seeming','Кажущаяся внешность','Изменение облика видимых существ, ХАР СЛ19','action','ally'],
+  ['stormSphere','Наручи: Сфера бури IV','Концентрация: опасная сфера и удар молнией','action','area'],
+  ['stormStrike','Сфера бури: удар молнией','Бонусное: +8 против КД, 4к6 молнией','bonus','enemy'],
+  ['counter','Контрзаклинание','Реакция на заклинание врага (не в обычный ход)','reaction','enemy'],
+  ['hand','Магическая рука','Взаимодействие с лёгким предметом, без атаки','action','point'],
+  ['prestidigitation','Фокусы','Без боевого урона; малый магический эффект','action','point']
+ ],
+ lyutobor:[
+  ['sacred','Священное оружие','Божественный канал: +2 к атакам мечом на 10 минут','bonus','self'],
+  ['abjure','Изгнание врагов','До двух видимых врагов, МДР СЛ14','action','enemies'],
+  ['shieldbash','Мастер щита','После попадания мечом: СИЛ СЛ16, сбить/толкнуть','reaction','enemy'],
+  ['compelled','Вынужденная дуэль','МДР СЛ14, концентрация','bonus','enemy'],
+  ['protectionEvil','Защита от зла и добра','Защита выбранного союзника, концентрация','action','ally'],
+  ['warding','Защитная связь','Требуются два специальных кольца','action','ally'],
+  ['beacon','Маяк надежды','Концентрация: макс. лечение, преимущество МДР/смерть','action','allies'],
+  ['dispel','Рассеивание магии','Снять заклинание при успешной проверке','action','enemy'],
+  ['vitality','Аура жизненной силы','Концентрация, лечение 2к6 бонусом 1 минуту','action','ally'],
+  ['vitalityHeal','Аура жизненной силы: лечение','Бонус: 2к6 цели в 30 фт','bonus','ally'],
+  ['holy','Божественная кара','Бонусное после попадания; есть бесплатное применение','bonus','enemy'],
+  ['steed','Верный скакун','Призыв вне плотного боя с проверкой места','action','point'],
+  ['zone','Зона истины','ХАР СЛ14; не обычная боевая атака','action','area']
+ ],
+ rada:[
+  ['aim','Точный прицел','Бонусное: преимущество на следующий выстрел','bonus','self'],
+  ['leaf','Шаг листвы','После попадания: шаг до 10 фт без атаки от цели','free','point'],
+  ['living','Живая стрела','После попадания: СИЛ СЛ15, остановка движения','free','enemy'],
+  ['nick','Nick: вторая лёгкая атака','После атаки лёгким оружием, в том же действии','free','enemy'],
+  ['reliable','Надёжный талант','Проверки владения: натуральные результаты ниже 10 → 10','passive','self'],
+  ['sharpshooter','Меткий стрелок','Покрытие и дальняя дистанция без обычных штрафов','passive','self'],
+  ['dodge','Невероятное уклонение','Реакция при попадании видимой атакой','reaction','self'],
+  ['evasion','Уклонение','Половина при провале ЛОВ / 0 при успехе','passive','self'],
+  ['cunning','Хитрый удар','После попадания со Скрытой атакой: выбор цены и эффекта','trigger','enemy'],
+  ['stealthStrike','Скрытная атака','Хитрый удар 1к6 для сохранения скрытности','trigger','enemy']
+ ]};
+const v18SpellSlots={thunder:1,fog:1,slow:3,invisible:4,cone:5,hold:5,dimension:4,bigby:5,seeming:5,stormSphere:0,compelled:1,protectionEvil:1,warding:2,beacon:3,dispel:3,vitality:3,steed:2,zone:2};
+const v18Concentration=new Set(['fog','slow','invisible','hold','bigby','stormSphere','compelled','protectionEvil','beacon','vitality']);
+const v18Area=new Set(['thunder','fog','slow','cone','stormSphere','zone']);
+const v18Source=()=>runtime?.source_state_revision??27;
+function v18Ready(id,k){const u=s.units[id];if(!u||u.hp<=0)return'Герой выведен из боя';const def=v18Catalogue[id]?.find(z=>z[0]===k);if(!def)return'Неизвестная способность';
+ if(['savage','reliable','sharpshooter','evasion','dodge','cunning','stealthStrike','counter','tactical','indomitable','forge','holy','shieldbash'].includes(k))return'Реактивное свойство или пассивный эффект: нажимается в соответствующий момент, а не как обычное действие';
+ if(k==='hewrule'&&!u.hewReady)return'Бонусная атака Hew доступна только после крита/добивания';
+ if(k==='leaf'&&!u.leafReady)return'Шаг листвы возможен после попадания';
+ if(k==='living'&&!u.livingReady)return'Живая стрела возможна после попадания луком';
+ if(k==='nick'&&!u.nickReady)return'Nick требует попадания или совершения атаки лёгким оружием';
+ if(k==='bigbyStrike'||k==='bigbyGrasp'){if(!effect('daphne','bigby'))return'Рука Бигби не призвана';}
+ if(k==='stormStrike'&&!effect('daphne','stormSphere'))return'Сфера бури не создана';
+ if(k==='vitalityHeal'&&!effect('lyutobor','vitality'))return'Аура жизненной силы не активна';
+ const cost=def[3];if(cost==='bonus'&&!u.bonus)return'Бонусное действие потрачено';if(cost==='action'&&!u.action)return'Основное действие потрачено';
+ const lv=v18SpellSlots[k];if(lv&&(!u.slots?.[lv]))return'Нет ячейки '+lv+' круга';
+ if(lv&&u.spellSlotThisTurn)return'Уже потрачена ячейка заклинания в этом ходу (правило 2024)';
+ if(k==='sacred'&&!u.channel)return'Божественный канал исчерпан';
+ if(k==='bait'&&!u.superiority)return'Нет костей превосходства';
+ if(k==='bigbyStrike'||k==='bigbyGrasp'||k==='stormStrike'){if(!s.effects.find(e=>e.kind===(k.startsWith('bigby')?'bigby':'stormSphere')&&e.owner==='daphne'))return'Магический объект не активен';}
+ if(k==='steed')return'В демонстрационной сцене вызов скакуна требует подтверждения размера и безопасной точки; ресурсы не списаны';
+ if(k==='warding')return'Пара специальных колец для защитной связи не подтверждена. Заклинание заблокировано без траты ячейки';
+ return null;
+}
+function v18TargetCheck(d){const id=turn(),u=me(),k=d.key,def=v18Catalogue[id]?.find(z=>z[0]===k);if(!def)return'Неизвестная способность';const block=v18Ready(id,k);if(block)return block;const range={thunder:15,fog:120,slow:120,invisible:5,cone:60,hold:90,dimension:500,bigby:120,bigbyStrike:120,bigbyGrasp:120,seeming:30,stormSphere:150,stormStrike:150,know:30,bait:5,abjure:60,compelled:30,protectionEvil:5,beacon:30,dispel:120,vitality:30,vitalityHeal:30,zone:60,leaf:10,living:320,bigbyGrasp:120}[k]??30;
+ if(def[4]==='point'||def[4]==='area'){const p=d.point;if(!p||p.x<0||p.x>10||p.y<0||p.y>7)return'Выбери точку на поле';if(dist(u,p)>range)return'Точка вне '+range+' футов';if(['dimension','bigby'].includes(k)&&(wall(p.x,p.y)||at(p.x,p.y)))return'Точка должна быть свободна';if(k!=='dimension'&&!wallLOS(u,p))return'Точка за стеной';}
+ if(['enemy','ally','enemies','allies'].includes(def[4])){if(k==='abjure')return null;let t=d.target;if(!t||!s.units[t]||s.units[t].hp<=0)return'Выбери живую цель';if(def[4]==='enemy'&&!foes.includes(t))return'Нужен противник';if(def[4]==='ally'&&!isHero(t))return'Нужен союзник';if(dist(u,s.units[t])>range)return'Цель дальше '+range+' футов';if(!wallLOS(u,s.units[t]))return'Цель за стеной';}
+ if(k==='bait'&&d.target===id)return'Нужно выбрать другого соседнего союзника';
+ if(k==='nick'&&!(s.units[d.target]?.hp>0)||k==='hewrule'&&!(s.units[d.target]?.hp>0))return'Нужен противник';
+ return null;
+}
+function v18EndConcentration(owner){const old=s.effects.filter(e=>e.owner===owner&&e.concentration);for(const e of old){if(e.kind==='aid')for(const h of e.targets){const z=s.units[h];z.max=Math.max(1,z.max-5);z.hp=Math.min(z.hp,z.max)}}s.effects=s.effects.filter(e=>e.owner!==owner||!e.concentration);}
+function v18Cost(id,k){const d=v18Catalogue[id].find(z=>z[0]===k),u=s.units[id];if(d[3]==='action')u.action--;else if(d[3]==='bonus')u.bonus--;
+ const level=v18SpellSlots[k];if(level){u.slots[level]--;u.spellSlotThisTurn=true}if(v18Concentration.has(k))v18EndConcentration(id);
+}
+function v18AreaTargets(point,radius){return Object.keys(s.units).filter(t=>s.units[t].hp>0&&rad(s.units[t],point)<=radius)}
+function v18Sculpt(d,id,level,all){if(id!=='daphne')return new Set();return new Set((d.protected||[]).filter(h=>isHero(h)&&all.includes(h)).slice(0,1+level));}
+function v18AreaDamage(d,all,dc,saveStat,amount,type,sculpt=true){const protectedSet=sculpt?v18Sculpt(d,turn(),v18SpellSlots[d.key]||5,all):new Set();for(const t of all){if(protectedSet.has(t)){log('Скульптура: '+names[t]+' не получает урон.');continue}const passed=saving(t,saveStat,dc);let n=passed?Math.floor(amount/2):amount;if(t==='rada'&&saveStat==='DEX')n=passed?0:Math.floor(amount/2);if(n)hurt(t,n,type)}}
+function v18Execute(d){const id=turn(),u=me(),k=d.key,t=d.target,p=d.point||{x:u.x,y:u.y};const error=v18TargetCheck(d);if(error){s.info=error;render();return false}v18Cost(id,k);let amount=0;log(names[id]+' использует «'+(v18Catalogue[id].find(z=>z[0]===k)?.[1]||k)+'».');
+ switch(k){
+ case 'know':{const enemy=s.units[t];log('Анализ '+names[t]+': броня '+AC(t)+', ПЗ '+enemy.hp+'/'+enemy.max+', известных иммунитетов и уязвимостей нет в учебном профиле');break}
+ case 'bait':{const friend=s.units[t];const old={x:u.x,y:u.y};u.x=friend.x;u.y=friend.y;friend.x=old.x;friend.y=old.y;u.superiority--;const extra=die(10);addBuff(id,'bait',[t],6);friend.baitAC=extra;log('Приманка и смена: '+names[t]+' получает +'+extra+' КД до следующего хода Яра.');break}
+ case 'hewrule':u.hewReady=false;u.bonus++;log('Hew: бонусная атака становится доступна на это бонусное действие.');break;
+ case 'sacred':u.channel--;addBuff(id,'sacred',[id],600);break;
+ case 'abjure':{u.channel--;const targets=foes.filter(z=>s.units[z].hp>0&&dist(u,s.units[z])<=60&&wallLOS(u,s.units[z])).slice(0,2);for(const f of targets)if(!saving(f,'WIS',14))addStatus(f,'abjured',s.elapsed+60);break}
+ case 'compelled':if(!saving(t,'WIS',14))addBuff(id,'compelled',[t],60,true);break;
+ case 'protectionEvil':addBuff(id,'protectionEvil',[t],600,true);break;
+ case 'beacon':addBuff(id,'beacon',heroes.filter(x=>s.units[x].hp>0),60,true);break;
+ case 'dispel':{const found=s.effects.filter(e=>e.targets.includes(t)&&e.owner!==id);if(found.length){const e=found[0];const level=e.level||3;if(level<=3||die(20)+6>=10+level){s.effects=s.effects.filter(f=>f!==e);log('Развеяно '+e.kind+' на '+names[t]);}else log('Рассеивание не преодолело мощность заклинания')}else log('На цели не обнаружено действующего заклинания');break}
+ case 'vitality':addBuff(id,'vitality',heroes,60,true);break;
+ case 'vitalityHeal':{let n=sum(dice(2,6));if(effect(id,'beacon'))n=12;heal(t,n);break}
+ case 'zone':addBuff(id,'zone',foes,600);log('Зона истины: следующие попытки лгать требуют спасбросок ХАР СЛ14; не наносит урон');break;
+ case 'thunder':{const hit=Object.keys(s.units).filter(z=>z!==id&&s.units[z].hp>0&&dist(u,s.units[z])<=15);amount=sum(dice(2,8))+5;v18AreaDamage(d,hit,19,'CON',amount,'гром');for(const z of hit)if(!hasStatus(z,'anchored')){const nx=s.units[z].x+Math.sign(s.units[z].x-u.x),ny=s.units[z].y+Math.sign(s.units[z].y-u.y);if(nx>=0&&ny>=0&&nx<11&&ny<8&&!wall(nx,ny)&&!at(nx,ny)){s.units[z].x=nx;s.units[z].y=ny;}}break}
+ case 'fog':s.smoke.push({...p,radius:20,until:s.elapsed+3600});addBuff(id,'fog',[],3600,true);break;
+ case 'slow':{const targets=foes.filter(z=>s.units[z].hp>0&&rad(s.units[z],p)<=20).slice(0,6);for(const z of targets){if(!saving(z,'WIS',19))addStatus(z,'slow',s.elapsed+60)}addBuff(id,'slow',targets,60,true);break}
+ case 'invisible':addBuff(id,'invisible',[t],60,true);break;
+ case 'cone':{const targets=Object.keys(s.units).filter(z=>z!==id&&s.units[z].hp>0&&dist(u,s.units[z])<=60&&wallLOS(u,s.units[z]));amount=sum(dice(8,8))+5;v18AreaDamage(d,targets,19,'CON',amount,'холод');break}
+ case 'hold':{if(!saving(t,'WIS',19))addStatus(t,'paralyzed',s.elapsed+60);addBuff(id,'hold',[t],60,true);break}
+ case 'dimension':u.x=p.x;u.y=p.y;log(names[id]+' переместился через дверь в измерение в '+pos(p.x,p.y));break;
+ case 'bigby':addBuff(id,'bigby',[id],60,true);s.bigby={x:p.x,y:p.y,owner:id};log('Рука Бигби создана в '+pos(p.x,p.y));break;
+ case 'bigbyStrike':{const hand=s.bigby;if(!hand||dist(hand,s.units[t])>5){s.info='Цель должна быть рядом с рукой Бигби (5 футов)';u.bonus++;render();return false}const die20=die(20);if(die20===20||die20!==1&&die20+11>=AC(t)){amount=sum(dice(die20===20?8:4,8));hurt(t,amount,'силовой')}log('Рука Бигби: атака '+die20+'+11');break}
+ case 'bigbyGrasp':{const hand=s.bigby;if(!hand||dist(hand,s.units[t])>5){s.info='Цель должна быть рядом с рукой Бигби';u.bonus++;render();return false}if(!saving(t,'STR',19))addStatus(t,'grappled',s.elapsed+6);break}
+ case 'seeming':addBuff(id,'seeming',[t],28800);log('Облик цели изменён; косметический эффект без боевого преимущества');break;
+ case 'stormSphere':s.stormSphere={...p,owner:id};addBuff(id,'stormSphere',[id],60,true);for(const z of v18AreaTargets(p,20)){if(z===id)continue;if(!saving(z,'STR',16))hurt(z,sum(dice(2,6)),'дробящий')}break;
+ case 'stormStrike':{const orb=s.stormSphere;if(!orb||dist(orb,s.units[t])>60){s.info='Цель вне 60 фт от сферы бури';u.bonus++;render();return false}const d20=die(20);if(d20===20||d20!==1&&d20+8>=AC(t))hurt(t,sum(dice(d20===20?8:4,6)),'молния');break}
+ case 'hand':addBuff(id,'mageHand',[],600);log('Магическая рука создана; может переносить предметы до 10 фунтов, но не атакует');break;
+ case 'prestidigitation':log('Фокусы: небольшой иллюзорный / бытовой эффект без боевого урона');break;
+ case 'aim':addStatus(id,'aim',s.elapsed+6);u.move=0;break;
+ case 'leaf':u.leafReady=false;u.move=Math.min(30,u.move+10);u.disengaged=true;break;
+ case 'living':u.livingReady=false;if(!saving(t,'STR',15))addStatus(t,'living',s.elapsed+6);break;
+ case 'nick':u.nickReady=false;u.attacks++;log('Nick: одна дополнительная атака лёгким оружием внутри действия Атака');break;
+ }
+ s.draft=null;render();hostSave();return true;
+}
+const v18OriginalRender=render;
+render=function(){v18OriginalRender();const id=turn(),d=s.draft;
+ if(isHero(id)&&s.tab==='actions'){let buttons=v18Catalogue[id].filter(z=>!['passive','reaction','trigger','special'].includes(z[3])).map(z=>`<button class="choice" data-v18="${z[0]}"><b>✦ ${esc(z[1])}</b><small>${esc(z[2])}</small></button>`).join('');$('choices').insertAdjacentHTML('beforeend',buttons)}
+ if(isHero(id)&&s.tab==='all'){let body=v18Catalogue[id].map(z=>`<button class="choice" data-v18="${z[0]}"><b>${esc(z[1])}</b><small>${esc(z[2])} · ${esc(z[3])}</small></button>`).join('');$('choices').insertAdjacentHTML('beforeend',body)}
+ if(d?.type==='advanced'){$('preview').innerHTML=`<div class="panel"><h3>${esc(v18Catalogue[id].find(z=>z[0]===d.key)?.[1]||d.key)}</h3><p>Цель: ${esc(names[d.target]||pos(d.point?.x??me().x,d.point?.y??me().y))}</p><p>Точка: ${esc(d.point?pos(d.point.x,d.point.y):'выбери на карте')}</p>${v18Area.has(d.key)&&id==='daphne'?heroes.map(h=>`<label><input type="checkbox" data-v18-sculpt="${h}" ${(d.protected||[]).includes(h)?'checked':''}> Скульптура: ${names[h]}</label>`).join(''):''}${v18TargetCheck(d)?`<p class="warning">${esc(v18TargetCheck(d))}</p>`:''}<div class="buttons"><button class="btn" data-op="cancel">Отмена</button><button class="btn primary" data-v18-confirm="1" ${v18TargetCheck(d)?'disabled':''}>✓ Подтвердить</button></div></div>`}
+ if(s.pending?.kind==='sneak'){$('response').insertAdjacentHTML('beforeend','<div class="buttons"><button class="btn" data-v18-cunning="trip">Хитрый удар: сбить с ног (−1к6)</button><button class="btn" data-v18-cunning="poison">Хитрый удар: отравить (−1к6)</button><button class="btn" data-v18-cunning="withdraw">Хитрый удар: отступить (−1к6)</button><button class="btn" data-v18-cunning="stealth">Скрытная атака (−1к6)</button></div>')}
+};
+const v18OriginalChoose=choose;
+choose=function(k,type){if(type!=='advanced')return v18OriginalChoose(k,type);s.path=[];s.draft={type:'advanced',owner:turn(),key:k,target:foes.includes(s.target)?s.target:turn(),point:{...s.units[s.target]||me()},protected:heroes.filter(h=>s.units[h].hp>0),targets:[]};const def=v18Catalogue[turn()]?.find(z=>z[0]===k);if(def?.[4]==='ally')s.draft.target=turn();if(def?.[4]==='self')s.draft.target=turn();render()};
+const v18OriginalCheck=check;
+check=function(d){if(d?.type==='advanced')return v18TargetCheck(d);return v18OriginalCheck(d)};
+const v18OriginalApply=apply;
+apply=function(){if(s.draft?.type==='advanced')return v18Execute(s.draft);return v18OriginalApply()};
+const v18OriginalTileClick=tileClick;
+tileClick=function(x,y){if(s.draft?.type==='advanced'){const cell={x,y},who=at(x,y);s.draft.point=cell;if(who){s.draft.target=who;s.target=who}render();return}return v18OriginalTileClick(x,y)};
+root.addEventListener('click',event=>{const btn=event.target.closest('[data-v18],[data-v18-confirm],[data-v18-cunning]');if(!btn||!root.contains(btn))return;event.stopImmediatePropagation();if(btn.dataset.v18){choose(btn.dataset.v18,'advanced');return}if(btn.dataset.v18Confirm){v18Execute(s.draft);return}if(btn.dataset.v18Cunning){const p=s.pending;if(!p||p.kind!=='sneak')return;const type=btn.dataset.v18Cunning,extra=sum(dice(4,6));s.units.rada.sneakUsed=true;log('Скрытая атака Рады: 4к6 вместо 5к6; Хитрый удар: '+type);if(type==='trip'&&!saving(p.target,'DEX',17))addStatus(p.target,'prone',null);if(type==='poison'&&!saving(p.target,'CON',17))addStatus(p.target,'poisoned',s.elapsed+60);if(type==='withdraw'){s.units.rada.move+=15;s.units.rada.disengaged=true}if(type==='stealth'&&s.units.rada.hidden){log('Скрытная атака: скрытность сохраняется, если Рада закончит ход за укрытием')}s.pending=null;afterWeaponHit('rada',p.target,p.raw+extra);render();hostSave();}},true);
+root.addEventListener('change',event=>{const t=event.target,d=s.draft;if(t.dataset.v18Sculpt&&d?.type==='advanced'){const h=t.dataset.v18Sculpt;d.protected=t.checked?[...new Set([...(d.protected||[]),h])]:d.protected.filter(x=>x!==h);render()}},true);
+// END V18 CHAT COMBAT EXTENSION
+
+// V18 stabilization: contextual triggers, benefit rules and 2024 slot economy.
+const v18OldAC=AC;
+AC=function(id){let u=s.units[id];return v18OldAC(id)+(u.baitAC||0)+(effect(id,'slow')?-2:0)};
+const v18OldUseAttack=useAttack;
+useAttack=function(u){if(u.hewAttack){u.hewAttack=false;return}return v18OldUseAttack(u)};
+const v18OldAfterHit=afterWeaponHit;
+afterWeaponHit=function(id,target,raw){const hadHp=s.units[target]?.hp??0;v18OldAfterHit(id,target,raw);let u=s.units[id];if(id==='rada'){u.leafReady=(u.leaf||0)>0;u.livingReady=(u.living||0)>0&&u.weapon==='bow';if(['scimitar','shortsword','dagger'].includes(u.weapon))u.nickReady=true}if(id==='yar'&&(s.units[target].hp===0&&hadHp>0||u.lastCrit))u.hewReady=true;};
+const v18OldDecide=decide;
+decide=function(choice){const p=s.pending;if(p?.kind==='precision'){s.pending=null;const u=s.units.yar;if(choice==='yes'&&u.superiority){u.superiority--;const d10=die(10);log('Точная атака: к10 '+d10+'; итог '+(p.attackTotal+d10)+' против КД '+AC(p.target));if(p.attackTotal+d10>=AC(p.target)){const w=weapons.yar.find(z=>z[0]===p.weapon),n=sum(dice(w[4],w[5]).map(v=>Math.max(3,v)))+w[6];afterWeaponHit('yar',p.target,n)}else if(p.weapon==='sword')hurt(p.target,5,'оружие');}else if(p.weapon==='sword')hurt(p.target,5,'оружие');render();hostSave();return}
+ if(p?.kind==='riposte'){s.pending=null;const u=s.units.yar;if(choice==='yes'&&u.reaction>0&&u.superiority>0){u.reaction--;u.superiority--;const r=die(20),bonus=(effect('yar','bless')?die(4):0),hit=r===20||r!==1&&r+12+bonus>=AC(p.attacker);log('Ответный удар Яра: к20 '+r+'+12'+(hit?' попадание':' промах'));if(hit){const n=sum(dice(r===20?4:2,6).map(v=>Math.max(3,v)))+6+die(10);hurt(p.attacker,n,'оружие')}}if(!p.test)advance();else if(s.moving)setTimeout(walk,150);render();hostSave();return}
+ if(p?.kind==='maneuver'&&choice==='maneuvering'){s.pending=null;const u=s.units.yar;u.superiority--;const extra=die(10);log('Маневрирующая атака: +'+extra+' к урону; ближайший союзник может реакцией отойти от поражённой цели');afterWeaponHit('yar',p.target,p.raw+extra);render();hostSave();return}
+ return v18OldDecide(choice)
+};
+const v18OldEnemyRoll=enemyRoll;
+enemyRoll=function(target,test,forced,disadvantage,attacker=turn()){return v18OldEnemyRoll(target,test,forced,disadvantage,attacker)};
+const v18OldSaving=saving;
+saving=function(id,stat,dc){return v18OldSaving(id,stat,dc)};
+const v18OldAdvance=advance;
+advance=function(){v18OldAdvance();if(s.phase==='active'&&isHero(turn())){const u=me();if(effect(turn(),'speed'))u.move=Math.max(u.move,60);u.spellSlotThisTurn=false;u.hewReady=false;u.lastCrit=false;u.baitAC=0;}}
+const v18OldHurt=hurt;
+hurt=function(id,n,type='оружие'){return v18OldHurt(id,n,type)};
+// Correct no-spend-on-invalid-target rule for persistent spell objects.
+const v18UnpatchedReady=v18Ready;
+v18Ready=function(id,k){const original=v18UnpatchedReady(id,k);if(original)return original;const u=s.units[id];if(k==='leaf'&&!u.leaf)return'Шаг листвы: заряды исчерпаны';if(k==='living'&&!u.living)return'Живая стрела: заряд исчерпан';return null};
+const v18UnpatchedTargetCheck=v18TargetCheck;
+v18TargetCheck=function(d){const msg=v18UnpatchedTargetCheck(d);if(msg)return msg;const k=d.key,t=s.units[d.target];if(k==='bigbyStrike'||k==='bigbyGrasp'){if(!s.bigby||!t||dist(s.bigby,t)>5)return'Цель вне 5 футов от руки Бигби'}if(k==='stormStrike'){if(!s.stormSphere||!t||dist(s.stormSphere,t)>60)return'Цель вне 60 футов от Сферы бури'}if(k==='leaf'){if(!d.point||dist(me(),d.point)>10||wall(d.point.x,d.point.y)||at(d.point.x,d.point.y))return'Выбери свободную клетку в 10 футах'}if(k==='hewrule'&&(!t||t.hp<=0||dist(me(),t)>5))return'Нужен живой враг рядом для добивающей атаки';return null};
+// Spell objects and concentration effects use actual spell-level cost labels.
+const v18OriginalExecute=v18Execute;
+v18Execute=function(d){if(!d)return false;const k=d.key,id=turn(),u=me();if(k==='hewrule'){const err=v18TargetCheck(d);if(err){s.info=err;render();return false}u.bonus--;u.hewReady=false;u.hewAttack=true;const old=u.weapon;u.weapon='sword';attack(d.target);u.weapon=old;s.draft=null;render();hostSave();return true}
+ if(k==='leaf'){const err=v18TargetCheck(d);if(err){s.info=err;render();return false}u.leaf--;u.leafReady=false;u.x=d.point.x;u.y=d.point.y;log('Шаг листвы: '+names[id]+' в '+pos(u.x,u.y)+' (2 клетки, без атаки поражённой цели)');s.draft=null;render();hostSave();return true}
+ if(k==='living'){const err=v18TargetCheck(d);if(err){s.info=err;render();return false}u.living--;u.livingReady=false;const target=s.units[d.target];if(!saving(d.target,'STR',15))addStatus(d.target,'living',s.elapsed+6);s.draft=null;render();hostSave();return true}
+ return v18OriginalExecute(d)};
+// Temporary extra combat rules for currently defined consumables.
+item.speed[1]='Действует 1 мин: удвоенная скорость, +2 КД, преимущество ЛОВ, дополнительное действие, затем вялость';item.speed[2]='drink';
+item.growth[1]='Размер +1 категория, преимущество проверок СИЛ, +1к4 к урону оружием';item.growth[2]='drink';
+// Current fast poison and alchemical throwable effects are retained from the verified base engine.
+// Outstanding non-mechanical actions (Steed, Warding Bond) are blocked without spending resources.
+
+// Verified duration and condition hooks; still noncanonical simulated encounters.
+const v18OriginalExpire=expire;
+expire=function(){const ending=s.effects.filter(e=>e.until<=s.elapsed);for(const e of ending){if(e.kind==='speed'){for(const target of e.targets)addStatus(target,'lethargy',s.elapsed+6);log(names[e.owner]+': Ускорение закончилось; наступила вялость на один ход')}if(e.kind==='bigby')s.bigby=null;if(e.kind==='stormSphere')s.stormSphere=null}v18OriginalExpire()};
+const v18OriginalHeal=heal;
+heal=function(id,n){if(effect(id,'beacon'))n=Math.max(n,s.units[id].max);return v18OriginalHeal(id,n)};
+const v18OldNextTurn=advance;
+advance=function(){v18OldNextTurn();if(s.phase!=='active'||!isHero(turn()))return;const id=turn(),u=me();if(effect(id,'speed')){u.move=Math.max(u.move,60);u.hasteUsed=false}if(hasStatus(id,'lethargy')){u.action=0;u.bonus=0;u.move=0;log(names[id]+': вялость после Ускорения — не может действовать или двигаться');removeStatus(id,'lethargy')}render()};
+const v18OldEnemyTurn=enemyTurn;
+enemyTurn=function(id){const u=s.units[id];if(hasStatus(id,'paralyzed')){log(names[id]+': парализован, пропускает действия');if(saving(id,'WIS',19))removeStatus(id,'paralyzed');return false}if(hasStatus(id,'slow')){u.move=15;u.reaction=0;log(names[id]+': Замедление, скорость 15 футов, без реакций');const acted=v18OldEnemyTurn(id);if(saving(id,'WIS',19))removeStatus(id,'slow');return acted}if(hasStatus(id,'abjured')){log(names[id]+': Изгнание врагов — может либо двигаться, либо атаковать');const old=u.move;u.move=0;const attacked=v18OldEnemyTurn(id);u.move=old;return attacked}return v18OldEnemyTurn(id)};
+// Haste action, restricted to one weapon attack, Dash or Disengage (not a full Attack action).
+function v18HasteAction(kind){const id=turn(),u=me(),t=s.target;if(!effect(id,'speed')||u.hasteUsed){s.info='Нет дополнительного действия Ускорения';render();return}if(kind==='hasteAttack'){const w=weapons[id].find(x=>x[0]===u.weapon);const target=s.units[t];if(!w||!target||!foes.includes(t)||target.hp<=0||dist(u,target)>w[7]||!wallLOS(u,target)){s.info='Выбери доступного противника';render();return}u.hasteUsed=true;u.hewAttack=true;attack(t)}else if(kind==='hasteDash'){u.hasteUsed=true;u.move+=30;log(names[id]+': ускоренный Рывок +30 футов')}else if(kind==='hasteDisengage'){u.hasteUsed=true;u.disengaged=true;log(names[id]+': ускоренный Отход без атак по возможности')}render();hostSave()}
+const v18HasteRender=render;
+render=function(){v18HasteRender();const id=turn(),u=me();if(isHero(id)&&s.tab==='actions'&&effect(id,'speed')){$('choices').insertAdjacentHTML('beforeend',`<button class="choice" data-v18-haste="hasteAttack" ${u.hasteUsed?'disabled':''}><b>⚡ Ускоренная атака</b><small>Отдельное действие Ускорения: одна атака оружием</small></button><button class="choice" data-v18-haste="hasteDash" ${u.hasteUsed?'disabled':''}><b>⚡ Ускоренный Рывок</b></button><button class="choice" data-v18-haste="hasteDisengage" ${u.hasteUsed?'disabled':''}><b>⚡ Ускоренный Отход</b></button>`)}
+ if(isHero(id)&&s.pending?.kind==='maneuver'&&s.units.yar.superiority>0){$('response').insertAdjacentHTML('beforeend','<p class="hint">Precision используется только при промахе; остальные манёвры доступны после попадания.</p>')}
+};
+root.addEventListener('click',e=>{const b=e.target.closest('[data-v18-haste]');if(!b)return;e.stopImmediatePropagation();v18HasteAction(b.dataset.v18Haste)},true);
+
+render();
+})();
+</script>
