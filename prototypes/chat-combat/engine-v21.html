@@ -979,6 +979,113 @@ render=function(){
  let signature='';try{signature=JSON.stringify(s)}catch(e){return}
  if(signature!==v20LastSavedSnapshot){v20LastSavedSnapshot=signature;hostSave()}
 };
+
+// V21 custom scenario editor and noncanonical campaign result draft.
+const v21Party=['rada','daphne','lyutobor','yar'];
+function v21Seed(st){
+ for(const id of v21Party){const c=runtime?.characters?.[id];if(!c)continue;
+  const ac=parseInt(c.ac_description,10),speed=parseInt(c.speed,10);
+  if(ac>=1&&ac<=30)st.units[id].ac=ac;
+  if(speed>=0&&speed<=120)st.units[id].baseSpeed=speed;
+ }
+ for(const [id,arr] of Object.entries(weapons))for(const w of arr){
+  const text=(sourceDetails[id]||[]).find(r=>r.name===w[1])?.description||'';
+  const m=text.match(/^\s*\+(\d+)\s*·\s*(\d+)d(\d+)\+(\d+)/);
+  if(!m)continue;w[3]=+m[1];w[4]=+m[2];w[5]=+m[3];w[6]=+m[4];
+  if(id==='yar'&&w[0]==='sword'){const x=text.match(/Attack action с GWM:\s*\d+d\d+\+(\d+)/);if(x)w[6]=+x[1];}
+  w[2]='+'+w[3]+' · '+w[4]+'к'+w[5]+'+'+w[6]+' (канон)';
+ }
+ st.units.yar.surge=runtime?.characters?.yar?.resources?.action_surge?.current??st.units.yar.surge;
+ st.units.daphne.shieldFree=runtime?.characters?.daphne?.resources?.shield_magic_initiate?.current??st.units.daphne.shieldFree;
+ const lookup=(id,regex)=>{const text=(sourceDetails[id]||[]).map(r=>r.name+' '+r.description).join('\n'),m=text.match(regex);return m?+m[1]:null;};
+ for(const [id,k,re] of [['yar','wind',/Second Wind[^\d]*(\d+)\/\d+/i],['yar','superiority',/Кости превосходства[^\d]*(\d+)\/\d+/i],['yar','indomitable',/Несгибаемость[^\d]*(\d+)\/\d+/i]]){
+  const n=lookup(id,re);if(n!==null)st.units[id][k]=n;
+ }
+ return st;
+}
+function v21Start(st){
+ return {sourceRevision:runtime?.source_state_revision??null,heroes:Object.fromEntries(v21Party.map(id=>{const u=st.units[id];return [id,{hp:u.hp,storm:u.storm,arrows:u.arrows,lay:u.lay,surge:u.surge,shieldFree:u.shieldFree,slots:[...(u.slots||[])],inv:{...st.inv[id]},other:Object.fromEntries(['wind','superiority','indomitable','cloak','channel','mark','leaf','living','smiteFree'].map(k=>[k,u[k]]))}]}))};
+}
+function v21Cell(cell){const m=/^([A-K])([1-8])$/i.exec(String(cell||''));if(!m)throw Error('Клетка должна быть A1–K8: '+cell);return {x:'ABCDEFGHIJK'.indexOf(m[1].toUpperCase()),y:+m[2]-1};}
+function v21CheckScenario(raw){
+ if(!raw||typeof raw!=='object'||!v20SafeName(raw.name))throw Error('Нужно название сценария');
+ const terrain={},occupied=new Set();
+ for(const k of ['walls','rubble']){if(!Array.isArray(raw[k]||[]))throw Error('Некорректный список '+k);terrain[k]=(raw[k]||[]).map(c=>{const p=v21Cell(c);return idxy(p.x,p.y)});if(terrain[k].length>88||new Set(terrain[k]).size!==terrain[k].length)throw Error('Дубли препятствий');}
+ if(terrain.walls.some(x=>terrain.rubble.includes(x)))throw Error('Стена и обломки пересекаются');
+ const party={},initiative={};
+ for(const id of v21Party){const h=raw.heroes?.[id];if(!h)throw Error('Не хватает героя '+id);
+  const p=v21Cell(h.cell),key=idxy(p.x,p.y),n=Number(h.initiative);
+  if(terrain.walls.includes(key)||occupied.has(key))throw Error('Клетка героя занята');
+  if(!Number.isInteger(n)||n< -10||n>50)throw Error('Недопустимая инициатива героя');
+  occupied.add(key);party[id]=p;initiative[id]=n;
+ }
+ if(!Array.isArray(raw.enemies)||raw.enemies.length<1||raw.enemies.length>v20EnemyLimit)throw Error('Нужно от 1 до 20 врагов');
+ const enemies=raw.enemies.map(e=>{const p=v21Cell(e.cell),key=idxy(p.x,p.y);
+  if(terrain.walls.includes(key)||occupied.has(key))throw Error('Клетка врага занята');
+  occupied.add(key);return v20ValidatedEnemy({...e,x:p.x,y:p.y});});
+ return {name:v20SafeName(raw.name),kind:raw.kind==='story'?'story':'training',party,initiative,enemies,terrain};
+}
+function v21RestoreTerrain(st){
+ if(!st.scenario)return;
+ walls.clear();for(const x of st.scenario.terrain.walls)walls.add(x);
+ rubble.clear();for(const x of st.scenario.terrain.rubble)rubble.add(x);
+ v20BaseInit.splice(0,v20BaseInit.length,...v20BaseOrder.map(id=>st.scenario.initiative[id]??-10));
+}
+function v21NewScenario(raw){
+ const a=v21CheckScenario(raw); // validate before replacing current state
+ s=v21Seed(applySourceSeed(newState()));
+ s.units.guard.hp=0;s.units.archer.hp=0;
+ for(const id of v21Party){s.units[id].x=a.party[id].x;s.units[id].y=a.party[id].y;}
+ s.extraEnemies=a.enemies.map((e,i)=>({id:'enemy_'+(i+1),...e,joinRound:1}));
+ s.scenario={terrain:a.terrain,initiative:a.initiative};s.battleName=a.name;s.sessionKind=a.kind;
+ s.history=['Новый бой «'+a.name+'»; никакие результаты не перенесены в Campaign Engine.'];
+ v21RestoreTerrain(s);v20SyncEnemyProfiles();s.index=0;s.target=s.extraEnemies[0].id;s.inspected='rada';
+ me().action=1;me().bonus=1;me().reaction=1;me().move=me().baseSpeed??30;
+ s.startSnapshot=v21Start(s);s.v21Editor=false;s.info='Новый сценарий подготовлен ('+s.sourceRevision+').';
+ render();return s;
+}
+const v21OldLoad=v20LoadSession;
+v20LoadSession=function(json){const val=v21OldLoad(json);if(val.scenario){v21RestoreTerrain(val);v20SyncEnemyProfiles();render();}return val;};
+function v21Outcome(){
+ const b=s.startSnapshot;if(!b||b.sourceRevision!==runtime?.source_state_revision)throw Error('Нет согласованного исходного снимка ресурсов');
+ const operations=[],manual_review=[];
+ const diff=(id,k,a,z,level)=>{if(Number.isInteger(a)&&Number.isInteger(z)&&a!==z)operations.push({type:'adjust_resource',id,resource:k,delta:z-a,...(level?{level}:{})});};
+ for(const id of v21Party){const before=b.heroes[id],now=s.units[id],rs=runtime.characters[id].resources||{};
+  diff(id,'hp',before.hp,now.hp);
+  if(id==='yar'){diff(id,'storm_thrower_ammo',before.storm,now.storm);if(rs.action_surge)diff(id,'action_surge',before.surge,now.surge);}
+  if(id==='rada')diff(id,'arrows',before.arrows,now.arrows);
+  if(id==='lyutobor')diff(id,'lay_on_hands',before.lay,now.lay);
+  if(id==='daphne'&&rs.shield_magic_initiate)diff(id,'shield_magic_initiate',before.shieldFree,now.shieldFree);
+  for(const level of Object.keys(rs.spell_slots||{}))diff(id,'spell_slots',before.slots[+level],now.slots[+level],level);
+  for(const key of new Set([...Object.keys(before.inv),...Object.keys(s.inv[id])])){const delta=(s.inv[id][key]||0)-(before.inv[key]||0);if(!delta)continue;
+   const matches=(runtime.characters[id].inventory||[]).filter(x=>x.consumable_type===key&&x.quantity>0);
+   if(matches.length===1)operations.push({type:'adjust_item_quantity',id,item:matches[0].id,delta});
+   else manual_review.push({id,item:key,delta,reason:'Нельзя сопоставить с единственной записью инвентаря'});
+  }
+  for(const [key,value] of Object.entries(before.other))if(Number.isInteger(value)&&now[key]!==value)manual_review.push({id,resource:key,before:value,after:now[key],reason:'Требует сверки с каноном'});
+ }
+ return {kind:'havengard-combat-outcome-draft',battle:s.battleName||'Старый мост',session_kind:s.sessionKind||'training',source_revision:b.sourceRevision,requires_player_confirmation:true,canonical_state_unchanged:true,operations,manual_review,round:s.round,phase:s.phase};
+}
+function v21Export(name,object){const blob=new Blob([JSON.stringify(object,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+const v21BaseDraw=render;
+render=function(){
+ v21BaseDraw();root.querySelector('header h2').textContent=s.battleName||'Старый мост';
+ if(!$('v21setup')){const div=document.createElement('div');div.id='v21setup';div.className='syncbar';$('syncStatus').parentElement.after(div);}
+ const sample={name:'Новая схватка',kind:'training',heroes:{rada:{cell:'E6',initiative:20},daphne:{cell:'B7',initiative:16},lyutobor:{cell:'D6',initiative:14},yar:{cell:'C6',initiative:12}},walls:['F3','F4'],rubble:['E4'],enemies:[{name:'Разбойник',cell:'H4',hp:32,ac:15,initiative:10,attack:{bonus:6,count:1,die:8,flat:3,range:5},saves:{STR:3,DEX:2,CON:2,WIS:0},abilities:[]}]};
+ $('v21setup').innerHTML='<div class="buttons"><button class="btn" data-v21-new>⚔ Создать сценарий</button><button class="btn" data-v21-outcome>⇩ Итоги для проверки</button></div>'+
+  (s.v21Editor?'<div class="panel"><h3>Новое поле боя</h3><p>Клетки A1–K8, герои, инициатива, препятствия и противники. kind: training или story.</p><textarea id="v21json" rows="13" style="width:100%;background:#142a38;color:white;border:1px solid #829dad;border-radius:5px">'+esc(JSON.stringify(sample,null,2))+'</textarea><div class="buttons"><button class="btn primary" data-v21-create>Начать бой</button><button class="btn" data-v21-cancel>Отмена</button></div></div>':'')+
+  '<p class="hint">Режим: '+(s.sessionKind==='story'?'сюжетный':'учебный')+'. Все изменения остаются внутри боя до отдельного подтверждения игрока.</p>';
+};
+root.addEventListener('click',e=>{const b=e.target.closest('[data-v21-new],[data-v21-create],[data-v21-cancel],[data-v21-outcome]');if(!b)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(b.hasAttribute('data-v21-new')){s.v21Editor=true;render();return}
+ if(b.hasAttribute('data-v21-cancel')){s.v21Editor=false;render();return}
+ if(b.hasAttribute('data-v21-create')){try{v21NewScenario(JSON.parse($('v21json').value))}catch(error){v19Alert('Ошибка сценария: '+(error.message||String(error)))}return}
+ if(b.hasAttribute('data-v21-outcome')){try{v21Export('havengard-outcome-v21.json',v21Outcome());v19Alert('Проект итогов экспортирован. Канон не изменён.')}catch(error){v19Alert(error.message||String(error))}return}
+},true);
+if(!resumable){v21Seed(s);s.startSnapshot=v21Start(s)}else v21RestoreTerrain(s);
+if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{newScenario:v21NewScenario,validateScenario:v21CheckScenario,outcome:v21Outcome});
+
 // Preserve original initial demo (Daphne's first turn); no simulated combat is committed to campaign.
 render();
 
