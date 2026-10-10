@@ -6,6 +6,8 @@ on:
       - "state/_campaign-state.json"
       - "prototypes/combat/scripts/build_runtime.py"
       - "rules/_campaign-rules.json"
+      - "prototypes/combat/tests/**"
+      - ".github/workflows/combat-runtime-sync.yml"
   workflow_dispatch:
 permissions:
   contents: write
@@ -14,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Run generator regression tests
+        run: python3 -m unittest discover -s prototypes/combat/tests -p "test_*.py" -v
       - name: Generate read-only combat projection
         run: python3 prototypes/combat/scripts/build_runtime.py
       - name: Commit only projection when changed
