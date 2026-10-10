@@ -982,6 +982,7 @@ render=function(){
 
 // V21 custom scenario editor and noncanonical campaign result draft.
 const v21Party=['rada','daphne','lyutobor','yar'];
+const v21DefaultTerrain={walls:[...walls],rubble:[...rubble],initiative:[...v20BaseInit]};
 function v21Seed(st){
  for(const id of v21Party){const c=runtime?.characters?.[id];if(!c)continue;
   const ac=parseInt(c.ac_description,10),speed=parseInt(c.speed,10);
@@ -1082,6 +1083,18 @@ root.addEventListener('click',e=>{const b=e.target.closest('[data-v21-new],[data
  if(b.hasAttribute('data-v21-cancel')){s.v21Editor=false;render();return}
  if(b.hasAttribute('data-v21-create')){try{v21NewScenario(JSON.parse($('v21json').value))}catch(error){v19Alert('Ошибка сценария: '+(error.message||String(error)))}return}
  if(b.hasAttribute('data-v21-outcome')){try{v21Export('havengard-outcome-v21.json',v21Outcome());v19Alert('Проект итогов экспортирован. Канон не изменён.')}catch(error){v19Alert(error.message||String(error))}return}
+},true);
+// A reset must not inherit obstacles or initiative from the previous custom arena.
+root.addEventListener('click',e=>{
+ const button=e.target.closest('button[data-op="reset"]');if(!button||!root.contains(button))return;
+ e.preventDefault();e.stopImmediatePropagation();
+ walls.clear();v21DefaultTerrain.walls.forEach(v=>walls.add(v));
+ rubble.clear();v21DefaultTerrain.rubble.forEach(v=>rubble.add(v));
+ v20BaseInit.splice(0,v20BaseInit.length,...v21DefaultTerrain.initiative);
+ s=v21Seed(applySourceSeed(newState()));v20RebuildInitiative();
+ s.index=order.indexOf('daphne');s.startSnapshot=v21Start(s);
+ s.info='Новая учебная схватка на исходном поле. Предыдущий бой не перенесён в канон.';
+ render();hostSave();
 },true);
 if(!resumable){v21Seed(s);s.startSnapshot=v21Start(s)}else {v21RestoreTerrain(s);if(s.scenario)v20SyncEnemyProfiles();}
 if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{newScenario:v21NewScenario,validateScenario:v21CheckScenario,outcome:v21Outcome,load:v20LoadSession});
