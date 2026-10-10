@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
   "engine": "havengard tactical combat",
-  "current_ui_path": "prototypes/combat/app/havengard-battle-v15.html",
+  "current_ui_path": "prototypes/combat/app/havengard-battle-v16.html",
   "canonical": false,
   "source_of_truth": "state/_campaign-state.json",
-  "usage": "In ChatGPT, load this manifest then the designated HTML using the public GitHub raw endpoint. Pass battle/session through AppBlock binding; never write simulation changes to canonical state automatically.",
-  "tested_version": "v15",
-  "notes": "Always use latest loaded canonical campaign data for NEW battles. Embedded viewer changes do not choose actions for the player."
+  "usage": "Do not fetch remote JavaScript inside AppBlock; chat sandbox may block it. The assistant loads verified canonical state through GitHub connector and renders native DIL controls, using issueNewTurn with full action context for rules adjudication. Browser site and GitHub remain optional deployment/backup.",
+  "tested_version": "v16",
+  "notes": "Always use latest loaded canonical campaign data for NEW battles. Embedded viewer changes do not choose actions for the player.",
+  "chat_engine_mode": "native-DIL-with-GM-resolution"
 }
