@@ -82,6 +82,36 @@ def build(root: Path) -> dict:
             columns = row.get("cells") or []
             if columns and isinstance(columns[0], str) and columns[0] not in {"Действие", "Атака", "Способность", "Заклинание"}:
                 authoritative.append({"source_row": row.get("source_row"), "columns": columns[:8]})
+        # Keep the live character sheet ahead of archival snapshots. A new attack,
+        # feat or spell entered directly in Campaign Engine appears on next push.
+        previously_seen = {(e["name"], e.get("source_row")) for e in sections}
+        for row in authoritative:
+            cols = row["columns"]
+            title = cols[0]
+            if not isinstance(title, str) or not title.strip() or title in {
+                "Действие", "Атака", "Способность", "Заклинание", "Статус",
+                "Кости хитов", "Атаки и боевые действия", "Способности — описание для боя",
+                "Заклинания — боевая шпаргалка", "Навык", "Стандартная подготовка — 15 из 15",
+            }:
+                continue
+            pair = (title, row["source_row"])
+            if pair in previously_seen:
+                continue
+            sections.append({
+                "id": f"{hero}-live-{row['source_row']}",
+                "name": title,
+                "category": "live_sheet",
+                "source_row": row["source_row"],
+                "description": " · ".join(str(x) for x in cols[1:] if x is not None and x != "")[:900],
+                "execution_status": "reference_only_unless_combat_handler_verified",
+            })
+            previously_seen.add(pair)
+        for name in character.get("features") or []:
+            if isinstance(name, str) and name.strip() and name not in {e["name"] for e in sections}:
+                sections.append({"id": f"{hero}-state-feature-{len(sections)}", "name": name,
+                                 "category": "live_feature", "source_row": None,
+                                 "description": "Current character feature from campaign state",
+                                 "execution_status": "reference_only_unless_combat_handler_verified"})
         manifest["characters"][hero] = {
             "name": character.get("name", hero),
             "class_and_level": sheet.get("class_and_level"),
