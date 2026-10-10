@@ -1,0 +1,47 @@
+name: Deploy Havengard Combat UI
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'state/**'
+      - 'migrations/character-*'
+      - 'prototypes/combat/app/**'
+      - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
+      - 'prototypes/combat/inventory-interactions-g1m8-v1.json'
+      - '.github/workflows/deploy-combat-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: combat-pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build live battle manifest from current canon
+        run: python prototypes/combat/app/build_runtime.py --root .
+      - name: Assemble static combat site
+        shell: bash
+        run: |
+          mkdir -p _site/runtime
+          printf '%s\n' '<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Хейвенгард — Тактический бой</title></head><body style="margin:0">' > _site/index.html
+          cat prototypes/combat/app/havengard-battle-v13.html >> _site/index.html
+          printf '%s\n' '</body></html>' >> _site/index.html
+          cp prototypes/combat/app/runtime/latest.json _site/runtime/latest.json
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
