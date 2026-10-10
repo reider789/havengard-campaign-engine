@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Карта Хейвенгарда</title>
+<style>
+:root{color-scheme:dark;--bg:#142326;--line:#445e59;--muted:#b9c7c1;--gold:#e5bd80}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:#eee9dc;font:13px/1.48 system-ui,Segoe UI,Arial}button,input{font:inherit}button{padding:8px 10px;background:#2e4546;color:#e9e3d5;border:1px solid var(--line);border-radius:8px;cursor:pointer}button:hover{background:#435b53}button.active{background:#7d633e;border-color:var(--gold)}input{padding:8px;background:#192e2d;color:white;border:1px solid var(--line);border-radius:7px}
+header{height:58px;display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--line)}
+h1{font-size:20px;margin:0}h2{font-size:18px;margin:6px 0 10px}h3{font-size:13px;color:var(--gold);margin:15px 0 6px}
+small,.muted{color:var(--muted)}.tools{display:flex;align-items:center;gap:7px;padding:10px;background:#1b2e30;overflow:auto;white-space:nowrap}
+#main{position:relative;height:calc(100vh - 116px);overflow:hidden;background:#a9bf9d}
+#stage{position:absolute;inset:0;touch-action:none;cursor:grab}#stage.dragging{cursor:grabbing}#city{position:absolute;top:0;left:0;transform-origin:0 0}
+.obj rect{stroke:#304e45;stroke-width:1.1}.obj:hover rect{stroke:#ffe8ab;stroke-width:2.5}.obj.selected rect{stroke:#ffe09e;stroke-width:3}.obj text{font-size:8px;font-weight:700;fill:#18322d;pointer-events:none}
+#side{position:absolute;right:12px;top:12px;width:340px;max-height:calc(100% - 24px);max-width:calc(100% - 24px);overflow:auto;background:#192c2eef;border:1px solid #718579;border-radius:12px;padding:16px;box-shadow:0 12px 35px #11211a77}
+#side p{font-size:12px;color:#c4d2c7;line-height:1.6}.metric{background:#2c4141;padding:10px;margin:7px 0;border-radius:8px}.metric strong{display:block;font-size:16px;color:#f6e7c8}.metric span{font-size:11px;color:#b4c6bb}
+#zoom{position:absolute;left:12px;top:12px;display:flex;gap:6px}#status{position:absolute;left:12px;bottom:12px;background:#233532df;padding:8px 11px;border-radius:8px;font-size:11px;max-width:310px}
+#toast{display:none;position:absolute;bottom:14px;left:50%;transform:translateX(-50%);padding:8px 14px;border:1px solid var(--gold);background:#1b312f;border-radius:8px}
+#file{display:none}@media(max-width:700px){#side{top:auto;bottom:8px;right:8px;max-height:60%;width:calc(100% - 16px)}header{height:56px}.tools{padding:7px}#main{height:calc(100vh - 108px)}}
+</style></head><body>
+<header><div><small>Хейвенгард · карта v4</small><h1>Город и владения</h1></div><small id="source">GitHub Campaign Engine</small></header>
+<div class="tools">
+<button data-tab="detail" class="active">Объекты</button><button data-tab="build">Стройки</button><button data-tab="people">Население</button><button data-tab="economy">Хозяйство</button>
+<button id="defense">Оборона</button><button id="edit">Планировка</button><input id="search" placeholder="Найти здание…"><button id="save">↓ Сохранить JSON</button><button id="load">↑ Загрузить JSON</button><input type="file" id="file" accept=".json">
+</div><main id="main"><div id="stage"><svg id="city" xmlns="http://www.w3.org/2000/svg" width="1640" height="1160" viewBox="0 0 1640 1160"></svg></div>
+<div id="zoom"><button id="plus">+</button><button id="minus">−</button><button id="fit">⌖</button></div>
+<aside id="side"><button id="close" style="float:right">×</button><div id="info"></div></aside><div id="status"></div><div id="toast"></div>
+</main><script>const DATA=/*CITY_JSON*/;</script><script>
+"use strict";
+const get=id=>document.getElementById(id),D=DATA,NS="http://www.w3.org/2000/svg";
+const colors={housing:"#cdbf98",civic:"#8ebaaa",magic:"#a995cd",craft:"#c7a77e",food:"#a4c088",defense:"#a6a49a",special:"#d3b477"};
+let local={};try{local=JSON.parse(localStorage.getItem("hg-layout-v4")||"{}")}catch(e){}
+let positions=local.positions||{},extra=local.extra||{},tab="detail",selected="founders",edit=false,defense=false,scale=1,px=0,py=0,drag=null;
+function all(){const a=D.objects.map(o=>Object.assign({},o,D.saved_positions[o.id]||{},positions[o.id]||{}));const pos=extra.reyn||D.saved_positions["reyn-home"];if(pos)a.push({id:"reyn-home",name:"Дом Мелании и Теодора Рейн",x:pos.x,y:pos.y,w:3,h:2,category:"housing",notes:D.rein_project?D.rein_project.next_step:"Строится",status:"Строится"});return a}
+function elm(tag,attrs,parent){const v=document.createElementNS(NS,tag);Object.entries(attrs||{}).forEach(p=>v.setAttribute(p[0],String(p[1])));(parent||get("city")).append(v);return v}
+function esc(v){return String(v==null?"":v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+function stamp(){get("city").style.transform="translate("+px+"px,"+py+"px) scale("+scale+")"}
+function draw(){const root=get("city");root.replaceChildren();elm("rect",{width:1640,height:1160,fill:"#adc09e"});
+for(let x=0;x<=1640;x+=10)elm("line",{x1:x,y1:0,x2:x,y2:1160,stroke:"#5c7a67",opacity:".2","stroke-width":".5"});
+for(let y=0;y<=1160;y+=10)elm("line",{x1:0,y1:y,x2:1640,y2:y,stroke:"#5c7a67",opacity:".2","stroke-width":".5"});
+elm("rect",{x:370,y:190,width:910,height:780,rx:9,fill:"#b5c9ac",opacity:".28",stroke:"#5b785d","stroke-width":5});
+for(const a of [[480,460,760,20],[480,590,760,20],[480,770,760,20],[670,340,20,540],[830,340,20,540],[1050,340,20,540]])elm("rect",{x:a[0],y:a[1],width:a[2],height:a[3],rx:4,fill:"#ddc6a3",opacity:".55"});
+for(const o of all()){if(defense&&!["defense","special"].includes(o.category))continue;
+const g=elm("g",{class:"obj"+(selected===o.id?" selected":""),"data-id":o.id,role:"button",tabindex:0});
+elm("rect",{x:o.x*10+1,y:o.y*10+1,width:Math.max(8,o.w*10-2),height:Math.max(8,o.h*10-2),rx:o.id.startsWith("wall-")?0:3,fill:colors[o.category]||"#b7c4a7"},g);
+let label=o.id.startsWith("house-")?"⌂":o.id.startsWith("wall-")?"":o.name;const limit=Math.max(2,Math.floor(o.w*10/5.5));if(label.length>limit)label=label.slice(0,limit-1)+"…";
+const t=elm("text",{x:o.x*10+o.w*5,y:o.y*10+o.h*5+2,"text-anchor":"middle"},g);t.textContent=label;
+elm("title",{},g).textContent=o.name;g.onkeydown=e=>{if(e.key==="Enter"){selected=o.id;tab="detail";draw();panel()}};
+}stamp()}
+function fit(){const r=get("stage").getBoundingClientRect();scale=Math.max(.27,Math.min(1.3,Math.min(r.width/1250,r.height/1000)));px=r.width/2-820*scale;py=r.height/2-575*scale;stamp()}
+function zoom(f,e){const r=get("stage").getBoundingClientRect(),x=(e?e.clientX:r.left+r.width/2)-r.left,y=(e?e.clientY:r.top+r.height/2)-r.top,old=scale;scale=Math.max(.25,Math.min(3,scale*f));px=x-(x-px)*scale/old;py=y-(y-py)*scale/old;stamp()}
+function toast(s){const q=get("toast");q.textContent=s;q.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>q.style.display="none",3500)}
+function persist(){localStorage.setItem("hg-layout-v4",JSON.stringify({positions,extra,atRevision:D.revision}));get("status").textContent="Есть локальные изменения карты. Сохраните JSON, затем прикрепите в чат для записи в GitHub."}
+function metric(k,v){return '<div class="metric"><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>'}
+function panel(){document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));let s="";
+if(tab==="detail"){const o=all().find(x=>x.id===selected);if(o){s="<h2>"+esc(o.name)+"</h2><p>"+esc(o.notes||"Объект на схеме города. Планировка условная.")+"</p>";if(o.level)s+=metric("Уровень",o.level);if(o.assigned!==undefined)s+=metric("Назначенные жители",String(o.assigned)+(o.external_workers?" + "+o.external_workers+" внешних":""));if(o.equipment_status&&o.equipment_status!=="Оснащено")s+=metric("Оснащение",o.equipment_status);if(o.staff_names)s+="<h3>Состав</h3><p>"+esc(o.staff_names)+"</p>";s+='<p class="muted">Размер на схеме условный: '+(o.w*10)+' × '+(o.h*10)+' м; это не подтверждённая площадь.</p>'}else s="<h2>Выберите здание</h2>"}
+if(tab==="people"){s="<h2>Население</h2>"+metric("Постоянных жителей",D.population)+metric("Жилой фонд",D.ordinary_occupied+" / "+D.comfortable_capacity)+metric("Отдельное проживание",D.separate_residents)+metric("Гарнизон",D.garrison)+"<p>Мелания и Теодор Рейн временно проживают в усадьбе Яра до готовности своего дома и пока не работают.</p>"}
+if(tab==="economy"){s="<h2>Хозяйство · "+esc(D.month)+"</h2>"+metric("Казна",D.treasury_gp+" зм")+metric("Продовольствие",D.food_reserve_pe+" / "+D.food_target_pe+" ПЕ")+metric("До целевого резерва",D.food_shortfall_pe+" ПЕ")+metric("Рабочие точки",D.worksites_count)+"<p>Г1М8 открыт, начальные расчёты сделаны. Карта не закрывает месяц и не проводит повторные расходы.</p>"}
+if(tab==="build"){s="<h2>Стройки</h2><h3>Дом семьи Рейн</h3><p>"+esc(D.rein_project&&D.rein_project.next_step)+"</p><button id='place'>Разместить условно</button><h3>Укрепление стен</h3><p>"+esc(D.wall_project&&D.wall_project.status)+"</p><p class='muted'>Перемещение на схеме не означает стройку, переселение или списание денег.</p>"}
+get("info").innerHTML=s;const btn=get("place");if(btn)btn.onclick=()=>{if(!extra.reyn&&!D.saved_positions["reyn-home"]){extra.reyn={x:115,y:82};persist()}selected="reyn-home";tab="detail";draw();panel();toast("Дом появился на карте условно; перетащите его в режиме планировки.")}}
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;get("side").hidden=false;panel()});
+get("close").onclick=()=>{get("side").hidden=true};
+get("edit").onclick=()=>{edit=!edit;get("edit").classList.toggle("active",edit);toast(edit?"Перетаскивайте объекты. Координаты пока сохраняются в браузере.":"Режим планировки выключен.")};
+get("defense").onclick=()=>{defense=!defense;get("defense").classList.toggle("active",defense);draw()};
+get("search").oninput=e=>{const term=e.target.value.toLocaleLowerCase("ru");if(!term)return;const match=all().find(o=>o.name.toLocaleLowerCase("ru").includes(term));if(match){selected=match.id;tab="detail";get("side").hidden=false;draw();panel()}};
+get("save").onclick=()=>{const j={app:"heyvengard-map-layout",version:3,source:"github-campaign-engine",state_revision:D.revision,positions,extra};const url=URL.createObjectURL(new Blob([JSON.stringify(j,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="heyvengard-layout-for-github.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),500);toast("Файл сохранён: прикрепите его к чату, чтобы записать изменения в GitHub.")};
+get("load").onclick=()=>get("file").click();get("file").onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=="heyvengard-map-layout"||d.version!==3||!d.positions||typeof d.positions!=="object")throw Error("Нужен JSON планировки v3");const ids=new Set(D.objects.map(o=>o.id));positions={};for(const [id,p] of Object.entries(d.positions)){if(ids.has(id)&&Number.isFinite(p.x)&&Number.isFinite(p.y))positions[id]={x:p.x,y:p.y}}extra=d.extra&&d.extra.reyn&&Number.isFinite(d.extra.reyn.x)&&Number.isFinite(d.extra.reyn.y)?{reyn:d.extra.reyn}:{};persist();draw();panel();toast("Планировка загружена, GitHub не изменён.")}catch(err){toast(err.message)}e.target.value=""};
+get("plus").onclick=()=>zoom(1.2);get("minus").onclick=()=>zoom(.83);get("fit").onclick=fit;get("stage").addEventListener("wheel",e=>{e.preventDefault();zoom(e.deltaY<0?1.11:.9,e)},{passive:false});
+get("stage").onpointerdown=e=>{if(e.button!==0)return;const node=e.target.closest(".obj"),id=node&&node.dataset.id;drag={id,x:e.clientX,y:e.clientY,ox:px,oy:py,obj:id&&all().find(o=>o.id===id),moved:false};get("stage").setPointerCapture(e.pointerId);get("stage").classList.add("dragging")};
+get("stage").onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;if(edit&&drag.id&&drag.obj){const v=get("city").querySelector('[data-id="'+drag.id+'"]');if(v)v.setAttribute("transform","translate("+dx/scale+" "+dy/scale+")")}else{px=drag.ox+dx;py=drag.oy+dy;stamp()}};
+get("stage").onpointerup=e=>{const d=drag;if(!d)return;drag=null;get("stage").classList.remove("dragging");if(edit&&d.moved&&d.id&&d.obj){let x=Math.round((d.obj.x+(e.clientX-d.x)/(10*scale))*2)/2,y=Math.round((d.obj.y+(e.clientY-d.y)/(10*scale))*2)/2;if(x<0||y<0||x+d.obj.w>164||y+d.obj.h>116)toast("Нельзя вынести здание за границу карты.");else{if(d.id==="reyn-home")extra.reyn={x,y};else positions[d.id]={x,y};persist();toast("Перемещено. Сохраните JSON, чтобы перенести в GitHub.")}}else if(!d.moved&&d.id){selected=d.id;tab="detail";get("side").hidden=false;panel()}draw()};
+get("stage").onpointercancel=()=>{drag=null;draw()};window.addEventListener("resize",fit);
+get("source").textContent="GitHub · ревизия "+D.revision+" · "+D.month;get("status").textContent="Карта автоматически собирается из закрытого GitHub. Местные перемещения сохраняйте JSON.";draw();fit();panel();
+</script></body></html>
