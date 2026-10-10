@@ -1,15 +1,14 @@
 {
-  "expected_state_revision": 26,
-  "unique_key": "reconcile:g1m8-derived-city-notes-20261010",
   "event": {
     "id": "FIX-G1M8-CITY-DERIVED-NOTES-001",
     "summary": "Исправлены устаревшие текстовые городские сводки: исторические 219, нынешние 221, 205 в домах, резерв 426,43/442 ПЕ, стройка Рейнов 7 дней пройдено/~7 осталось. Денежные суммы и время игры не меняются.",
     "visibility": "gm"
   },
+  "expected_state_revision": 26,
   "operations": [
     {
-      "type": "set_world_field",
       "field": "city",
+      "type": "set_world_field",
       "value": {
         "active_rule_sources": {
           "authority": "rules/_campaign-rules.json; this text is imported for local access and may need reconciliation",
@@ -12890,5 +12889,6 @@
         ]
       }
     }
-  ]
+  ],
+  "unique_key": "reconcile:g1m8-derived-city-notes-20261010"
 }
