@@ -6,6 +6,7 @@ on:
       - 'state/_campaign-state.json'
       - 'prototypes/chat-combat/engine-v20.html'
       - 'prototypes/chat-combat/build_chat_bundle.py'
+      - '.github/workflows/build-chat-combat.yml'
       - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
   workflow_dispatch:
 permissions:
