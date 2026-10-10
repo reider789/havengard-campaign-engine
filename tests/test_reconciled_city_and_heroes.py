@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Regression checks for the G1M8 documented reconciliation."""
+"""Check invariants that must remain true as the story moves forward.
+
+Historical totals belong to transaction receipts and migration snapshots, not
+to regression assertions against the current campaign state.
+"""
 import copy
 import json
+import re
 import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
-
 import campaignctl as engine
 from city_registry import validate_city_registry
 from character_catalog import validate_character_catalogs
@@ -18,101 +22,135 @@ def current():
     return json.loads((ROOT / "state/_campaign-state.json").read_text(encoding="utf-8"))
 
 
-def transaction(state, ops, event_id="TEST-G1M8-CONSISTENCY"):
+def transaction(state, ops, event_id="TEST-DYNAMIC-CONSISTENCY"):
     return {"expected_state_revision": state["state_revision"],
-            "event": {"id": event_id, "summary": "Проверка без сохранения", "visibility": "gm"},
+            "event": {"id": event_id, "summary": "Изолированная проверка.", "visibility": "gm"},
             "operations": ops}
 
 
-class G1M8Reconciliation(unittest.TestCase):
-    def test_census_and_housing_match_chronicle(self):
-        s = current()
-        city = s["world"]["city"]
-        live = [r for r in city["residents"] if "погиб" not in r.get("status", "").lower()]
-        self.assertEqual(len(live), 221)
-        self.assertEqual(len(city["residents"]), 222)  # deceased resident stays as archived record
-        self.assertEqual(s["world"]["city_population"], 221)
-        rein = [r for r in live if r["name"] in {"Мелания Рейн", "Теодор Рейн"}]
-        self.assertEqual(len(rein), 2)
-        self.assertTrue(all(r["worksite"] == "—" for r in rein))
-        homes = {r["name"]: r for r in city["housing"]}
-        self.assertEqual(homes["Обычные жилые дома"]["current_occupants"], "205")
-        self.assertEqual(homes["Обычные жилые дома"]["available"], "35 комфортно / 95 максимум")
-        self.assertEqual(homes["Усадьба Яра — основной дом"]["current_occupants"], "8")
-        self.assertEqual(validate_city_registry(s), [])
+class LiveConsistencyTests(unittest.TestCase):
+    def test_population_and_housing_agree_in_current_state(self):
+        state = current()
+        city = state["world"]["city"]
+        active = [r for r in city["residents"] if not any(
+            word in str(r.get("status", "")).lower() for word in ("погиб", "умер", "выбыл"))]
+        self.assertEqual(len(active), state["world"]["city_population"])
+        self.assertEqual(validate_city_registry(state), [])
 
-    def test_worksite_and_qualifications(self):
-        s = current()
-        city = s["world"]["city"]
+    def test_worksite_assignments_and_qualifications(self):
+        city = current()["world"]["city"]
         roster = {r["name"]: r for r in city["residents"]}
         training = {t["worker"]: t for t in city["training"]}
-        self.assertEqual(sum(int(w.get("resident_workers", 0)) for w in city["worksites"]), 200)
-        self.assertEqual(len(city["worksites"]), 38)
-        self.assertEqual(len(city["training"]), 200)
-        self.assertTrue(all(roster[n]["qualification"] == t["current_grade"]
-                            for n, t in training.items() if n in roster))
-        self.assertNotIn("Житель 158", training)  # 14-year-old school pupil, not professional trainee
-        self.assertIn("Житель 12", training)      # archived deceased, never silently removed
+        for name, item in training.items():
+            if name in roster:
+                self.assertEqual(roster[name]["qualification"], item["current_grade"])
+        # No need to freeze the number of schools, workers or residents.
+        self.assertEqual(len({s["id"] for s in city["worksites"]}), len(city["worksites"]))
 
-    def test_animals_are_not_double_counted(self):
+    def test_animals_do_not_contain_aggregate_rows(self):
         city = current()["world"]["city"]
-        self.assertEqual(len(city["animals"]), 22)
-        self.assertEqual(sum(int(a["quantity"]) for a in city["animals"] if a["category"].startswith("Драк")), 12)
-        self.assertEqual(next(a["quantity"] for a in city["animals"] if a["name_or_group"] == "Городской конюшенный парк"), "28")
-        horses = next(a for a in city["animals"] if a["name_or_group"] == "Вельмар — награда за «Медный Ключ»")
-        self.assertEqual(horses["quantity"], "4")
-        self.assertIn("не являются собственностью города", horses["status"])
+        for animal in city["animals"]:
+            self.assertNotEqual(animal["category"], "Показатель")
+            self.assertNotRegex(str(animal["name_or_group"]), r"^\d+$")
 
-    def test_hero_inventory_priority_and_uniqueness(self):
-        s = current()
-        self.assertFalse(validate_character_catalogs(s))
-        self.assertEqual(s["characters"]["yar"]["resources"]["storm_thrower_ammo"]["current"], 20)
-        self.assertEqual(s["characters"]["rada"]["resources"]["arrows"]["current"], 57)
-        def item(who, name):
-            return next(v for v in s["characters"][who]["inventory_catalog"].values()
-                        if v["name"] == name)
-        self.assertEqual(item("rada", "Стрелы")["quantity"], 57)
-        self.assertEqual(item("yar", "Обычное лечебное зелье")["quantity"], 3)
-        self.assertEqual(item("yar", "Противоядие")["quantity"], 3)
-        self.assertEqual(item("yar", "Алхимический огонь")["quantity"], 2)
-        self.assertIn("Сложена", item("lyutobor", "Мгновенная крепость Даэрна")["status"])
-        self.assertIn("При Яре", item("yar", "Звёздная мантия")["status"])
-        self.assertFalse(any(v["name"] == "Звёздная мантия"
-                             for v in s["characters"]["daphne"]["inventory_catalog"].values()))
-        self.assertEqual(s["characters"]["daphne"]["resources"]["shield_magic_initiate"]["current"], 1)
-        yar = s["characters"]["yar"]
-        self.assertTrue(yar["character_sheet"]["portable_hole_policy"]["packed_after_last_road_camp"])
-        self.assertEqual(len(yar["character_sheet"]["portable_hole_policy"]["delivered_expansion_modules"]), 3)
-        self.assertNotIn("paid_but_delivery_not_confirmed", yar["character_sheet"]["portable_hole_policy"])
-        for row_id in (74, 75, 76):
-            self.assertIn(f"yar-source-row-{row_id}", yar["inventory_catalog"])
-            self.assertIn("Получен", yar["inventory_catalog"][f"yar-source-row-{row_id}"]["status"])
+    def test_hero_catalogs_and_consumable_bounds(self):
+        state = current()
+        self.assertEqual(validate_character_catalogs(state), [])
+        for hero in state["characters"].values():
+            for name, value in hero.get("resources", {}).items():
+                if isinstance(value, dict) and "current" in value:
+                    self.assertGreaterEqual(value["current"], 0, name)
+                    self.assertLessEqual(value["current"], value["max"], name)
+        for hero in state["characters"].values():
+            for item in hero.get("inventory_catalog", {}).values():
+                amount = item.get("quantity")
+                if amount is not None:
+                    self.assertGreaterEqual(amount, 0)
 
-    def test_reject_broken_derived_census_or_housing(self):
-        s = current()
-        original = copy.deepcopy(s)
+    def test_shooting_one_arrow_does_not_fail_when_count_changes(self):
+        state = current()
+        arrows = state["characters"]["rada"]["resources"]["arrows"]["current"]
+        if arrows <= 0:
+            self.skipTest("Рада сейчас без стрел")
+        shot = engine.build_result(state, transaction(state, [
+            {"type": "adjust_resource", "id": "rada", "resource": "arrows", "delta": -1}
+        ], "TEST-NEXT-ARROW"))
+        self.assertEqual(shot["characters"]["rada"]["resources"]["arrows"]["current"], arrows - 1)
+        self.assertFalse(validate_character_catalogs(shot))
+        arrow_items = [v for v in shot["characters"]["rada"]["inventory_catalog"].values()
+                       if v["name"] == "Стрелы"]
+        self.assertTrue(all(v["quantity"] == arrows - 1 for v in arrow_items))
+        self.assertEqual(state["characters"]["rada"]["resources"]["arrows"]["current"], arrows)
+
+    def test_legal_treasury_change_is_not_blocked_by_old_snapshot(self):
+        state = current()
+        before = state["world"]["city_treasury_cp"]
+        plus = engine.build_result(state, transaction(state, [
+            {"type": "city_adjust_treasury", "delta_cp": 100}
+        ], "TEST-FUTURE-TREASURY"))
+        self.assertEqual(plus["world"]["city_treasury_cp"], before + 100)
+        self.assertEqual(state["world"]["city_treasury_cp"], before)
+
+    def test_reject_population_staff_and_housing_inconsistency(self):
+        state = current()
+        original = copy.deepcopy(state)
+        homes = next(x for x in state["world"]["city"]["housing"] if x["name"] == "Обычные жилые дома")
+        staff = next(x for x in state["world"]["city"]["worksites"] if x["name"] == "Администрация")
         for op in [
-            {"type": "set_world_field", "field": "city_population", "value": 222},
-            {"type": "city_patch_record", "section": "housing", "record_id": "Обычные жилые дома",
-             "patch": {"current_occupants": "207"}},
-            {"type": "city_patch_record", "section": "worksites", "record_id": "1",
-             "patch": {"resident_workers": "8"}},
+            {"type": "set_world_field", "field": "city_population", "value": state["world"]["city_population"] + 1},
+            {"type": "city_patch_record", "section": "housing", "record_id": homes["name"],
+             "patch": {"current_occupants": str(int(homes["current_occupants"]) + 1)}},
+            {"type": "city_patch_record", "section": "worksites", "record_id": staff["id"],
+             "patch": {"resident_workers": str(int(staff["resident_workers"]) + 1)}},
         ]:
-            with self.subTest(op=op), self.assertRaises(engine.CampaignError):
-                engine.build_result(s, transaction(s, [op]))
-            self.assertEqual(s, original)
+            with self.subTest(op=op), self.assertRaises((engine.CampaignError, ValueError)):
+                engine.build_result(state, transaction(state, [op]))
+            self.assertEqual(state, original)
 
-    def test_transfer_item_moves_catalog_reference(self):
-        s = current()
-        item = "yar-star-mantle"
-        transferred = engine.build_result(s, transaction(s, [
-            {"type": "transfer_item", "from": "yar", "to": "daphne", "item": item}
-        ], event_id="TEST-CATALOG-TRANSFER"))
-        self.assertNotIn(item, transferred["characters"]["yar"]["inventory"])
-        self.assertNotIn(item, transferred["characters"]["yar"]["inventory_catalog"])
-        self.assertIn(item, transferred["characters"]["daphne"]["inventory"])
-        self.assertIn(item, transferred["characters"]["daphne"]["inventory_catalog"])
-        self.assertFalse(validate_character_catalogs(transferred))
+    def test_consumable_quantity_spending_updates_inventory_atomically(self):
+        state = current()
+        cid = "yar"
+        state["characters"][cid]["inventory"].append("TEST-HEALING")
+        state["characters"][cid]["inventory_catalog"]["TEST-HEALING"] = {
+            "name": "Тестовое зелье", "quantity": 2}
+        used = engine.build_result(state, transaction(state, [
+            {"type": "adjust_item_quantity", "id": cid, "item": "TEST-HEALING", "delta": -1}
+        ], "TEST-CONSUME-ONE"))
+        self.assertEqual(used["characters"][cid]["inventory_catalog"]["TEST-HEALING"]["quantity"], 1)
+        spent_all = engine.build_result(used, transaction(used, [
+            {"type": "adjust_item_quantity", "id": cid, "item": "TEST-HEALING", "delta": -1}
+        ], "TEST-CONSUME-SECOND"))
+        self.assertNotIn("TEST-HEALING", spent_all["characters"][cid]["inventory_catalog"])
+        self.assertNotIn("TEST-HEALING", spent_all["characters"][cid]["inventory"])
+        with self.assertRaises((engine.CampaignError, ValueError)):
+            engine.build_result(state, transaction(state, [
+                {"type": "adjust_item_quantity", "id": cid, "item": "TEST-HEALING", "delta": -3}
+            ], "TEST-OVERSPEND"))
+        self.assertEqual(state["characters"][cid]["inventory_catalog"]["TEST-HEALING"]["quantity"], 2)
+
+    def test_remove_item_does_not_leave_ghost_catalog(self):
+        state = current()
+        cid = "yar"
+        state["characters"][cid]["inventory"].append("TEST-SINGLE")
+        state["characters"][cid]["inventory_catalog"]["TEST-SINGLE"] = {
+            "name": "Тестовый предмет", "quantity": 1}
+        removed = engine.build_result(state, transaction(state, [
+            {"type": "remove_character_item", "id": cid, "item": "TEST-SINGLE"}
+        ], "TEST-CONSUME-SINGLE"))
+        self.assertNotIn("TEST-SINGLE", removed["characters"][cid]["inventory"])
+        self.assertNotIn("TEST-SINGLE", removed["characters"][cid]["inventory_catalog"])
+
+    def test_transfer_moves_metadata(self):
+        state = current()
+        state["characters"]["yar"]["inventory"].append("TEST-FUTURE-ITEM")
+        state["characters"]["yar"]["inventory_catalog"]["TEST-FUTURE-ITEM"] = {
+            "name": "Тестовый предмет", "quantity": 1, "status": "У Яра"}
+        moved = engine.build_result(state, transaction(state, [
+            {"type": "transfer_item", "from": "yar", "to": "daphne", "item": "TEST-FUTURE-ITEM"}
+        ], "TEST-TRANSFER-CATALOG"))
+        self.assertNotIn("TEST-FUTURE-ITEM", moved["characters"]["yar"]["inventory_catalog"])
+        self.assertIn("TEST-FUTURE-ITEM", moved["characters"]["daphne"]["inventory_catalog"])
+        self.assertEqual(validate_character_catalogs(moved), [])
 
 
 if __name__ == "__main__":

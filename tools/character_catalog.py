@@ -27,3 +27,27 @@ def validate_character_catalogs(state: dict[str, Any]) -> list[str]:
             if amount is not None and (not isinstance(amount, int) or isinstance(amount, bool) or amount < 0):
                 errors.append(f"{char_id}.inventory_catalog.{item_id}: количество должно быть целым >=0 либо неизвестным")
     return errors
+
+def sync_ammunition_catalog(state: dict[str, Any], char_id: str, resource: str) -> None:
+    """Keep the numeric arrow stock and the corresponding item card in sync."""
+    if resource != "arrows":
+        return
+    hero = state["characters"][char_id]
+    current = hero["resources"]["arrows"]["current"]
+    for record in hero.get("inventory_catalog", {}).values():
+        if record.get("name") == "Стрелы":
+            record["quantity"] = current
+            record["description"] = ("Боезапас синхронизируется с resources.arrows. "
+                                     "Историю расхода см. в событиях Campaign Engine.")
+
+
+def validate_known_ammunition(state: dict[str, Any]) -> list[str]:
+    problems = []
+    for char_id, hero in state.get("characters", {}).items():
+        stock = hero.get("resources", {}).get("arrows")
+        if not isinstance(stock, dict):
+            continue
+        for record in hero.get("inventory_catalog", {}).values():
+            if record.get("name") == "Стрелы" and record.get("quantity") != stock.get("current"):
+                problems.append(f"{char_id}: количество стрел в каталоге расходится с resources.arrows")
+    return problems

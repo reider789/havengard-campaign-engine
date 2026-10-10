@@ -117,20 +117,32 @@ def validate_city_registry(state: dict[str, Any]) -> list[str]:
             except (ValueError, KeyError, TypeError):
                 errors.append("city.housing: неизвестная вместимость типовых домов")
         known_separate = 0
-        for name in ("Дом семьи Харрика", "Флигель семьи Астэр", "Усадьба Яра — основной дом",
-                     "Жилой караульный дом усадьбы", "Дом Мирэль в Роще Иллариэль"):
-            house = homes.get(name)
-            if not house:
-                errors.append(f"city.housing: отсутствует {name}")
+        for name, house in homes.items():
+            if name == "Обычные жилые дома":
                 continue
-            if name == "Усадьба Яра — основной дом":
-                counted = re.search(r"(\d+)\s+из\s+(\d+)", house.get("counted_in_population", ""))
-                if not counted or int(counted.group(2)) != int(house["current_occupants"]):
-                    errors.append("city.housing: в усадьбе не совпадает состав жителей")
+            included = str(house.get("counted_in_population", "")).strip()
+            occupants = str(house.get("current_occupants", "")).strip()
+            if not included:
+                # A construction project has no residents yet. Once it is
+                # occupied, its city-population membership must be explicit.
+                if occupants not in {"Не заселён", "Не заселен", "0"}:
+                    errors.append(f"city.housing.{name}: не задан учёт жителей")
+                continue
+            if included.startswith("Нет"):
+                continue
+            if included.startswith("Частично"):
+                counted = re.search(r"(\d+)\s+из\s+(\d+)", included)
+                if not counted or int(counted.group(2)) != int(occupants):
+                    errors.append(f"city.housing.{name}: не совпадает состав жильцов")
                     continue
                 known_separate += int(counted.group(1))
+            elif included == "Да":
+                try:
+                    known_separate += int(occupants)
+                except ValueError:
+                    errors.append(f"city.housing.{name}: требуется число жильцов")
             else:
-                known_separate += int(house["current_occupants"])
+                errors.append(f"city.housing.{name}: неизвестный способ подсчёта жильцов")
         if ordinary and occupied is not None and occupied + known_separate != len(active):
             errors.append(f"city.housing: {occupied} + {known_separate} != {len(active)} жителей")
         for animal in city.get("animals", []):
