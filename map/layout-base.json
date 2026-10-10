@@ -1,0 +1,921 @@
+{
+  "schema": "hayvengard.map.base.v1",
+  "basis": "Original v3 prototype geometry, illustrative and not canonical measured land plot",
+  "units": "map_cells_10m",
+  "grid_step": 0.5,
+  "board": {
+    "width": 164,
+    "height": 116
+  },
+  "objects": [
+    {
+      "id": "garrison",
+      "name": "Гарнизон",
+      "x": 68.5,
+      "y": 38,
+      "w": 6,
+      "h": 3,
+      "category": "defense"
+    },
+    {
+      "id": "admin",
+      "name": "Администрация",
+      "x": 78,
+      "y": 38,
+      "w": 5,
+      "h": 3,
+      "category": "civic"
+    },
+    {
+      "id": "research",
+      "name": "Исследовательский центр",
+      "x": 86,
+      "y": 38,
+      "w": 7,
+      "h": 3,
+      "category": "magic"
+    },
+    {
+      "id": "school",
+      "name": "Школа / скрипторий",
+      "x": 97,
+      "y": 38,
+      "w": 5,
+      "h": 3,
+      "category": "civic"
+    },
+    {
+      "id": "notary",
+      "name": "Нотариальная контора",
+      "x": 105,
+      "y": 38,
+      "w": 5,
+      "h": 3,
+      "category": "civic"
+    },
+    {
+      "id": "estate",
+      "name": "Усадьба Яра",
+      "x": 68.5,
+      "y": 43,
+      "w": 8,
+      "h": 3,
+      "category": "housing"
+    },
+    {
+      "id": "market",
+      "name": "Рынок / центральный склад",
+      "x": 80.5,
+      "y": 43,
+      "w": 6,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "founders",
+      "name": "★ Башня Основателей",
+      "x": 90,
+      "y": 43,
+      "w": 3,
+      "h": 3,
+      "category": "special"
+    },
+    {
+      "id": "clinic",
+      "name": "Лечебница",
+      "x": 95.5,
+      "y": 43,
+      "w": 5,
+      "h": 3,
+      "category": "civic"
+    },
+    {
+      "id": "bath",
+      "name": "Баня / бытовые услуги",
+      "x": 103.5,
+      "y": 43,
+      "w": 6,
+      "h": 3,
+      "category": "civic"
+    },
+    {
+      "id": "cult",
+      "name": "Культовое здание",
+      "x": 68.5,
+      "y": 47,
+      "w": 3,
+      "h": 2,
+      "category": "special"
+    },
+    {
+      "id": "weave",
+      "name": "Ткацкая мастерская",
+      "x": 74,
+      "y": 47,
+      "w": 3,
+      "h": 2,
+      "category": "craft"
+    },
+    {
+      "id": "potter",
+      "name": "Гончарная мастерская",
+      "x": 79.5,
+      "y": 47,
+      "w": 4,
+      "h": 2,
+      "category": "craft"
+    },
+    {
+      "id": "guardhouse",
+      "name": "Караульный жилой дом",
+      "x": 86,
+      "y": 47,
+      "w": 5,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "family-aster",
+      "name": "Флигель семьи Астэр",
+      "x": 94,
+      "y": 47,
+      "w": 6,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "storage",
+      "name": "Защищённый склад",
+      "x": 103.5,
+      "y": 47,
+      "w": 6,
+      "h": 2,
+      "category": "special"
+    },
+    {
+      "id": "alchemy",
+      "name": "Алхимическая мастерская",
+      "x": 68.5,
+      "y": 54,
+      "w": 6,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "smith",
+      "name": "Городская кузница",
+      "x": 78,
+      "y": 54,
+      "w": 4,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "helga",
+      "name": "Кузница Хельги",
+      "x": 84.5,
+      "y": 54,
+      "w": 5,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "tarvek",
+      "name": "Мастерская Тарвека",
+      "x": 93,
+      "y": 54,
+      "w": 5,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "nira",
+      "name": "Мастерская Ниры",
+      "x": 101,
+      "y": 54,
+      "w": 4,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "leather",
+      "name": "Кожевенная мастерская",
+      "x": 107.5,
+      "y": 54,
+      "w": 4,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "kitchen",
+      "name": "Большая кухня",
+      "x": 68.5,
+      "y": 60.5,
+      "w": 5,
+      "h": 3,
+      "category": "food"
+    },
+    {
+      "id": "bakery",
+      "name": "Пекарня",
+      "x": 76.5,
+      "y": 60.5,
+      "w": 5,
+      "h": 3,
+      "category": "food"
+    },
+    {
+      "id": "inn",
+      "name": "Трактир Берты",
+      "x": 84.5,
+      "y": 60.5,
+      "w": 5,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "wood",
+      "name": "Столярная мастерская",
+      "x": 93,
+      "y": 60.5,
+      "w": 5,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "sewing",
+      "name": "Швейная мастерская",
+      "x": 101,
+      "y": 60.5,
+      "w": 5,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "stone",
+      "name": "Каменный двор",
+      "x": 109,
+      "y": 60.5,
+      "w": 3,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "stables",
+      "name": "Конюшни / транспорт",
+      "x": 53.5,
+      "y": 70,
+      "w": 5,
+      "h": 3,
+      "category": "food"
+    },
+    {
+      "id": "dragons",
+      "name": "Драконюшня",
+      "x": 62,
+      "y": 70,
+      "w": 6,
+      "h": 3,
+      "category": "special"
+    },
+    {
+      "id": "runes",
+      "name": "Рунная мастерская",
+      "x": 71,
+      "y": 70,
+      "w": 6,
+      "h": 3,
+      "category": "magic"
+    },
+    {
+      "id": "elfbows",
+      "name": "Эльфийские луки",
+      "x": 80.5,
+      "y": 70,
+      "w": 6,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "range",
+      "name": "Стрельбище Эйрена",
+      "x": 90,
+      "y": 70,
+      "w": 5,
+      "h": 3,
+      "category": "defense"
+    },
+    {
+      "id": "loading",
+      "name": "Торговая погрузка",
+      "x": 106.5,
+      "y": 70,
+      "w": 5,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "harrik-home",
+      "name": "Дом семьи Харрика",
+      "x": 62,
+      "y": 74,
+      "w": 6,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "research-residence",
+      "name": "Жилое крыло ИЦ",
+      "x": 86,
+      "y": 42,
+      "w": 7,
+      "h": 1,
+      "category": "housing"
+    },
+    {
+      "id": "gate",
+      "name": "Главные ворота",
+      "x": 81,
+      "y": 96,
+      "w": 5,
+      "h": 3,
+      "category": "defense"
+    },
+    {
+      "id": "tower-nw",
+      "name": "Башня СЗ",
+      "x": 36,
+      "y": 18,
+      "w": 3,
+      "h": 3,
+      "category": "defense"
+    },
+    {
+      "id": "tower-ne",
+      "name": "Башня СВ",
+      "x": 126,
+      "y": 18,
+      "w": 3,
+      "h": 3,
+      "category": "defense"
+    },
+    {
+      "id": "tower-sw",
+      "name": "Башня ЮЗ",
+      "x": 36,
+      "y": 96,
+      "w": 3,
+      "h": 3,
+      "category": "defense"
+    },
+    {
+      "id": "wall-n",
+      "name": "Северная стена",
+      "x": 39,
+      "y": 19,
+      "w": 87,
+      "h": 1,
+      "category": "defense"
+    },
+    {
+      "id": "wall-w",
+      "name": "Западная стена",
+      "x": 37,
+      "y": 21,
+      "w": 1,
+      "h": 75,
+      "category": "defense"
+    },
+    {
+      "id": "wall-e",
+      "name": "Восточная стена",
+      "x": 128,
+      "y": 21,
+      "w": 1,
+      "h": 75,
+      "category": "defense"
+    },
+    {
+      "id": "wall-s1",
+      "name": "Южная стена, запад",
+      "x": 39,
+      "y": 97,
+      "w": 42,
+      "h": 1,
+      "category": "defense"
+    },
+    {
+      "id": "wall-s2",
+      "name": "Южная стена, восток",
+      "x": 86,
+      "y": 97,
+      "w": 40,
+      "h": 1,
+      "category": "defense"
+    },
+    {
+      "id": "tower-se",
+      "name": "Башня ЮВ",
+      "x": 126,
+      "y": 96,
+      "w": 3,
+      "h": 3,
+      "category": "defense"
+    },
+    {
+      "id": "fields",
+      "name": "Пашня — 120 га",
+      "x": 13,
+      "y": 14,
+      "w": 8,
+      "h": 4,
+      "category": "food"
+    },
+    {
+      "id": "herbs",
+      "name": "Овощи / травы — 20 га",
+      "x": 18,
+      "y": 40,
+      "w": 6,
+      "h": 3,
+      "category": "food"
+    },
+    {
+      "id": "pastures",
+      "name": "Пастбища — 70 га",
+      "x": 142,
+      "y": 13,
+      "w": 8,
+      "h": 4,
+      "category": "food"
+    },
+    {
+      "id": "hay",
+      "name": "Сенокосы — 45 га",
+      "x": 142,
+      "y": 36,
+      "w": 9,
+      "h": 3,
+      "category": "food"
+    },
+    {
+      "id": "yard",
+      "name": "Хозяйственный двор",
+      "x": 139,
+      "y": 72,
+      "w": 7,
+      "h": 3,
+      "category": "food"
+    },
+    {
+      "id": "mill",
+      "name": "Мельница",
+      "x": 112,
+      "y": 104,
+      "w": 5,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "hives",
+      "name": "Пасека",
+      "x": 24,
+      "y": 100,
+      "w": 5,
+      "h": 3,
+      "category": "food"
+    },
+    {
+      "id": "forest",
+      "name": "Лесной двор",
+      "x": 13,
+      "y": 81,
+      "w": 7,
+      "h": 4,
+      "category": "food"
+    },
+    {
+      "id": "grove",
+      "name": "Роща Иллариэль",
+      "x": 98,
+      "y": 65,
+      "w": 8,
+      "h": 4,
+      "category": "magic"
+    },
+    {
+      "id": "quarantine",
+      "name": "Карантинный блок",
+      "x": 87,
+      "y": 33,
+      "w": 4,
+      "h": 2,
+      "category": "magic"
+    },
+    {
+      "id": "thunder",
+      "name": "Грозовая энергоплощадка",
+      "x": 92,
+      "y": 33,
+      "w": 5,
+      "h": 2,
+      "category": "magic"
+    },
+    {
+      "id": "caravan",
+      "name": "Караванная площадка",
+      "x": 73,
+      "y": 106,
+      "w": 8,
+      "h": 2,
+      "category": "craft"
+    },
+    {
+      "id": "quarry",
+      "name": "Каменоломня Холодного Холма",
+      "x": 143,
+      "y": 84,
+      "w": 8,
+      "h": 3,
+      "category": "craft"
+    },
+    {
+      "id": "mirelle-home",
+      "name": "Дом Мирэль",
+      "x": 105,
+      "y": 67.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "earthworks",
+      "name": "Оборонительный пояс",
+      "x": 63,
+      "y": 99,
+      "w": 13,
+      "h": 2,
+      "category": "defense"
+    },
+    {
+      "id": "house-1",
+      "name": "Жилой дом №1",
+      "x": 53.5,
+      "y": 38,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-2",
+      "name": "Жилой дом №2",
+      "x": 56.5,
+      "y": 38,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-3",
+      "name": "Жилой дом №3",
+      "x": 59,
+      "y": 38,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-4",
+      "name": "Жилой дом №4",
+      "x": 62,
+      "y": 38,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-5",
+      "name": "Жилой дом №5",
+      "x": 64.5,
+      "y": 38,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-6",
+      "name": "Жилой дом №6",
+      "x": 53.5,
+      "y": 40.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-7",
+      "name": "Жилой дом №7",
+      "x": 56.5,
+      "y": 40.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-8",
+      "name": "Жилой дом №8",
+      "x": 59,
+      "y": 40.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-9",
+      "name": "Жилой дом №9",
+      "x": 62,
+      "y": 40.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-10",
+      "name": "Жилой дом №10",
+      "x": 64.5,
+      "y": 40.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-11",
+      "name": "Жилой дом №11",
+      "x": 53.5,
+      "y": 44.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-12",
+      "name": "Жилой дом №12",
+      "x": 56.5,
+      "y": 44.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-13",
+      "name": "Жилой дом №13",
+      "x": 59,
+      "y": 44.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-14",
+      "name": "Жилой дом №14",
+      "x": 62,
+      "y": 44.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-15",
+      "name": "Жилой дом №15",
+      "x": 64.5,
+      "y": 44.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-16",
+      "name": "Жилой дом №16",
+      "x": 53.5,
+      "y": 47,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-17",
+      "name": "Жилой дом №17",
+      "x": 56.5,
+      "y": 47,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-18",
+      "name": "Жилой дом №18",
+      "x": 59,
+      "y": 47,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-19",
+      "name": "Жилой дом №19",
+      "x": 62,
+      "y": 47,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-20",
+      "name": "Жилой дом №20",
+      "x": 64.5,
+      "y": 47,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-21",
+      "name": "Жилой дом №21",
+      "x": 53.5,
+      "y": 54,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-22",
+      "name": "Жилой дом №22",
+      "x": 56.5,
+      "y": 54,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-23",
+      "name": "Жилой дом №23",
+      "x": 59,
+      "y": 54,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-24",
+      "name": "Жилой дом №24",
+      "x": 62,
+      "y": 54,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-25",
+      "name": "Жилой дом №25",
+      "x": 64.5,
+      "y": 54,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-26",
+      "name": "Жилой дом №26",
+      "x": 53.5,
+      "y": 56.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-27",
+      "name": "Жилой дом №27",
+      "x": 56.5,
+      "y": 56.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-28",
+      "name": "Жилой дом №28",
+      "x": 59,
+      "y": 56.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-29",
+      "name": "Жилой дом №29",
+      "x": 62,
+      "y": 56.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-30",
+      "name": "Жилой дом №30",
+      "x": 64.5,
+      "y": 56.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-31",
+      "name": "Жилой дом №31",
+      "x": 53.5,
+      "y": 60.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-32",
+      "name": "Жилой дом №32",
+      "x": 56.5,
+      "y": 60.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-33",
+      "name": "Жилой дом №33",
+      "x": 59,
+      "y": 60.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-34",
+      "name": "Жилой дом №34",
+      "x": 62,
+      "y": 60.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-35",
+      "name": "Жилой дом №35",
+      "x": 64.5,
+      "y": 60.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-36",
+      "name": "Жилой дом №36",
+      "x": 53.5,
+      "y": 63.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-37",
+      "name": "Жилой дом №37",
+      "x": 56.5,
+      "y": 63.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-38",
+      "name": "Жилой дом №38",
+      "x": 59,
+      "y": 63.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-39",
+      "name": "Жилой дом №39",
+      "x": 62,
+      "y": 63.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    },
+    {
+      "id": "house-40",
+      "name": "Жилой дом №40",
+      "x": 64.5,
+      "y": 63.5,
+      "w": 2,
+      "h": 2,
+      "category": "housing"
+    }
+  ]
+}
