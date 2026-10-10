@@ -1,0 +1,27 @@
+name: Refresh combat UI data
+on:
+  push:
+    branches: [main]
+    paths:
+      - "state/_campaign-state.json"
+      - "prototypes/combat/scripts/build_runtime.py"
+      - "rules/_campaign-rules.json"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  project-combat-state:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate read-only combat projection
+        run: python3 prototypes/combat/scripts/build_runtime.py
+      - name: Commit only projection when changed
+        run: |
+          git config user.name "havengard-state-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prototypes/combat/runtime/latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(combat): rebuild UI projection from canonical state"
+            git push
+          fi
