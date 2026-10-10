@@ -8,7 +8,7 @@ sample={
     'name':'Проверочная засада', 'kind':'story',
     'heroes':{'rada':{'cell':'E6','initiative':20},'daphne':{'cell':'B7','initiative':16},
               'lyutobor':{'cell':'D6','initiative':14},'yar':{'cell':'C6','initiative':12}},
-    'walls':['F3','F4'], 'rubble':['E4'],
+    'walls':['G2','F4'], 'rubble':['E4'],
     'enemies':[{'name':'Шаман','cell':'H4','hp':44,'ac':15,'initiative':10,
                 'attack':{'bonus':7,'count':2,'die':6,'flat':3,'range':30},
                 'saves':{'STR':3,'DEX':2,'CON':4,'WIS':5},'abilities':['Проклятие']}],
@@ -72,6 +72,13 @@ with sync_playwright() as p:
     assert state['units']['yar']['hp']==110
     assert state['units']['enemy_1']['enemyAttack']['count']==2
     assert state['battleName']==sample['name']
+    assert 'wall' in page.locator('[data-tile="6,1"]').get_attribute('class'), 'Custom wall not loaded'
+    page.locator('[data-op="reset"]').click()
+    state=page.evaluate(f'{api}.snapshot()')
+    assert state['units']['guard']['hp']==28
+    assert state.get('battleName') is None
+    assert 'wall' not in page.locator('[data-tile="6,1"]').get_attribute('class'), 'Custom terrain leaked into reset'
+    assert 'wall' in page.locator('[data-tile="5,2"]').get_attribute('class'), 'Original terrain lost'
     assert not errors, errors
     print('V21 PACKAGED CHAT ENGINE QA PASSED')
     browser.close()
