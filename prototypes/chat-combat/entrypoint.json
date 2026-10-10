@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "engine": "havengard in-chat battle",
-  "current_ui_path": "prototypes/chat-combat/engine-v18.html",
+  "current_ui_path": "prototypes/chat-combat/engine-v19.html",
   "source_state_path": "state/_campaign-state.json",
   "source_rules_path": "rules/_campaign-rules.json",
   "capability_registry": "prototypes/combat/character-capability-registry-g1m8-v1.json",
@@ -19,5 +19,20 @@
     "offline immediate fallback"
   ],
   "status": "expanded prototype, some advanced reaction and feature branches not exhaustively complete",
-  "note": "Use GitHub connector to inject current hero reference data at new scene. Do not overlay existing ongoing session with newer canonical resources."
+  "note": "Use GitHub connector to inject current hero reference data at new scene. Do not overlay existing ongoing session with newer canonical resources.",
+  "chat_mode": "self-contained HTML/CSS/JavaScript source; no external script injection",
+  "version": "v19",
+  "implemented_v19": [
+    "event-driven multi-stage attack reactions Protection > Mark > Uncanny/Cloak/Riposte",
+    "2024 Counterspell with CON save, spell slot refund on cancellation and nested reaction stack",
+    "2024 one spell-slot-per-turn check",
+    "full Bigby's Hand options fist 5d8, forceful push, grasp + crush 4d6+5, interposing half cover",
+    "GM-confirmed session-only rule editor for undefined-scope signal flares and traps",
+    "recoverable LIFO reaction stack and saved session"
+  ],
+  "remaining_scope": [
+    "A new magic ability with undefined effects still requires a corresponding verified handler; never invent homebrew numbers",
+    "In-chat AppBlock display of full v19 code has not been independently confirmed in user's client",
+    "Rules editor rulings are strictly noncanonical and require explicit player/GM approval"
+  ]
 }
