@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "engine": "engine-v20.html",
+  "bundle": "current-chat-battle.html",
+  "source_revision": 27,
+  "hero_count": 4,
+  "usage": "Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.",
+  "canonical": false
+}
