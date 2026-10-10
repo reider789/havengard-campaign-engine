@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "feature": "per-hero inspector integrated into v7 combat UI",
+  "status": "browser_smoke_test_passed",
+  "canonical": false,
+  "ui_contract": {
+    "current_actor": "state.index, unchanged by inspector",
+    "action_target": "state.selected, unchanged by inspector",
+    "inspected_hero": "state.inspected; clicking hero card is read-only",
+    "separate_target_button": true,
+    "effects_source": "state.effects only, not a duplicate simulation",
+    "effect_fields": [
+      "key",
+      "owner",
+      "targets",
+      "expires",
+      "concentration"
+    ],
+    "bless": {
+      "bonus": "+1d4 attack rolls and saving throws",
+      "radius_after_cast": "no check after casting",
+      "duration": "10 rounds/1 minute concentration",
+      "owner_view": "shows all affected creatures",
+      "target_view": "shows effect; not for non-targets"
+    }
+  },
+  "tested": [
+    "Map contains 88 cells",
+    "Switch inspector to Rada during Daphne turn leaves actor and attack target intact",
+    "End Daphne turn to Lyutobor without changing inspected hero",
+    "Cast Bless on Yar, Rada and Lyutobor; each shows buff in own inspector",
+    "Daphne not targeted and has no Bless icon",
+    "Lyutobor inspector displays concentration and all three targets",
+    "Spell slot and main action deducted exactly once",
+    "No JavaScript page errors in headless Chromium with HTML page set_content"
+  ],
+  "known_limitations": [
+    "AOE geometry, opportunity attacks and all character features remain subject to prototype limitations",
+    "The in-chat copy and repo design specification are not a production build"
+  ],
+  "not_changed": [
+    "state/_campaign-state.json",
+    "rules/_campaign-rules.json"
+  ]
+}
