@@ -77,6 +77,9 @@ class LiveConsistencyTests(unittest.TestCase):
         ], "TEST-NEXT-ARROW"))
         self.assertEqual(shot["characters"]["rada"]["resources"]["arrows"]["current"], arrows - 1)
         self.assertFalse(validate_character_catalogs(shot))
+        arrow_items = [v for v in shot["characters"]["rada"]["inventory_catalog"].values()
+                       if v["name"] == "Стрелы"]
+        self.assertTrue(all(v["quantity"] == arrows - 1 for v in arrow_items))
         self.assertEqual(state["characters"]["rada"]["resources"]["arrows"]["current"], arrows)
 
     def test_legal_treasury_change_is_not_blocked_by_old_snapshot(self):
@@ -103,6 +106,39 @@ class LiveConsistencyTests(unittest.TestCase):
             with self.subTest(op=op), self.assertRaises((engine.CampaignError, ValueError)):
                 engine.build_result(state, transaction(state, [op]))
             self.assertEqual(state, original)
+
+    def test_consumable_quantity_spending_updates_inventory_atomically(self):
+        state = current()
+        cid = "yar"
+        state["characters"][cid]["inventory"].append("TEST-HEALING")
+        state["characters"][cid]["inventory_catalog"]["TEST-HEALING"] = {
+            "name": "Тестовое зелье", "quantity": 2}
+        used = engine.build_result(state, transaction(state, [
+            {"type": "adjust_item_quantity", "id": cid, "item": "TEST-HEALING", "delta": -1}
+        ], "TEST-CONSUME-ONE"))
+        self.assertEqual(used["characters"][cid]["inventory_catalog"]["TEST-HEALING"]["quantity"], 1)
+        spent_all = engine.build_result(used, transaction(used, [
+            {"type": "adjust_item_quantity", "id": cid, "item": "TEST-HEALING", "delta": -1}
+        ], "TEST-CONSUME-SECOND"))
+        self.assertNotIn("TEST-HEALING", spent_all["characters"][cid]["inventory_catalog"])
+        self.assertNotIn("TEST-HEALING", spent_all["characters"][cid]["inventory"])
+        with self.assertRaises((engine.CampaignError, ValueError)):
+            engine.build_result(state, transaction(state, [
+                {"type": "adjust_item_quantity", "id": cid, "item": "TEST-HEALING", "delta": -3}
+            ], "TEST-OVERSPEND"))
+        self.assertEqual(state["characters"][cid]["inventory_catalog"]["TEST-HEALING"]["quantity"], 2)
+
+    def test_remove_item_does_not_leave_ghost_catalog(self):
+        state = current()
+        cid = "yar"
+        state["characters"][cid]["inventory"].append("TEST-SINGLE")
+        state["characters"][cid]["inventory_catalog"]["TEST-SINGLE"] = {
+            "name": "Тестовый предмет", "quantity": 1}
+        removed = engine.build_result(state, transaction(state, [
+            {"type": "remove_character_item", "id": cid, "item": "TEST-SINGLE"}
+        ], "TEST-CONSUME-SINGLE"))
+        self.assertNotIn("TEST-SINGLE", removed["characters"][cid]["inventory"])
+        self.assertNotIn("TEST-SINGLE", removed["characters"][cid]["inventory_catalog"])
 
     def test_transfer_moves_metadata(self):
         state = current()
