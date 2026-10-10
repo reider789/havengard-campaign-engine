@@ -1,0 +1,428 @@
+{
+  "schema_version": 1,
+  "role": "declarative bindings between source-indexed capabilities and combat event lifecycle",
+  "canonical": false,
+  "source_registry_path": "prototypes/combat/character-capability-registry-g1m8-v1.json",
+  "source_registry_blob_sha": "33b428e7582cb349410128183b9f8ce215840bbc",
+  "notes": [
+    "Availability must use authoritative state over archival card counts.",
+    "Explicit user decisions are never made by the engine; a runtime may expose only implemented handlers.",
+    "All timing phases are distinct; no generic prompt for every hit.",
+    "Active timing is measured by turn identity, not just round number."
+  ],
+  "handlers": [
+    {
+      "id": "yar.root_ring_transfer",
+      "trigger": "after_damage_reduction",
+      "mode": "automatic",
+      "handler": "auto_ring_transfer",
+      "source_ref": "yar-source-row-60",
+      "cost": "0",
+      "parameters": {
+        "range_ft": 60,
+        "paired": "daphne"
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "yar.vaeltir_cloak",
+      "trigger": "on_attack_hit_before_damage",
+      "mode": "optional",
+      "handler": "reaction_cloak",
+      "source_ref": "yar-source-row-61",
+      "cost": "reaction+cloak_charge",
+      "parameters": {
+        "ac_bonus": 3
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "yar.tactical_shift",
+      "trigger": "after_second_wind",
+      "mode": "optional",
+      "handler": "tactical_shift",
+      "source_ref": "yar-source-row-28",
+      "cost": "none",
+      "parameters": {
+        "speed_ft": 15,
+        "ignore_opportunity_attacks": true
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "yar.precision_attack",
+      "trigger": "after_attack_roll_before_hit_final",
+      "mode": "optional",
+      "handler": "precision_attack",
+      "source_ref": "yar-source-row-32",
+      "cost": "superiority_die",
+      "parameters": {},
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "yar.riposte",
+      "trigger": "after_enemy_melee_attack_miss",
+      "mode": "optional",
+      "handler": "riposte",
+      "source_ref": "yar-source-row-34",
+      "cost": "reaction+superiority_die",
+      "parameters": {},
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "yar.trip_attack",
+      "trigger": "on_weapon_hit_before_damage",
+      "mode": "optional",
+      "handler": "trip_attack",
+      "source_ref": "yar-source-row-33",
+      "cost": "superiority_die",
+      "parameters": {
+        "save_dc": 17
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "yar.maneuvering_attack",
+      "trigger": "on_weapon_hit_before_damage",
+      "mode": "optional",
+      "handler": "maneuvering_attack",
+      "source_ref": "yar-source-row-35",
+      "cost": "superiority_die",
+      "parameters": {},
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "yar.pushing_attack",
+      "trigger": "on_weapon_hit_before_damage",
+      "mode": "optional",
+      "handler": "pushing_attack",
+      "source_ref": "yar-source-row-36",
+      "cost": "superiority_die",
+      "parameters": {
+        "save_dc": 17
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "yar.goading_attack",
+      "trigger": "on_weapon_hit_before_damage",
+      "mode": "optional",
+      "handler": "goading_attack",
+      "source_ref": "yar-source-row-37",
+      "cost": "superiority_die",
+      "parameters": {
+        "save_dc": 17
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "yar.bait_and_switch",
+      "trigger": "on_movement",
+      "mode": "optional",
+      "handler": "bait_and_switch",
+      "source_ref": "yar-source-row-38",
+      "cost": "superiority_die",
+      "parameters": {},
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "yar.savage_attacker",
+      "trigger": "on_weapon_damage_roll",
+      "mode": "optional",
+      "handler": "savage_attacker",
+      "source_ref": "yar-source-row-39",
+      "cost": "once_per_turn",
+      "parameters": {},
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "yar.heavy_armor_master",
+      "trigger": "before_damage_applied",
+      "mode": "automatic",
+      "handler": "heavy_armor_master",
+      "source_ref": "yar-source-row-39",
+      "cost": "none",
+      "parameters": {
+        "requires_worn_heavy_armor": true
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "yar.tactical_master",
+      "trigger": "before_weapon_attack_roll",
+      "mode": "optional",
+      "handler": "tactical_master",
+      "source_ref": "yar-source-row-42",
+      "cost": "none",
+      "parameters": {},
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "daphne.shield",
+      "trigger": "on_attack_hit_before_damage",
+      "mode": "automatic_conditional",
+      "handler": "auto_shield",
+      "source_ref": "state.play_rules.combat_control.automatic_defensive_reactions.daphne_shield",
+      "cost": "reaction+free_cast_or_slot",
+      "parameters": {
+        "ac_bonus": 5,
+        "only_when_prevents_hit": true
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "daphne.sculpt_spells",
+      "trigger": "before_evocation_area_cast",
+      "mode": "target_choice",
+      "handler": "sculpt_spells",
+      "source_ref": "daphne-source-row-32",
+      "cost": "none",
+      "parameters": {
+        "save_auto_succeed": true,
+        "half_damage_to_zero": true
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "daphne.empowered_evocation",
+      "trigger": "on_evocation_spell_damage",
+      "mode": "automatic",
+      "handler": "empowered_evocation",
+      "source_ref": "daphne-source-row-34",
+      "cost": "none",
+      "parameters": {
+        "int_bonus": 5,
+        "once_per_spell_roll": true
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "daphne.potent_cantrip",
+      "trigger": "on_damaging_cantrip_miss_or_save",
+      "mode": "automatic",
+      "handler": "potent_cantrip",
+      "source_ref": "daphne-source-row-33",
+      "cost": "none",
+      "parameters": {
+        "half_rolled_damage": true
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "lyutobor.protection",
+      "trigger": "before_enemy_attack_roll_against_adjacent_ally",
+      "mode": "optional",
+      "handler": "protection",
+      "source_ref": "lyutobor-source-row-29",
+      "cost": "reaction",
+      "parameters": {
+        "adjacency_ft": 5
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "lyutobor.shield_mark",
+      "trigger": "on_enemy_critical_hit_against_visible_ally",
+      "mode": "optional",
+      "handler": "shield_mark",
+      "source_ref": "lyutobor-source-row-30",
+      "cost": "reaction+charge",
+      "parameters": {
+        "range_ft": 30,
+        "critical_to_normal": true
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "lyutobor.aura_protection",
+      "trigger": "on_ally_saving_throw",
+      "mode": "automatic",
+      "handler": "aura_protection",
+      "source_ref": "lyutobor-source-row-25",
+      "cost": "none",
+      "parameters": {
+        "range_ft": 10,
+        "save_bonus": 2
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "lyutobor.aura_devotion",
+      "trigger": "on_charmed_condition",
+      "mode": "automatic",
+      "handler": "aura_devotion",
+      "source_ref": "lyutobor-source-row-26",
+      "cost": "none",
+      "parameters": {
+        "range_ft": 10
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "lyutobor.aura_courage",
+      "trigger": "on_frightened_condition",
+      "mode": "automatic",
+      "handler": "aura_courage",
+      "source_ref": "lyutobor-source-row-27",
+      "cost": "none",
+      "parameters": {
+        "range_ft": 10
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "lyutobor.shield_save_bonus",
+      "trigger": "on_ally_saving_throw",
+      "mode": "automatic",
+      "handler": "shield_save_bonus",
+      "source_ref": "lyutobor-source-row-30",
+      "cost": "none",
+      "parameters": {
+        "range_ft": 5,
+        "save_bonus": 1
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "lyutobor.heavy_armor_master",
+      "trigger": "before_damage_applied",
+      "mode": "automatic",
+      "handler": "heavy_armor_master",
+      "source_ref": "lyutobor-source-row-31",
+      "cost": "none",
+      "parameters": {
+        "reduction": 4
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "lyutobor.shield_master",
+      "trigger": "after_own_attack_hit",
+      "mode": "optional",
+      "handler": "shield_master",
+      "source_ref": "lyutobor-source-row-35",
+      "cost": "once_per_turn",
+      "parameters": {
+        "dc": 16
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "rada.uncanny_dodge",
+      "trigger": "on_attack_hit_before_damage",
+      "mode": "optional",
+      "handler": "uncanny_dodge",
+      "source_ref": "rada-source-row-30",
+      "cost": "reaction",
+      "parameters": {
+        "half_attack_damage": true
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "rada.evasion",
+      "trigger": "on_dex_save_for_half_damage",
+      "mode": "automatic",
+      "handler": "evasion",
+      "source_ref": "rada-source-row-31",
+      "cost": "none",
+      "parameters": {},
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "rada.reliable_talent",
+      "trigger": "on_proficient_ability_check",
+      "mode": "automatic",
+      "handler": "reliable_talent",
+      "source_ref": "rada-source-row-32",
+      "cost": "none",
+      "parameters": {
+        "natural_roll_floor": 10
+      },
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "rada.sneak_attack",
+      "trigger": "on_eligible_weapon_hit",
+      "mode": "optional",
+      "handler": "sneak_attack",
+      "source_ref": "rada-source-row-26",
+      "cost": "once_per_turn",
+      "parameters": {
+        "dice": "5d6"
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "rada.cunning_strike",
+      "trigger": "after_sneak_attack_choice",
+      "mode": "optional",
+      "handler": "cunning_strike",
+      "source_ref": "rada-source-row-27",
+      "cost": "sneak_attack_dice",
+      "parameters": {
+        "save_dc": 17
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "rada.vex",
+      "trigger": "on_hit_with_last_leaf_bow",
+      "mode": "automatic",
+      "handler": "vex",
+      "source_ref": "rada-source-row-33",
+      "cost": "none",
+      "parameters": {},
+      "status": "phase_1_handler"
+    },
+    {
+      "id": "rada.leaf_step",
+      "trigger": "on_hit_with_last_leaf_bow",
+      "mode": "optional",
+      "handler": "leaf_step",
+      "source_ref": "rada-source-row-60",
+      "cost": "uses_and_movement",
+      "parameters": {
+        "uses_per_long_rest": 2
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "rada.living_arrow",
+      "trigger": "on_hit_with_last_leaf_bow",
+      "mode": "optional",
+      "handler": "living_arrow",
+      "source_ref": "rada-source-row-60",
+      "cost": "uses",
+      "parameters": {
+        "uses_per_long_rest": 1,
+        "save_dc": 15
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "rada.cloak_quiet_shadow",
+      "trigger": "on_visual_stealth_check",
+      "mode": "automatic",
+      "handler": "stealth_cloak",
+      "source_ref": "rada-source-row-48",
+      "cost": "none",
+      "parameters": {
+        "advantage": true
+      },
+      "status": "queued_for_rule_implementation"
+    },
+    {
+      "id": "rada.sharpshooter",
+      "trigger": "on_ranged_weapon_attack",
+      "mode": "automatic",
+      "handler": "sharpshooter",
+      "source_ref": "rada-source-row-37",
+      "cost": "none",
+      "parameters": {
+        "ignore_half_and_three_quarters_cover": true
+      },
+      "status": "queued_for_rule_implementation"
+    }
+  ]
+}
