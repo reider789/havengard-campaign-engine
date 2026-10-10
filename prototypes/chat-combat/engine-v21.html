@@ -1045,8 +1045,24 @@ function v21NewScenario(raw){
  s.startSnapshot=v21Start(s);s.v21Editor=false;s.info='Новый сценарий подготовлен ('+s.sourceRevision+').';
  render();return s;
 }
+function v21ValidateStoredScenario(session){
+ const scenario=session?.scenario;if(!scenario)return;
+ const terrain=scenario.terrain,initiative=scenario.initiative;
+ if(!terrain||!initiative||!Array.isArray(terrain.walls)||!Array.isArray(terrain.rubble))throw Error('Некорректные параметры сохранённой арены');
+ for(const list of [terrain.walls,terrain.rubble]){
+  if(list.length>88||new Set(list).size!==list.length||list.some(key=>typeof key!=='string'||! /^(?:[0-9]|10),[0-7]$/.test(key)))throw Error('Неверные клетки сохранённой арены');
+ }
+ if(terrain.walls.some(x=>terrain.rubble.includes(x)))throw Error('Наложение препятствий в сохранении');
+ if(v21Party.some(id=>!Number.isInteger(initiative[id])||initiative[id]< -10||initiative[id]>50))throw Error('Неверная инициатива в сохранении');
+}
 const v21OldLoad=v20LoadSession;
-v20LoadSession=function(json){const val=v21OldLoad(json);if(val.scenario){v21RestoreTerrain(val);v20SyncEnemyProfiles();render();}return val;};
+v20LoadSession=function(json){
+ const draft=typeof json==='string'?JSON.parse(json):json;
+ v21ValidateStoredScenario(draft?.session); // before any state mutation
+ const val=v21OldLoad(draft);
+ if(val.scenario){v21RestoreTerrain(val);v20SyncEnemyProfiles();render();}
+ return val;
+};
 function v21Outcome(){
  const b=s.startSnapshot;if(!b||b.sourceRevision!==runtime?.source_state_revision)throw Error('Нет согласованного исходного снимка ресурсов');
  const operations=[],manual_review=[];
