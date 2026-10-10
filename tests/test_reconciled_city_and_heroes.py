@@ -82,7 +82,11 @@ class G1M8Reconciliation(unittest.TestCase):
         self.assertEqual(s["characters"]["daphne"]["resources"]["shield_magic_initiate"]["current"], 1)
         yar = s["characters"]["yar"]
         self.assertTrue(yar["character_sheet"]["portable_hole_policy"]["packed_after_last_road_camp"])
-        self.assertEqual(len(yar["character_sheet"]["portable_hole_policy"]["paid_but_delivery_not_confirmed"]), 3)
+        self.assertEqual(len(yar["character_sheet"]["portable_hole_policy"]["delivered_expansion_modules"]), 3)
+        self.assertNotIn("paid_but_delivery_not_confirmed", yar["character_sheet"]["portable_hole_policy"])
+        for row_id in (74, 75, 76):
+            self.assertIn(f"yar-source-row-{row_id}", yar["inventory_catalog"])
+            self.assertIn("Получен", yar["inventory_catalog"][f"yar-source-row-{row_id}"]["status"])
 
     def test_reject_broken_derived_census_or_housing(self):
         s = current()
