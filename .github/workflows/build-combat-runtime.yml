@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths:
       - 'state/**'
-      - 'migrations/character-g1m8-*'
+      - 'migrations/character-*'
       - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
       - 'prototypes/combat/inventory-interactions-g1m8-v1.json'
       - 'prototypes/combat/app/build_runtime.py'
