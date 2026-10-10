@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "kind": "noncanonical_ui_implementation_qa",
+  "date": "2026-10-10",
+  "registry": "prototypes/combat/character-capability-registry-g1m8-v1.json",
+  "trigger_bindings": "prototypes/combat/trigger-bindings-g1m8-v1.json",
+  "description": "Phase 2 all-character battle prototype with dynamically tagged ability catalog, active handlers, reaction windows, timing and movement QA. This is not a full verified D&D rules engine; do not apply simulated state to canonical campaign.",
+  "source_priority": "state/_campaign-state.json for dynamic current resources, migration cards for reference, rules for policy.",
+  "tested_in_browser": [
+    "88 cells rendered; initial Daphne turn",
+    "Mage Armor action slots deducted and AC increased (12 to 15)",
+    "Fireball area preview renders",
+    "automatic Shield on an eligible 15 vs AC 12 hit: +5 AC and free use",
+    "Yar cloak trigger 13 vs AC 11 after optional Protection pass: prevents hit and expends reaction and one charge",
+    "movement route from B7 to C7 without disappearing action controls",
+    "full Daphne ability catalog visible (31 known entries)",
+    "Lyutobor Crusader's Mantle added 10-round concentration effect",
+    "Yar Second Wind opens Tactical Shift choice and 15-ft route",
+    "initiatives continue through enemy turns and return to Rada"
+  ],
+  "features_implemented_or_prototyped": [
+    "all known combat abilities listed per character with status labels",
+    "attack action and basic extra attacks",
+    "after-hit choices: combat maneuvers, smite, shield master, sneak/cunning strike, leaf effects",
+    "before-roll Protection, after-hit cloak/uncanny/guardian mark, auto shield",
+    "auto ring damage transfer",
+    "aura saving bonuses and some durations/concentration",
+    "pathfinding with manual route and per-cell movement",
+    "ability confirmation and AoE target preview",
+    "combat log with detailed calculations"
+  ],
+  "unfinished_or_requires_rules_audit": [
+    "exact diagonal/grid AOEs, cover and obstacles, vertical movement and flight",
+    "multi-beam independent targeting and item focus wave",
+    "complicated simultaneous after-hit option stacking (more than one optional feature)",
+    "all spell legality, preparation, component and special targeting rules",
+    "full monster spellcasting and Counterspell event chain",
+    "opportunity-attack path/resume and special movement permissions",
+    "accurate per-turn expiration of effects and repeat saves for all conditions",
+    "distinct temporary HP, resistances, shield and ring damage ordering for all combinations",
+    "all campaign items/potions and mounts",
+    "DM ruling for unusual actions; no automatic resource expense"
+  ],
+  "canon_modified": false
+}
