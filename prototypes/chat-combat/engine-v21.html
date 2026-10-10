@@ -1083,8 +1083,8 @@ root.addEventListener('click',e=>{const b=e.target.closest('[data-v21-new],[data
  if(b.hasAttribute('data-v21-create')){try{v21NewScenario(JSON.parse($('v21json').value))}catch(error){v19Alert('Ошибка сценария: '+(error.message||String(error)))}return}
  if(b.hasAttribute('data-v21-outcome')){try{v21Export('havengard-outcome-v21.json',v21Outcome());v19Alert('Проект итогов экспортирован. Канон не изменён.')}catch(error){v19Alert(error.message||String(error))}return}
 },true);
-if(!resumable){v21Seed(s);s.startSnapshot=v21Start(s)}else v21RestoreTerrain(s);
-if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{newScenario:v21NewScenario,validateScenario:v21CheckScenario,outcome:v21Outcome});
+if(!resumable){v21Seed(s);s.startSnapshot=v21Start(s)}else {v21RestoreTerrain(s);if(s.scenario)v20SyncEnemyProfiles();}
+if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{newScenario:v21NewScenario,validateScenario:v21CheckScenario,outcome:v21Outcome,load:v20LoadSession});
 
 // Preserve original initial demo (Daphne's first turn); no simulated combat is committed to campaign.
 render();
