@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "mode": "chat-native-turn-controller",
+  "ui": "DIL native controls, no remote JavaScript or iframe dependency",
+  "canonical_source": "state/_campaign-state.json",
+  "reference_source": "prototypes/combat/app/runtime/latest.json",
+  "server_render": "assistant retrieves latest state via authenticated GitHub and constructs a DIL board using that turn's source revision",
+  "turn_resolution": "all submitted actions go through chat response with full actor/target/action info; browser-only engine never silently approves undocumented effects",
+  "checks": [
+    "inspect card never changes actor or combat target",
+    "click map selects target or point, never moves hero directly",
+    "explicit confirm submits selected action to assistant",
+    "resolve full D&D mechanics including resource costs or return no-cost pending ruling",
+    "record only confirmed consequences to campaign state on user request",
+    "all demos remain noncanonical"
+  ],
+  "initial_test_snapshot": {
+    "source_revision": 27,
+    "round": 1,
+    "current_actor": "daphne",
+    "inspected": "daphne",
+    "target": "guard",
+    "units": {
+      "rada": {
+        "x": 4,
+        "y": 5,
+        "hp": 63,
+        "ac": 17
+      },
+      "daphne": {
+        "x": 1,
+        "y": 6,
+        "hp": 62,
+        "ac": 12
+      },
+      "lyutobor": {
+        "x": 3,
+        "y": 5,
+        "hp": 104,
+        "ac": 20
+      },
+      "yar": {
+        "x": 2,
+        "y": 5,
+        "hp": 114,
+        "ac": 11
+      },
+      "guard": {
+        "x": 7,
+        "y": 3,
+        "hp": 28,
+        "ac": 16
+      },
+      "archer": {
+        "x": 9,
+        "y": 2,
+        "hp": 30,
+        "ac": 14
+      }
+    }
+  },
+  "engine_code": "prototypes/combat/app/havengard-battle-v16.html",
+  "live_deployment": "https://reider789.github.io/havengard-campaign-engine/",
+  "browser_engine_auto_handlers_v16": {
+    "daphne": [
+      "firebolt",
+      "rayfrost",
+      "mindsliver",
+      "fireball",
+      "missile",
+      "scorch",
+      "misty",
+      "mage",
+      "shield(defensive only)"
+    ],
+    "lyutobor": [
+      "bless",
+      "faith",
+      "mantle",
+      "lay",
+      "cure",
+      "lesser",
+      "heroism_spell",
+      "aid",
+      "command",
+      "attack",
+      "protection",
+      "mark",
+      "smite"
+    ],
+    "yar": [
+      "attack",
+      "wind",
+      "surge",
+      "trip",
+      "push",
+      "goad",
+      "cloak"
+    ],
+    "rada": [
+      "attack",
+      "sneak",
+      "dash",
+      "hide",
+      "disengage",
+      "uncanny",
+      "poison"
+    ],
+    "all": [
+      "healing consumables",
+      "fire",
+      "acid",
+      "smoke(provisional)",
+      "weapon switch",
+      "transfer consumable adjacent",
+      "move/path",
+      "effect icons",
+      "save/export session"
+    ]
+  },
+  "unfinished_full_automation": [
+    "Unimplemented specialized spells (Bigby's Hand, Slow, Counterspell, Hold Monster, Dimensional Door and others) require handlers",
+    "Full 2024 turn timing for reaction chains, precise advantage sources, concealment and opportunity attacks in edge cases",
+    "Environmental and all skill-adjudication interactions",
+    "Real in-chat client runtime hosting full browser JavaScript not supported; use native DIL controls with assistant-calculated action resolution"
+  ],
+  "chat_error_fix": "DO NOT use previous chat-loader.html or AppBlock script-fetch approach. It failed in client."
+}
