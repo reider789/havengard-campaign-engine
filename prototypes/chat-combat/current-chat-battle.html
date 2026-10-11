@@ -1121,6 +1121,100 @@ if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_AP
 const v21EffectTitles={bless:'Благословение (+1к4 к атакам и спасброскам)',mage:'Доспехи мага (КД 15 у Дафны)',shield:'Щит (+5 КД)',faith:'Щит веры (+2 КД)',mantle:'Мантия крестоносца (+1к4 сияющего урона)',heroism:'Героизм',heroism_spell:'Героизм',aid:'Подмога',fog:'Туманное облако',slow:'Замедление',hold:'Удержание чудовища',invisible:'Высшая невидимость',bigby:'Рука Бигби',stormSphere:'Сфера бури',speed:'Ускорение',climb:'Лазание',giant:'Сила холмового великана',fireRes:'Сопротивление огню',growth:'Увеличение',antitoxin:'Противоядие',mageHand:'Магическая рука',protectionEvil:'Защита от зла и добра',beacon:'Маяк надежды',vitality:'Аура жизненной силы',warding:'Защитная связь',sliver:'Расщепление разума',poisoned:'Отравлен',prone:'Сбит с ног',frost:'Охлаждение',toxic:'Яд хищника',commanded:'Приказ: Стой'};
 function v21EffectName(key){return v21EffectTitles[key]||String(key||'Неизвестный эффект');}
 
+
+// V21.1 player-facing guide and 9-per-page navigation. No combat-resolution changes.
+const v21ReadNames={Bless:'Благословение','Cure Wounds':'Лечение ран','Lesser Restoration':'Малое восстановление',Heroism:'Героизм',Aid:'Подмога',Command:'Приказ','Shield of Faith':'Щит веры','Warding Bond':'Защитная связь','Second Wind':'Второе дыхание','Action Surge':'Всплеск действий','Know Your Enemy':'Знай своего врага',Riposte:'Ответный удар',Vex:'Преследование цели (Vex)',Nick:'Быстрая атака (Nick)',Hew:'Добивающий удар (Hew)','Tactical Shift':'Тактическое перемещение'};
+const v21GuideKeys={attack:'Атака оружием',wind:'Второе дыхание',surge:'Всплеск действий',bless:'Благословение',lay:'Наложение рук',faith:'Щит веры',mantle:'Мантия крестоносца',firebolt:'Огненный снаряд',rayfrost:'Луч холода',mindsliver:'Расщепление разума',cure:'Лечение ран',lesser:'Малое восстановление',heroism_spell:'Героизм',aid:'Подмога',command:'Приказ',fireball:'Огненный шар',mage:'Доспехи мага',missile:'Волшебная стрела',scorch:'Палящий луч',misty:'Туманный шаг',dash:'Рывок',disengage:'Отход',hide:'Спрятаться',extinguish:'Потушить огонь'};
+const v21Detailed={
+ attack:'Действие «Атака»: персонаж наносит удар выбранным оружием. Яр и Лютобор совершают по две атаки одним действием. Используются бонус атаки, дистанция, урон и мастерство выбранного оружия. Манёвры и дополнительные эффекты доступны после подходящего попадания.',
+ wind:'Яр тратит бонусное действие и одно применение Второго дыхания, восстанавливает 1к10+10 ПЗ. После этого может применить Тактическое перемещение: пройти до 15 фт без провоцирования атак по возможности.',
+ surge:'Яр получает дополнительное действие в свой ход. Обычно это ещё одно действие «Атака» и две атаки. По правилам 2024 дополнительным действием от Всплеска нельзя выполнять действие «Магия». Восстановление после короткого либо длительного отдыха.',
+ bless:'Заклинание I круга. Действие, дистанция 30 фт, до трёх выбранных союзников, концентрация до 1 минуты. Каждый благословлённый прибавляет 1к4 к своим броскам атаки и спасброскам, пока действует заклинание.',
+ lay:'Лютобор бонусным действием восстанавливает ПЗ выбранному существу из своего запаса «Наложение рук». После длительного отдыха запас составляет 50 ПЗ. Расходуется ровно выбранное количество лечения.',
+ faith:'Заклинание I круга: бонусное действие, союзник на расстоянии до 60 фт получает +2 КД. Концентрация до 10 минут. Действующая концентрация на другом заклинании прекращается.',
+ mantle:'Заклинание III круга. Действие, концентрация до 1 минуты; аура 30 фт вокруг Лютобора. Каждое попадание союзника атакой оружием в этой ауре наносит +1к4 сияющего урона. Сам Лютобор тоже получает этот бонус.',
+ firebolt:'Заговор: дальняя атака заклинанием Дафны (+11), при попадании 2к10+5 огненного урона. По закреплённой трактовке Potent Cantrip при промахе наносится половина выпавшего урона без дополнительных эффектов.',
+ rayfrost:'Заговор: дальняя атака заклинанием (+11). При попадании 2к8+5 урона холодом, скорость цели дополнительно уменьшается на 10 фт.',
+ mindsliver:'Заговор, спасбросок Интеллекта против СЛ 19. При провале 2к6 психического урона и штраф −1к4 к следующему спасброску этой цели.',
+ cure:'Заклинание I круга: действие, касание, лечит ПЗ выбранного существа. В боевом интерфейсе показывается величина исцеления и выбранная ячейка.',
+ lesser:'Заклинание II круга: действие, касание. Снимает одно состояние из списка: ослепление, глухота, паралич или отравление. Нужен соответствующий действующий эффект у цели.',
+ heroism_spell:'Заклинание I круга: действие, касание, концентрация до 1 минуты. Защищает союзника от испуга и предоставляет временные ПЗ в соответствии с правилами эффекта.',
+ aid:'Заклинание II круга: действие, дистанция 30 фт, до трёх союзников. Максимум и текущие ПЗ выбранных целей повышаются на 5 на 8 часов. Концентрация не требуется.',
+ command:'Заклинание I круга: действие, дистанция 60 фт. Цель совершает спасбросок Мудрости СЛ 14. При провале выполняет короткий приказ. В текущем движке реализован приказ «Стой».',
+ fireball:'Заклинание III круга: действие, центр в пределах 150 фт, радиус 20 фт. ЛОВ СЛ 19: 8к6+5 огненного урона при провале, половина при успехе. Скульптура заклинаний позволяет защитить союзников от урона.',
+ mage:'Заклинание I круга: действие, касание, 8 часов, концентрация не требуется. КД существа без доспехов равен 13 + модификатор Ловкости; у Дафны это КД 15.',
+ missile:'Заклинание I круга: три автоматически попадающих силовых снаряда по 1к4+1 урона каждый. При расходе более высокой ячейки снарядов становится больше. Усиленное воплощение Дафны прибавляет +5 к одному броску урона.',
+ scorch:'Заклинание II круга: действие, три луча, каждый отдельно атакует с бонусом +11. Попадание даёт 2к6 огненного урона; Усиленное воплощение добавляет +5 только один раз.',
+ misty:'Заклинание II круга: бонусное действие, телепортация на расстояние до 30 фт в видимую свободную клетку.',
+ dash:'Рывок увеличивает доступное перемещение в текущем ходу на значение скорости. Рада может использовать его бонусным действием благодаря «Хитрому действию».',
+ disengage:'Отход предотвращает атаки по возможности, вызванные перемещением до конца хода. Рада использует его бонусным действием.',
+ hide:'Рада пытается спрятаться бонусным действием «Хитрого действия». Для скрытности нужны условия и успешная проверка; состояние не даёт автоматическую Скрытую атаку без проверки других условий.',
+ extinguish:'Потушить огонь: потратить действие, лечь и перекатиться. Эффект горения прекращается, персонаж оказывается лежащим.'
+};
+function v21SourceRow(id,title){
+ const all=sourceDetails[id]||[],q=String(title||'').trim();
+ const aliases=[q];
+ for(const [en,ru] of Object.entries(v21ReadNames)){if(en===q)aliases.push(ru);if(ru===q)aliases.push(en)}
+ if(q==='Доспехи мага')aliases.push('Mage Armor');
+ if(q==='Волшебная стрела')aliases.push('Magic Missile');
+ return all.find(x=>x?.name&&aliases.some(name=>name.toLowerCase()===x.name.toLowerCase())&&x.description?.trim())||null;
+}
+function v21GuideContent(id,key,title){
+ const source=v21SourceRow(id,title)||v21SourceRow(id,v21GuideKeys[key]);
+ const advanced=v18Catalogue[id]?.find(e=>e[0]===key);
+ const details=[v21Detailed[key],source?.description,advanced?.[2]].filter(x=>typeof x==='string'&&x.trim());
+ if(key==='attack'){const weapon=weapons[id].find(w=>w[0]===s.units[id].weapon);if(weapon)details.push('Выбранное оружие: '+weapon[1]+' · '+weapon[2])}
+ if(!details.length&&item[key])details.push(item[key][1]);
+ if(!details.length)details.push('Полное описание отсутствует в карточке кампании. Неизвестную механику нужно согласовать с ведущим, не расходуя ресурсы автоматически.');
+ return [...new Set(details)].join('\n\n');
+}
+const v21OriginalPlayerRender=render;
+render=function(){
+ v21OriginalPlayerRender();
+ const id=turn(),buttons=[...$('choices').querySelectorAll('button.choice')];
+ const list=s.tab==='actions'||s.tab==='all'||s.tab==='consumable'||s.tab==='transfer';
+ const max=9,pages=Math.max(1,Math.ceil(buttons.length/max));
+ s.uiPages??={};
+ const pageKey=id+':'+s.tab,page=Math.max(0,Math.min(pages-1,s.uiPages[pageKey]||0));
+ if(list&&isHero(id))buttons.forEach((b,index)=>{b.style.display=index>=page*max&&index<(page+1)*max?'':'none'});
+ let pager=$('v21pager');
+ if(!pager){pager=document.createElement('div');pager.id='v21pager';pager.className='buttons';$('choices').insertAdjacentElement('afterend',pager)}
+ pager.style.display=isHero(id)&&list&&pages>1?'flex':'none';
+ pager.innerHTML='<button class="btn" data-v21-page="-1" '+(page===0?'disabled':'')+' aria-label="Предыдущая страница">◀</button><span style="align-self:center;font-size:11px;white-space:nowrap;color:#d8e3ef">Страница '+(page+1)+' / '+pages+' · '+buttons.length+' пунктов</span><button class="btn" data-v21-page="1" '+(page+1===pages?'disabled':'')+' aria-label="Следующая страница">▶</button>';
+ let guide=$('v21guide');
+ if(!guide){guide=document.createElement('div');guide.id='v21guide';guide.className='panel';guide.style.cssText='max-height:330px;overflow-y:auto;margin-bottom:10px';$('movement').insertAdjacentElement('afterend',guide)}
+ if(!isHero(id)){guide.style.display='none';return}
+ guide.style.display='block';
+ const focus=s.draft?.owner===id?s.draft:s.uiFocus?.owner===id?s.uiFocus:null;
+ if(!focus){guide.innerHTML='<h3>📖 Подробное описание</h3><p>Нажми на способность или заклинание. Здесь появится описание из канонической карточки, условия применения и эффекты. Справа по 9 пунктов на страницу.</p>';return}
+ const key=focus.key,advanced=v18Catalogue[id]?.find(r=>r[0]===key);
+ const rawTitle=focus.label||v21GuideKeys[key]||advanced?.[1]||item[key]?.[0]||key;
+ const title=v21ReadNames[rawTitle]||rawTitle;
+ const body=v21GuideContent(id,key,title);
+ const disabled=advanced&&!focus.reference?v18Ready(id,key):null;
+ guide.innerHTML='<h3>📖 '+esc(title)+'</h3>'+body.split('\n\n').map(line=>'<p>'+esc(line).replace(/\n/g,' ')+'</p>').join('')+
+  (disabled?'<p class="warning">'+esc(disabled)+'</p>':'')+
+  (focus.reference?'<p class="hint">Просмотр справки не расходует действие или ячейку.</p>':'');
+};
+root.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b||!root.contains(b))return;
+ if(b.hasAttribute('data-v21-page')){
+  e.preventDefault();e.stopImmediatePropagation();s.uiPages??={};
+  const k=turn()+':'+s.tab;s.uiPages[k]=Math.max(0,(s.uiPages[k]||0)+Number(b.dataset.v21Page));
+  render();hostSave();return;
+ }
+ if(b.hasAttribute('data-reference')){
+  e.preventDefault();e.stopImmediatePropagation();s.draft=null;
+  s.uiFocus={owner:turn(),key:'reference',label:b.dataset.reference,reference:true};render();hostSave();return;
+ }
+ if(b.hasAttribute('data-tab')){s.uiFocus=null;return}
+ const key=b.dataset.action||b.dataset.item||b.dataset.weapon||b.dataset.give;
+ if(key){
+  const label=b.querySelector('b')?.textContent?.replace(/^✦\s*/,'').replace(/ ×\d+$/,'').trim()||v21GuideKeys[key]||key;
+  s.uiFocus={owner:turn(),key,label};
+ }
+},true);
+
 // Preserve original initial demo (Daphne's first turn); no simulated combat is committed to campaign.
 render();
 
