@@ -40,6 +40,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Run v21 packaged chat battle scenarios
         run: python prototypes/chat-combat/tests/qa_v21.py
+      - name: Check illustrated board and offline art workflow
+        run: python prototypes/chat-combat/tests/qa_art_skin.py
       - name: Generate checksum for offline ChatGPT file loader
         run: python prototypes/chat-combat/build_inline_payload.py
       - name: Browser-test canonical story handoff
