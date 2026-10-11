@@ -202,7 +202,7 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     state = json.loads((root / 'state/_campaign-state.json').read_text(encoding='utf-8'))
     old_ref_path = root / 'prototypes/combat/app/runtime/latest.json'
     old_ref = json.loads(old_ref_path.read_text(encoding='utf-8')) if old_ref_path.exists() else {}
-    source_path = root / 'prototypes/chat-combat/engine-v27.html'
+    source_path = root / 'prototypes/chat-combat/engine-v28.html'
     source = source_path.read_text(encoding='utf-8')
     # Compile all source modules into one self-contained script; no runtime network fetch.
     core_dir = root / 'prototypes/chat-combat/core'
@@ -263,6 +263,35 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
         )
         source = source.replace(terminal,bootstrap + terminal,1)
         modules += ('narrative_handoff.js',)
+
+    knockout = core_dir / 'knockout_2024.js'
+    if knockout.exists():
+        terminal = chr(10) + '})();' + chr(10) + '</script>'
+        if source.count(terminal) != 1:
+            raise ValueError('Missing combat script terminator for knockout')
+        code = knockout.read_text(encoding='utf-8')
+        port = (
+            'const knockout2024=new CombatKnockout2024({'
+            'getState:()=>s,getHurt:()=>hurt,setHurt:f=>{hurt=f},'
+            'getHeal:()=>heal,setHeal:f=>{heal=f},'
+            'getAfterWeaponHit:()=>afterWeaponHit,setAfterWeaponHit:f=>{afterWeaponHit=f},'
+            'getEnemyTurn:()=>enemyTurn,setEnemyTurn:f=>{enemyTurn=f},'
+            'getRender:()=>render,setRender:f=>{render=f},'
+            'root:()=>root,party:()=>heroes,foes:()=>foes,names:()=>names,'
+            'log,addStatus,removeStatus,save:()=>hostSave(),render:()=>render(),escape:esc,'
+            'isMeleeWeapon:(attacker,weapon,target)=>{'
+            'const w=weapons[attacker]?.find(v=>v[0]===weapon);'
+            'return Boolean(w&&(w[7]===5||(weapon==="dagger"&&dist(s.units[attacker],s.units[target])<=5)));'
+            '}});\\n'
+            'if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{'
+            'knockoutHit:(actor,target,amount,source="melee")=>{'
+            's.nonlethalMeleeContext=source==="melee"?{attacker:actor,target}:null;'
+            'try{hurt(target,amount,"оружие")}finally{delete s.nonlethalMeleeContext}render();},'
+            'knockoutChoice:choice=>{const b=root.querySelector("[data-hg-ko="+choice+"]");if(!b)throw Error("no knockout choice");b.click()},'
+            'knockoutActive:id=>knockout2024.knocked(id)});\\n'
+        )
+        source=source.replace(terminal,'\\n'+code+'\\n'+port+terminal,1)
+        modules += ('knockout_2024.js',)
     if '<div id="hv12">' not in source or '<script>' not in source:
         raise ValueError('Unknown combat HTML format')
     if '<script type="application/json" data-hg-runtime>' in source:
@@ -282,12 +311,12 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     output = output_path or root / 'prototypes/chat-combat' / ('story-chat-battle.html' if scene else 'current-chat-battle.html')
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(result, encoding='utf-8')
-    metadata = {'schema_version': 2, 'engine': 'engine-v27.html',
+    metadata = {'schema_version': 2, 'engine': 'engine-v28.html',
                 'bundle': output.name,
                 'source_revision': state['state_revision'], 'hero_count': len(runtime['characters']),
                 'usage': 'Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.',
                 'canonical': False, 'mode': 'story' if scene else 'training',
-                'architecture': {'version': 'v27', 'bundled_modules': list(modules), 'offline': True, 'theme': 'heroes-inspired', 'visual_fx': 'css-transforms', 'quality_modes': ['off','standard','rich'], 'narrative_handoff': 'player_click_to_chat'},
+                'architecture': {'version': 'v28', 'bundled_modules': list(modules), 'offline': True, 'theme': 'heroes-inspired', 'visual_fx': 'css-transforms', 'quality_modes': ['off','standard','rich'], 'narrative_handoff': 'player_click_to_chat', 'nonlethal': '2024 melee knockout at 1 HP'},
                 'battle_id': scene['battle_id'] if scene else None,
                 'chronicle_anchor': scene['chronicle_anchor'] if scene else None,
                 'visual_skin': {'engine_module': 'visual_skin.js', 'offline_art_pack_schema': 'havengard-combat-art-v1', 'expected_assets': 24, 'embedded': False, 'auto_cached_cdn': True, 'asset_requests_on_cache_miss': 1},

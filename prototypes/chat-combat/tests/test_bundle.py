@@ -14,7 +14,7 @@ class ChatBundleTest(unittest.TestCase):
             root=Path(work)
             (root/'state').mkdir()
             (root/'prototypes/chat-combat').mkdir(parents=True)
-            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v27.html',root/'prototypes/chat-combat/engine-v27.html')
+            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v28.html',root/'prototypes/chat-combat/engine-v28.html')
             shutil.copytree(Path(__file__).resolve().parents[1]/'core',root/'prototypes/chat-combat/core')
             state={'state_revision':38,'characters':{}}
             for h in ('yar','daphne','lyutobor','rada'):
@@ -40,7 +40,7 @@ class ChatBundleTest(unittest.TestCase):
             self.assertIn('combatReactionResolver.reactChoice(choice)',txt)
             self.assertIn('const s=this._port.getState()',txt)
             self.assertIn('new CombatStatePort(()=>s',txt)
-            self.assertIn('"version": "v27"',json.dumps(manifest))
+            self.assertIn('"version": "v28"',json.dumps(manifest))
             self.assertIn('hv-fantasy',txt)
             self.assertNotIn('<script src=',txt)
             state['state_revision']=39
@@ -102,7 +102,7 @@ class StoryEncounterTest(unittest.TestCase):
             (root/'state').mkdir()
             chat=root/'prototypes/chat-combat'
             chat.mkdir(parents=True)
-            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v27.html',chat/'engine-v27.html')
+            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v28.html',chat/'engine-v28.html')
             shutil.copytree(Path(__file__).resolve().parents[1]/'core',chat/'core')
             state={'state_revision':38,'characters':{}}
             for h in ('yar','daphne','lyutobor','rada'):

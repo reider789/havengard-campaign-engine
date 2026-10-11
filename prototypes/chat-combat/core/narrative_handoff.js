@@ -19,7 +19,7 @@ class CombatNarrativeHandoff {
  _report(){
   const s=this.o.state(),names=this.o.names(),ids=this.o.party(),enemies=this.o.enemies();
   const u=id=>{const x=s.units[id];return{id,name:names[id]||s.extraEnemies?.find(e=>e.id===id)?.name||id,
-   alive:x.hp>0,hp:x.hp,max_hp:x.max,status:(x.status||[]).map(v=>v.kind)}};
+   alive:x.hp>0,unconscious:(x.status||[]).some(v=>v.kind==='unconscious'),hp:x.hp,max_hp:x.max,status:(x.status||[]).map(v=>v.kind)}};
   const allies=ids.map(u),foes=enemies.filter(id=>s.units[id]).map(u);
   let draft=null,warning=null;
   try{draft=this.o.outcome()}catch(e){warning=String(e.message||e)}
@@ -44,7 +44,7 @@ class CombatNarrativeHandoff {
    battle:{name:s.battleName||'Старый мост',id:s.battleId||null,
     mode:s.sessionKind||'training',anchor:s.chronicleAnchor||null,
     context:s.narrativeContext||null,source_revision:s.sourceRevision,
-    result:foes.length&&foes.every(x=>!x.alive)?'victory':allies.every(x=>!x.alive)?'defeat':'stopped'},
+    result:foes.length&&foes.every(x=>!x.alive||x.unconscious)?'victory':allies.every(x=>!x.alive)?'defeat':'stopped'},
    allies,foes,
    journal:{all_entries:source.length,transferred:journal.length,coverage,events:journal},
    key_events:(s.eventHistory||[]).slice(-250),
