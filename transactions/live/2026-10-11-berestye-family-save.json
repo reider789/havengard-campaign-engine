@@ -110,6 +110,13 @@
       "value": "глубокая ночь того же дня после подтверждения беременности, поездки в Берестье и возвращения; точная длительность дня и час не подтверждены, числовое игровое время не придумывать"
     },
     {
+      "type": "set_world_field",
+      "field": "scene_knowledge_branches",
+      "value": [
+        "BR-DAPHNE-FAMILY"
+      ]
+    },
+    {
       "type": "set_scene_participants",
       "value": [
         "yar",
