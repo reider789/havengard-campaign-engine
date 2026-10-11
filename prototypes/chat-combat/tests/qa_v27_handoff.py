@@ -37,6 +37,8 @@ with sync_playwright() as pw:
  assert len(reports[0]['report']['foes'])==2
  assert reports[0]['report']['journal']['all_entries']>=2
  assert reports[0]['report']['outcome']['canonical_unchanged'] is True
+ assert 'Отчёт подготовлен' in page.locator('#hg-narrative-status').inner_text()
+ assert 'Нажмите' in page.locator('#hg-narrative-status').inner_text()
  assert page.evaluate(api+".snapshot().phase")=='ended'
  assert page.locator('#board button[data-tile]').count()==88
  checkpoint=page.evaluate(api+'.checkpoint()')
@@ -55,5 +57,16 @@ with sync_playwright() as pw:
  assert report['journal']['events'][0].startswith('Р1')
  assert report['journal']['events'][-1].startswith('Р10')
  assert not errors,errors
+ # No host binding: do not mistakenly mark battle as ended or claim submission.
+ unbound=browser.new_page()
+ unbound.route('**/hayvengard_art_v1.json',lambda r:r.abort())
+ unbound.evaluate('window.__HV_ENABLE_TEST_APIS=true')
+ unbound.set_content(HTML)
+ unbound.wait_for_selector('#hg-narrative-handoff')
+ assert unbound.evaluate('window.__HV_TEST_API.snapshot().phase')=='active'
+ unbound.locator('#hg-narrative-handoff').click()
+ assert unbound.evaluate('window.__HV_TEST_API.snapshot().phase')=='active'
+ assert 'Связь с чатом недоступна' in unbound.locator('#hg-narrative-status').inner_text()
+ unbound.close()
  print('V27 REPORT OK: direct click, reaction guard, saved battle, explicit journal coverage, four heroes')
  browser.close()
