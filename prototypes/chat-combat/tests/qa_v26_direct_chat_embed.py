@@ -21,7 +21,13 @@ with sync_playwright() as p:
     page.route('**/hayvengard_art_v1.json',lambda route:route.abort())
     page.evaluate('window.__HV_ENABLE_TEST_APIS=true')
     page.set_content(LOADER)
-    page.wait_for_function("document.querySelector('#hg-embed-status').textContent.includes('Полный v26 запущен')",timeout=15000)
+    page.wait_for_timeout(4500)
+    current_status=page.locator('#hg-embed-status').inner_text()
+    print('BOOT DIAGNOSTICS',repr({'status':current_status,'errors':errors,
+          'requests':requests,'battle_count':page.locator('#hv12').count(),
+          'board_tiles':page.locator('#hv12 #board button').count(),
+          'initialized':page.locator('#hv12').get_attribute('data-init') if page.locator('#hv12').count() else None}),flush=True)
+    assert 'Полный v26 запущен' in current_status,current_status
     assert len(requests)==1,requests
     assert page.locator('#hv12 #board button[data-tile]').count()==88
     assert page.locator('#hv12 .hvfx-layer').count()==1
