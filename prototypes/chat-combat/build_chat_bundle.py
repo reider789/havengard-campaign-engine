@@ -233,6 +233,7 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
                 'canonical': False, 'mode': 'story' if scene else 'training',
                 'battle_id': scene['battle_id'] if scene else None,
                 'chronicle_anchor': scene['chronicle_anchor'] if scene else None,
+                'visual_skin': {'engine_module': 'visual_skin.js', 'offline_art_pack_schema': 'havengard-combat-art-v1', 'expected_assets': 24, 'embedded': skin_path.exists()},
                 'bundle_sha256': hashlib.sha256(result.encode('utf-8')).hexdigest(),
                 'bundle_size_bytes': len(result.encode('utf-8'))}
     manifest_path = output.parent / ('story-manifest.json' if scene else 'current-manifest.json')
