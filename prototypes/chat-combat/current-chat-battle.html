@@ -1172,6 +1172,7 @@ const v21OriginalPlayerRender=render;
 render=function(){
  v21OriginalPlayerRender();
  const id=turn(),buttons=[...$('choices').querySelectorAll('button.choice')];
+ for(const button of buttons){const bold=button.querySelector('b');if(bold&&v21ReadNames[bold.textContent.trim()])bold.textContent=v21ReadNames[bold.textContent.trim()];}
  const list=s.tab==='actions'||s.tab==='all'||s.tab==='consumable'||s.tab==='transfer';
  const max=9,pages=Math.max(1,Math.ceil(buttons.length/max));
  s.uiPages??={};
@@ -1204,6 +1205,8 @@ root.addEventListener('click',e=>{
   render();hostSave();return;
  }
  if(b.hasAttribute('data-reference')){
+  const linked=spellKeyFromLabel(b.dataset.reference),spell=extraSpells[linked];
+  if(linked&&spell?.owner===turn()){s.uiFocus={owner:turn(),key:linked,label:b.dataset.reference};return}
   e.preventDefault();e.stopImmediatePropagation();s.draft=null;
   s.uiFocus={owner:turn(),key:'reference',label:b.dataset.reference,reference:true};render();hostSave();return;
  }
