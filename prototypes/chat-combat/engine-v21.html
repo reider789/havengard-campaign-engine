@@ -20,6 +20,9 @@
 <script>
 (async()=>{
 const root=document.getElementById('hv12');if(!root||root.dataset.init)return;root.dataset.init='1';
+// Initialize player-facing effect names before any first render or restored session.
+const v21EffectTitles={bless:'Благословение (+1к4 к атакам и спасброскам)',mage:'Доспехи мага (КД 15 у Дафны)',shield:'Щит (+5 КД)',faith:'Щит веры (+2 КД)',mantle:'Мантия крестоносца (+1к4 сияющего урона)',heroism:'Героизм',heroism_spell:'Героизм',aid:'Подмога',fog:'Туманное облако',slow:'Замедление',hold:'Удержание чудовища',invisible:'Высшая невидимость',bigby:'Рука Бигби',stormSphere:'Сфера бури',speed:'Ускорение',climb:'Лазание',giant:'Сила холмового великана',fireRes:'Сопротивление огню',growth:'Увеличение',antitoxin:'Противоядие',mageHand:'Магическая рука',protectionEvil:'Защита от зла и добра',beacon:'Маяк надежды',vitality:'Аура жизненной силы',warding:'Защитная связь',sliver:'Расщепление разума',poisoned:'Отравлен',prone:'Сбит с ног',frost:'Охлаждение',toxic:'Яд хищника',commanded:'Приказ: Стой'};
+function v21EffectName(key){return v21EffectTitles[key]||String(key||'Неизвестный эффект');}
 const $=x=>root.querySelector('#'+x),names={rada:'Рада',daphne:'Дафна',lyutobor:'Лютобор',yar:'Яр',guard:'Страж',archer:'Арбалетчик'},abbr={rada:'Р',daphne:'Д',lyutobor:'Л',yar:'Я',guard:'С',archer:'А'};
 const heroes=['rada','daphne','lyutobor','yar'],foes=['guard','archer'],order=[...heroes,...foes],init=[27,17,13,10,9,3];
 const walls=new Set(['5,2','5,3','5,4','8,5','8,6']),rubble=new Set(['4,3','4,4','6,4','7,4']);
@@ -1116,8 +1119,7 @@ if(!resumable){v21Seed(s);s.startSnapshot=v21Start(s)}else {v21RestoreTerrain(s)
 if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{newScenario:v21NewScenario,validateScenario:v21CheckScenario,outcome:v21Outcome,load:v20LoadSession});
 
 
-const v21EffectTitles={bless:'Благословение (+1к4 к атакам и спасброскам)',mage:'Доспехи мага (КД 15 у Дафны)',shield:'Щит (+5 КД)',faith:'Щит веры (+2 КД)',mantle:'Мантия крестоносца (+1к4 сияющего урона)',heroism:'Героизм',heroism_spell:'Героизм',aid:'Подмога',fog:'Туманное облако',slow:'Замедление',hold:'Удержание чудовища',invisible:'Высшая невидимость',bigby:'Рука Бигби',stormSphere:'Сфера бури',speed:'Ускорение',climb:'Лазание',giant:'Сила холмового великана',fireRes:'Сопротивление огню',growth:'Увеличение',antitoxin:'Противоядие',mageHand:'Магическая рука',protectionEvil:'Защита от зла и добра',beacon:'Маяк надежды',vitality:'Аура жизненной силы',warding:'Защитная связь',sliver:'Расщепление разума',poisoned:'Отравлен',prone:'Сбит с ног',frost:'Охлаждение',toxic:'Яд хищника',commanded:'Приказ: Стой'};
-function v21EffectName(key){return v21EffectTitles[key]||String(key||'Неизвестный эффект');}
+
 
 
 // V21.1 player-facing guide and 9-per-page navigation. No combat-resolution changes.
