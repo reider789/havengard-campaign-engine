@@ -62,14 +62,18 @@
      const source=await getSource(controller);
      if(generation!==currentGeneration)return;
      message('Сборка получена. Инициализирую игровые правила и поле…');
+     // The bundle is a complete HTML fragment. Extract its known closing
+     // executable script from SOURCE (not querySelector: HTML template parsing
+     // can relocate scripts placed after embedded styles).
+     const scriptStart=source.lastIndexOf('<script>');
+     const scriptEnd=source.indexOf('</script>',scriptStart+8);
+     if(scriptStart<0||scriptEnd<0||scriptEnd-scriptStart<65000)
+       throw Error('Не найден исполнительный код движка v26.');
+     const code=source.slice(scriptStart+8,scriptEnd);
      const template=document.createElement('template');
-     template.innerHTML=source;
+     template.innerHTML=source.slice(0,scriptStart)+source.slice(scriptEnd+9);
      const root=template.content.querySelector('#hv12');
-     if(!root)throw Error('В HTML отсутствует корень боевого движка.');
-     const mainScript=root.querySelector('script:not([type])');
-     if(!mainScript||mainScript.textContent.length<65000)throw Error('Не найден исполнительный код движка.');
-     const code=mainScript.textContent;
-     mainScript.remove(); 
+     if(!root)throw Error('В HTML отсутствует корень боевого движка.'); 
      battle.appendChild(root);
      const executable=document.createElement('script');
      executable.textContent=code;
