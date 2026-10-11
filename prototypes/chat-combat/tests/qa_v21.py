@@ -27,6 +27,37 @@ with sync_playwright() as p:
     assert initial['sourceRevision']==27, initial['sourceRevision']
     assert initial['units']['yar']['storm']==20
     assert initial['units']['daphne']['shieldFree']==1
+    # UX: no more than 9 visible buttons in the long Actions/All lists.
+    visible=lambda: page.locator('#choices button.choice:visible').count()
+    assert visible()<=9 and visible()>=1, ('actions page',visible())
+    assert page.locator('#v21pager').count()==1
+    first_page=[x.inner_text() for x in page.locator('#choices button.choice:visible').all()]
+    if page.locator('[data-v21-page="1"]').is_enabled():
+        page.locator('[data-v21-page="1"]').click()
+        assert visible()<=9 and visible()>0
+        assert [x.inner_text() for x in page.locator('#choices button.choice:visible').all()]!=first_page
+        page.locator('[data-v21-page="-1"]').click()
+        assert [x.inner_text() for x in page.locator('#choices button.choice:visible').all()]==first_page
+    page.locator('#choices button[data-action="fireball"]').evaluate('(e)=>e.click()')
+    assert 'Огненный шар' in page.locator('#v21guide').inner_text()
+    assert 'ЛОВ СЛ 19' in page.locator('#v21guide').inner_text()
+    # Active effects must be in Russian with readable meaning.
+    page.evaluate(f'{api}.set(s=>{{s.effects.push({{kind:"bless",owner:"lyutobor",targets:["yar"],until:120,concentration:true}});s.effects.push({{kind:"mage",owner:"daphne",targets:["daphne"],until:28000,concentration:false}});s.inspected="yar";}})')
+    assert 'Благословение' in page.locator('#inspector').inner_text()
+    assert 'bless' not in page.locator('#inspector').inner_text()
+    page.locator('[data-inspect="daphne"]').click()
+    assert 'Доспехи мага' in page.locator('#inspector').inner_text()
+    assert 'mage ·' not in page.locator('#inspector').inner_text()
+    # Full reference has a preview and no silent expenditure of resources.
+    page.locator('[data-tab="all"]').click()
+    assert visible()<=9
+    old=page.evaluate(f'{api}.snapshot().units.daphne.slots[5]')
+    page.locator('[data-reference="Рука Бигби"]').evaluate('(e)=>e.click()')
+    assert 'Рука Бигби' in page.locator('#v21guide').inner_text()
+    assert len(page.locator('#v21guide').inner_text())>80
+    assert page.evaluate(f'{api}.snapshot().units.daphne.slots[5]')==old
+    page.locator('[data-tab="actions"]').click()
+    assert visible()<=9
     # A 15 total vs AC 12 is a hit but Shield would raise AC to 17.
     page.evaluate(f'{api}.set(s=>{{s.units.lyutobor.reaction=0;s.units.daphne.reaction=1;s.units.daphne.shieldFree=1;}})')
     hp=page.evaluate(f'{api}.snapshot().units.daphne.hp')
