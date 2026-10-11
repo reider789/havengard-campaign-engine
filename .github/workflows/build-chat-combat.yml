@@ -41,6 +41,8 @@ jobs:
         run: python prototypes/chat-combat/tests/qa_v21.py
       - name: Generate checksum for offline ChatGPT file loader
         run: python prototypes/chat-combat/build_inline_payload.py
+      - name: Browser-test canonical story handoff
+        run: python prototypes/chat-combat/tests/qa_v21_story.py
       - name: Commit only generated chat files
         shell: bash
         run: |
