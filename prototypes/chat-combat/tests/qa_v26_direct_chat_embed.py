@@ -34,6 +34,7 @@ with sync_playwright() as p:
     assert page.locator('#hv12 #hvfx-quality option').count()==3
     assert page.locator('iframe').count()==0
     assert page.locator('#hv12').evaluate("e=>e.classList.contains('hv-fantasy')")
+    assert 'gradient' in page.locator('#hv12').evaluate("e=>getComputedStyle(e).backgroundImage")
     snapshot=page.evaluate('window.__HV_TEST_API.snapshot()')
     assert snapshot['sourceRevision']==27
     assert snapshot['units']['rada']['hp']>0
