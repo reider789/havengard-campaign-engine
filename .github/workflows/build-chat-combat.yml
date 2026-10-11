@@ -1,5 +1,7 @@
 name: Build in-chat combat bundle
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -50,6 +52,7 @@ jobs:
       - name: Browser-test canonical story handoff
         run: python prototypes/chat-combat/tests/qa_v21_story.py
       - name: Commit only generated chat files
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
