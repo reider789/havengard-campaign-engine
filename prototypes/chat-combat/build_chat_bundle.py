@@ -113,6 +113,14 @@ def validate_scene(raw: dict, expected_revision: int) -> dict:
     if set(terrain['walls']) & set(terrain['rubble']):
         raise ValueError('Wall and rubble cells overlap')
     walls = set(terrain['walls'])
+    obstacle_skins = raw.get('obstacleSkins', {})
+    allowed_skins = {'wall','broken_wall','rubble','barricade','log','boulder','bush','pillar'}
+    if not isinstance(obstacle_skins, dict) or any(
+        not isinstance(k,str) or k not in set(terrain['walls'] + terrain['rubble'])
+        or v not in allowed_skins
+        for k,v in obstacle_skins.items()
+    ):
+        raise ValueError('Obstacle skins must refer only to blocked or rough cells')
 
     heroes = raw.get('heroes')
     if not isinstance(heroes, dict) or set(heroes) != set(HEROES):
@@ -181,7 +189,7 @@ def validate_scene(raw: dict, expected_revision: int) -> dict:
         'schema_version': 1, 'kind': 'story', 'battle_id': battle_id,
         'source_revision': expected_revision, 'name': name.strip(), 'theme': theme,
         'narrative_context': description.strip(), 'chronicle_anchor': anchor.strip(),
-        'heroes': validated_heroes, **terrain, 'enemies': validated_enemies,
+        'heroes': validated_heroes, **terrain, 'obstacleSkins': obstacle_skins, 'enemies': validated_enemies,
     }
 
 
