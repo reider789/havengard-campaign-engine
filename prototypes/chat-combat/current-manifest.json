@@ -1,12 +1,22 @@
 {
   "schema_version": 2,
-  "engine": "engine-v21.html",
+  "engine": "engine-v22.html",
   "bundle": "current-chat-battle.html",
   "source_revision": 27,
   "hero_count": 4,
   "usage": "Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.",
   "canonical": false,
   "mode": "training",
+  "architecture": {
+    "version": "v22",
+    "bundled_modules": [
+      "dice.js",
+      "journal.js",
+      "conditions.js",
+      "battlefield.js"
+    ],
+    "offline": true
+  },
   "battle_id": null,
   "chronicle_anchor": null,
   "visual_skin": {
@@ -15,6 +25,6 @@
     "expected_assets": 24,
     "embedded": true
   },
-  "bundle_sha256": "ef864f688028986e0c6550343bb453c07050d13890bebf61765d495862ea43df",
-  "bundle_size_bytes": 314966
+  "bundle_sha256": "d3639ed889c052402857976621da20f5fa1e7546bd6b5be3320dabc146930c56",
+  "bundle_size_bytes": 318318
 }
