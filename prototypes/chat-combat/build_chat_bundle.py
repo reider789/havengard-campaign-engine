@@ -136,6 +136,9 @@ def validate_scene(raw: dict, expected_revision: int) -> dict:
     raw_enemies = raw.get('enemies')
     if not isinstance(raw_enemies, list) or not 1 <= len(raw_enemies) <= 20:
         raise ValueError('A story scene needs 1–20 defined opponents')
+    theme = raw.get('theme', 'meadow')
+    if theme not in ('meadow','forest','ruins','city'):
+        raise ValueError('Scene theme must be meadow, forest, ruins or city')
     validated_enemies = []
     for n, e in enumerate(raw_enemies, start=1):
         if not isinstance(e, dict) or not isinstance(e.get('name'), str):
@@ -167,12 +170,16 @@ def validate_scene(raw: dict, expected_revision: int) -> dict:
         abilities = e.get('abilities', [])
         if not isinstance(abilities, list) or len(abilities)>12 or any(not isinstance(x,str) or len(x)>48 for x in abilities):
             raise ValueError(f'Invalid reference abilities for enemy #{n}')
+        token_key=e.get('tokenKey')
+        if token_key is not None and token_key not in ('warrior','rogue','archer','mage','wolf','orc','undead','dragon'):
+            raise ValueError(f'Unknown tokenKey for enemy #{n}')
         validated_enemies.append({'name':enemy_name.strip(),'cell':cell,'hp':e['hp'],'ac':e['ac'],
                                   'initiative':e['initiative'],'attack':{key:attack[key] for key in ('bonus','count','die','flat','range')},
-                                  'saves':{key:saves[key] for key in sorted(save_keys)}, 'abilities':abilities})
+                                  'saves':{key:saves[key] for key in sorted(save_keys)}, 'abilities':abilities,
+                                  'tokenKey':token_key})
     return {
         'schema_version': 1, 'kind': 'story', 'battle_id': battle_id,
-        'source_revision': expected_revision, 'name': name.strip(),
+        'source_revision': expected_revision, 'name': name.strip(), 'theme': theme,
         'narrative_context': description.strip(), 'chronicle_anchor': anchor.strip(),
         'heroes': validated_heroes, **terrain, 'enemies': validated_enemies,
     }
