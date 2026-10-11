@@ -3,7 +3,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
-LOADER=(ROOT/'chat_embed_loader_v26.html').read_text(encoding='utf-8')
+LOADER=(ROOT/'chat_embed_loader_v27.html').read_text(encoding='utf-8')
 BUNDLE=(ROOT/'current-chat-battle.html').read_text(encoding='utf-8')
 assert LOADER.count('</script>')==1, 'Literal closing-script tag would break bootstrap HTML parsing'
 assert 'iframe' not in LOADER.lower()
@@ -28,7 +28,7 @@ with sync_playwright() as p:
           'requests':requests,'battle_count':page.locator('#hv12').count(),
           'board_tiles':page.locator('#hv12 #board button').count(),
           'initialized':page.locator('#hv12').get_attribute('data-init') if page.locator('#hv12').count() else None}),flush=True)
-    assert 'Полный v26 запущен' in current_status,current_status
+    assert 'Полный v27 запущен' in current_status,current_status
     assert len(requests)==1,requests
     assert page.locator('#hv12 #board button[data-tile]').count()==88
     assert page.locator('#hv12 .hvfx-layer').count()==1
@@ -56,4 +56,4 @@ with sync_playwright() as p:
     assert blocked.locator('iframe').count()==0
     blocked.close()
     browser.close()
-print('DIRECT CHAT V26 LOADER: full engine started, 88 cells, saved session, network fallback checked')
+print('DIRECT CHAT V27 LOADER: full engine started, 88 cells, saved session, network fallback checked')
