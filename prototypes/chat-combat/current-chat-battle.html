@@ -1220,6 +1220,59 @@ root.addEventListener('click',e=>{
  }
 },true);
 
+
+// V21.2 — Back out of a not-yet-resolved player action without losing the turn.
+// Snapshot *before* dice and resources are consumed; never fake an inverse calculation.
+function v21UndoEligible(){
+ const undo=s.undoAction;
+ return !!(s.pending&&undo&&undo.actor===turn()&&undo.round===s.round&&
+  isHero(turn())&&['maneuver','precision','sneak','smite','shift','v19react'].includes(s.pending.kind));
+}
+function v21CancelPendingAction(){
+ if(!v21UndoEligible())return false;
+ const actor=s.undoAction.actor,saved=s.undoAction.before;
+ // Saved state was captured before execution, so every resource/HP/status/log entry
+ // and damage roll from this attempted action is restored atomically.
+ const state=JSON.parse(JSON.stringify(saved));
+ delete state.undoAction;
+ state.pending=null;state.draft=null;state.moving=false;state.path=[];
+ state.uiFocus=null;
+ state.info='Атака или действие отменены. Расходы, броски и последствия откатились. Выбери другое действие.';
+ s=state;
+ log(names[actor]+': незавершённое действие отменено до разрешения эффекта (учебный откат).');
+ render();hostSave();
+ return true;
+}
+// Click capture runs before the older bubble-phase handlers invoke apply() / v18Execute().
+root.addEventListener('click',event=>{
+ const button=event.target.closest('button');if(!button||!root.contains(button))return;
+ if(button.hasAttribute('data-v21-undo-action')){
+  event.preventDefault();event.stopImmediatePropagation();
+  v21CancelPendingAction();return;
+ }
+ const commit=button.dataset.op==='apply'||button.hasAttribute('data-v18-confirm');
+ if(!commit||!isHero(turn())||!s.draft||s.pending||s.moving)return;
+ const legal=s.draft.type==='advanced'?!v18TargetCheck(s.draft):!check(s.draft);
+ if(!legal)return;
+ const previous=JSON.parse(JSON.stringify(s));
+ delete previous.undoAction;
+ s.undoAction={actor:turn(),round:s.round,before:previous,action:s.draft.key};
+},true);
+const v21BeforeUndoRender=render;
+render=function(){
+ if(s.undoAction&&!s.pending)delete s.undoAction;
+ v21BeforeUndoRender();
+ if(!v21UndoEligible())return;
+ const panel=$('response');
+ if(!panel)return;
+ panel.insertAdjacentHTML('beforeend',
+  '<div class="buttons"><button type="button" class="btn" data-v21-undo-action>↶ Отменить всё действие и выбрать другое</button></div>'+
+  '<p class="hint">«Без манёвра» продолжает атаку. «Отменить всё действие» возвращает ПЗ, расходы и состояние до броска; бросок считается отменённым.</p>');
+};
+if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{
+ canUndo:()=>v21UndoEligible(),cancelAction:()=>v21CancelPendingAction()
+});
+
 // Preserve original initial demo (Daphne's first turn); no simulated combat is committed to campaign.
 render();
 
