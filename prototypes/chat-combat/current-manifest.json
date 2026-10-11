@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "engine": "engine-v26.html",
+  "engine": "engine-v27.html",
   "bundle": "current-chat-battle.html",
   "source_revision": 27,
   "hero_count": 4,
@@ -8,7 +8,7 @@
   "canonical": false,
   "mode": "training",
   "architecture": {
-    "version": "v26",
+    "version": "v27",
     "bundled_modules": [
       "dice.js",
       "journal.js",
@@ -19,7 +19,8 @@
       "persistence.js",
       "spell_resolver.js",
       "reaction_resolver.js",
-      "visual_fx.js"
+      "visual_fx.js",
+      "narrative_handoff.js"
     ],
     "offline": true,
     "theme": "heroes-inspired",
@@ -28,7 +29,8 @@
       "off",
       "standard",
       "rich"
-    ]
+    ],
+    "narrative_handoff": "player_click_to_chat"
   },
   "battle_id": null,
   "chronicle_anchor": null,
@@ -40,6 +42,6 @@
     "auto_cached_cdn": true,
     "asset_requests_on_cache_miss": 1
   },
-  "bundle_sha256": "424530a9a001fc4d6a91a8e334e97786301d81884bba6f4f1ff61ed4d38ff465",
-  "bundle_size_bytes": 346285
+  "bundle_sha256": "8b2eacf23c65863b599561fa35357ed5da7b7e63449c21639cb52888b6a4246b",
+  "bundle_size_bytes": 350438
 }
