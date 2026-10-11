@@ -3,6 +3,7 @@ This script does not publish or update GitHub Pages, nor write anything in proto
 """
 from __future__ import annotations
 import argparse
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -208,7 +209,9 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
                 'usage': 'Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.',
                 'canonical': False, 'mode': 'story' if scene else 'training',
                 'battle_id': scene['battle_id'] if scene else None,
-                'chronicle_anchor': scene['chronicle_anchor'] if scene else None}
+                'chronicle_anchor': scene['chronicle_anchor'] if scene else None,
+                'bundle_sha256': hashlib.sha256(result.encode('utf-8')).hexdigest(),
+                'bundle_size_bytes': len(result.encode('utf-8'))}
     manifest_path = output.parent / ('story-manifest.json' if scene else 'current-manifest.json')
     manifest_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     return metadata
