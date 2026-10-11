@@ -141,8 +141,12 @@ root.addEventListener('change',async event=>{
  }catch(err){const note=$('hg-skin-note');if(note)note.textContent='Ошибка оформления: '+String(err.message||err);}
 },true);
 try{
- const cached=localStorage.getItem(HG_SKIN_STORAGE);
- if(cached)hgSkinAssets=hgSkinValidate(JSON.parse(cached));
+ const bundled=root.querySelector('script[data-hg-artpack]')?.textContent;
+ if(bundled)hgSkinAssets=hgSkinValidate(JSON.parse(bundled));
+ else{
+  const cached=localStorage.getItem(HG_SKIN_STORAGE);
+  if(cached)hgSkinAssets=hgSkinValidate(JSON.parse(cached));
+ }
 }catch(_){hgSkinAssets=null}
 if(globalThis.__HV_ENABLE_TEST_APIS===true){
  Object.assign(globalThis.__HV_TEST_API,{
