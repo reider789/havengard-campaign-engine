@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "encoding": "gzip+base64",
-  "engine": "v22",
-  "bytes_original": 318318,
-  "bytes_gzip": 92221,
-  "bytes_base64": 122964,
-  "sha256_original": "d3639ed889c052402857976621da20f5fa1e7546bd6b5be3320dabc146930c56",
-  "sha256_gzip": "36d0733b19d3163da92ed15681f0b8425bb565189b37b4247f5f18139eec9cab",
+  "engine": "v23",
+  "bytes_original": 320578,
+  "bytes_gzip": 92936,
+  "bytes_base64": 123916,
+  "sha256_original": "b46de2e43b5fff85c1f4d5874160b85258294dedb1b6917da42bb5fb352d5ffb",
+  "sha256_gzip": "066b47421c81cda315c963078e83dc10ed240df4e528b8a2cdee252de816a4b2",
   "same_as_source": true,
   "runtime_network_requests": 0
 }
