@@ -108,7 +108,12 @@ function hgSkinPaint(){
   }
   if(tile.classList.contains('wall')||tile.classList.contains('rubble')){
    const which=tile.classList.contains('wall')?'wall':'rubble';
-   const url=hgSkinAssets['obstacles.'+which];
+   const xy=(tile.dataset.tile||'').split(',').map(Number);
+   const cell='ABCDEFGHIJK'[xy[0]]+(xy[1]+1);
+   const variants=which==='wall'?['wall','barricade','broken_wall','pillar']:['rubble','boulder','log','bush'];
+   const defaultVariant=variants[(xy[0]*3+xy[1])%variants.length];
+   const desired=s.obstacleSkins?.[cell]||defaultVariant;
+   const url=hgSkinAssets['obstacles.'+desired]||hgSkinAssets['obstacles.'+which];
    if(url){
     tile.style.backgroundImage='url("'+url+'")';
     tile.style.backgroundSize='90% 90%';
