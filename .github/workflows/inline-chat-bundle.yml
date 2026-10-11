@@ -4,7 +4,6 @@ on:
     branches: [main]
     paths:
       - 'prototypes/chat-combat/current-chat-battle.html'
-      - 'prototypes/chat-combat/build_inline_payload.py'
       - '.github/workflows/inline-chat-bundle.yml'
   workflow_dispatch:
 permissions:
