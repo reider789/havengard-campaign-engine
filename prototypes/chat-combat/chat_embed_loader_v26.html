@@ -74,7 +74,9 @@
      template.innerHTML=source.slice(0,scriptStart)+source.slice(scriptEnd+9);
      const root=template.content.querySelector('#hv12');
      if(!root)throw Error('В HTML отсутствует корень боевого движка.'); 
-     battle.appendChild(root);
+     // Stylesheets are siblings of #hv12 in the packaged HTML.
+     // Mount the WHOLE fragment, not only the battle root.
+     battle.appendChild(template.content);
      const executable=document.createElement('script');
      executable.textContent=code;
      root.appendChild(executable);
