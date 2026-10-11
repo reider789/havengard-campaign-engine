@@ -1074,6 +1074,10 @@ const v21OldLoad=v20LoadSession;
 v20LoadSession=function(json){
  const draft=typeof json==='string'?JSON.parse(json):json;
  v21ValidateStoredScenario(draft?.session); // before any state mutation
+ if(v21EmbeddedStory&&(draft?.session?.battleId!==v21EmbeddedStory.battle_id||
+    draft?.session?.sessionKind!=='story'||
+    draft?.session?.sourceRevision!==v21EmbeddedStory.source_revision))
+    throw Error('Сохранение другого боя или другой ревизии нельзя открыть в этой сюжетной сцене.');
  const val=v21OldLoad(draft);
  if(val.scenario){v21RestoreTerrain(val);v20SyncEnemyProfiles();render();}
  return val;
