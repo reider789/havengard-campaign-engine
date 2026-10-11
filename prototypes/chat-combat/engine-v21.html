@@ -1432,6 +1432,7 @@ walk=function(){
   else if(hasStatus(id,'restrained')&&!v21WebInside(u))removeStatus(id,'restrained');
  }
 };
+if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{webSave:v21WebSave,webInside:v21WebInside});
 const v21WebOldRender=render;
 render=function(){
  v21WebOldRender();
