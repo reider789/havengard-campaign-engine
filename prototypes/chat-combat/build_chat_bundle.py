@@ -128,7 +128,10 @@ def validate_scene(raw: dict, expected_revision: int) -> dict:
         if cell in walls or cell in occupied:
             raise ValueError(f'Hero overlaps another unit or wall at {cell}')
         occupied.add(cell)
-        validated_heroes[hero] = {'cell': cell, 'initiative': initiative}
+        hidden=entry.get('hidden',False)
+        if type(hidden) is not bool:
+            raise ValueError(f'Hero hidden value must be boolean for {hero}')
+        validated_heroes[hero] = {'cell': cell, 'initiative': initiative, 'hidden': hidden}
     raw_enemies = raw.get('enemies')
     if not isinstance(raw_enemies, list) or not 1 <= len(raw_enemies) <= 20:
         raise ValueError('A story scene needs 1–20 defined opponents')
