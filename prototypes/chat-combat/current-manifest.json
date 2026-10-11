@@ -1,9 +1,20 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "engine": "engine-v21.html",
   "bundle": "current-chat-battle.html",
   "source_revision": 27,
   "hero_count": 4,
   "usage": "Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.",
-  "canonical": false
+  "canonical": false,
+  "mode": "training",
+  "battle_id": null,
+  "chronicle_anchor": null,
+  "visual_skin": {
+    "engine_module": "visual_skin.js",
+    "offline_art_pack_schema": "havengard-combat-art-v1",
+    "expected_assets": 24,
+    "embedded": true
+  },
+  "bundle_sha256": "8c903adc73a3ca1c28cfda525ed9c77dc93b585a457d3f78b5f94b5e57a1a58b",
+  "bundle_size_bytes": 314596
 }
