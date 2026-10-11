@@ -28,7 +28,7 @@ with sync_playwright() as p:
     }})''')
     before=page.evaluate(f'{api}.snapshot().units.daphne.slots[5]')
     assert page.evaluate(f'''{api}.activateBigby({{
-        type:'advanced',key:'bigby',target:'guard',point:{{x:1,y:7}},handMode:'fist'
+        type:'advanced',key:'bigby',target:'guard',point:{{x:1,y:7}},handMode:'move'
     }})''') is True
     created=page.evaluate(f'{api}.snapshot()')
     assert created['bigby'] is not None, created.get('info')
@@ -66,7 +66,6 @@ with sync_playwright() as p:
     after=page.evaluate(f'{api}.snapshot()')
     assert after['units']['daphne']['reaction']==0,after
     assert after['units']['daphne']['slots'][3]==2
-    assert any('Контрзаклинание' in h for h in after['history']),after['history'][-15:]
     assert any('Контрзаклинание' in h for h in after['history']),after['history'][-15:]
     assert not errors,errors
     browser.close()
