@@ -1,6 +1,9 @@
 // Nested Counterspell, serial attack reactions and resumable hit/damage frames.
 class CombatReactionResolver {
-  beginPlayerSpell(d){if(!d||turn()!=='daphne'||!v19HostileCounterFor('daphne'))return false;
+  constructor(port){if(!port||typeof port.getState!=='function'||typeof port.services!=='function')throw Error('Не настроены зависимости боевого обработчика');this._port=port;}
+  beginPlayerSpell(d){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();if(!d||turn()!=='daphne'||!v19HostileCounterFor('daphne'))return false;
    const level=v19SlotLevels[d.key];if(!level||!s.units.daphne.slots[level])return false;
    const err=d.type==='advanced'?v18TargetCheck(d):check(d);if(err){v19Alert(err);return true}
    const u=s.units.daphne,bonus=['misty','faith'].includes(d.key);if(bonus&&!u.bonus||!bonus&&!u.action){v19Alert('Не хватает действия');return true}
@@ -9,7 +12,9 @@ class CombatReactionResolver {
    v19PushSpell({kind:'spell',caster:'daphne',spell:d.key,level,dc:19,slotSpent:true,playerDraft:JSON.parse(JSON.stringify(d)),playerBonus:bonus});return true;
   }
 
-  finishPlayerSpell(top){const d=top.playerDraft,u=s.units.daphne;if(!d)return;
+  finishPlayerSpell(top){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();const d=top.playerDraft,u=s.units.daphne;if(!d)return;
    if(top.playerBonus)u.bonus++;else u.action++;u.slots[top.level]++;
    const prev=u.spellSlotThisTurn;u.spellSlotThisTurn=false;
    s.v19ResolvingPrepaid=true;
@@ -20,9 +25,13 @@ class CombatReactionResolver {
    }finally{s.v19ResolvingPrepaid=false;u.spellSlotThisTurn=true}
   }
 
-  pushSpell(event){s.spellStack??=[];s.spellStack.push({...event,prompted:[]});v19AdvanceSpellStack()}
+  pushSpell(event){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();s.spellStack??=[];s.spellStack.push({...event,prompted:[]});v19AdvanceSpellStack()}
 
   startEnemySpell(caster,kind='fireball'){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();
    const u=s.units[caster];if(!u||!u.action||!u.slots?.[3])return false;
    // Enemy has already begun to cast; reaction window opens before its effect.
    u.action--;u.slots[3]--;u.spellSlotThisTurn=true;s.v19ResumeEnemy=true;
@@ -30,7 +39,9 @@ class CombatReactionResolver {
    v19PushSpell({kind:'spell',caster,spell:kind,level:3,center,dc:u.spellDC||14,slotSpent:true});return true;
   }
 
-  advanceSpellStack(){if(s.pending?.kind==='v19react')return;
+  advanceSpellStack(){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();if(s.pending?.kind==='v19react')return;
    while(s.spellStack?.length){let top=s.spellStack.at(-1);
     // A matching reaction can create nested Counterspell. Every reactor can respond once.
     const possible=v19UnitIds().filter(id=>id!==top.caster&&isHero(id)!==isHero(top.caster)&&!top.prompted.includes(id)&&v19CasterCanCounter(id,top.caster));
@@ -63,12 +74,16 @@ class CombatReactionResolver {
    render();hostSave();
   }
 
-  attackFrame(attacker,target,test=false,forced,disadvantage=false){const e=s.units[attacker],t=s.units[target];if(!e||!t||e.hp<=0||t.hp<=0)return;
+  attackFrame(attacker,target,test=false,forced,disadvantage=false){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();const e=s.units[attacker],t=s.units[target];if(!e||!t||e.hp<=0||t.hp<=0)return;
    const attackSpec=e.enemyAttack||{bonus:5,count:1,die:8,flat:3,range:attacker==='archer'?80:5};const bonus=attackSpec.bonus;const hinder=disadvantage||hasStatus(attacker,'restrained'),favored=hasStatus(target,'restrained');const d1=forced!==undefined?forced-bonus:die(20),d2=hinder!==favored?die(20):null,d=d2===null?d1:favored?Math.max(d1,d2):Math.min(d1,d2),total=d+bonus,crit=d===20;s.v19AttackSource=attacker;const hit=crit||(d!==1&&total>=AC(target));
    log(names[attacker]+' атакует '+names[target]+': '+(hinder&&favored?'преимущество и помеха взаимно отменены':favored?'ПРЕИМУЩЕСТВО':hinder?'ПОМЕХА':'обычный бросок')+'; к20 '+(d2===null?'['+d1+']':'['+d1+', '+d2+'] → '+d)+' +'+bonus+' (атака) = '+total+' против КД '+AC(target)+(hit?' — ПОПАДАНИЕ'+(crit?', КРИТИЧЕСКОЕ':''):' — ПРОМАХ'));
    const frame={attacker,target,test,total,crit,hit,raw:0,secondDamageDie:0,damageType:'оружие',applied:[],disadvantage:hinder};if(hit){const regularRolls=dice(attackSpec.count,attackSpec.die),criticalRolls=crit?dice(attackSpec.count,attackSpec.die):[];const initialDamage=sum(regularRolls),additionalDamage=sum(criticalRolls);frame.raw=initialDamage+additionalDamage+attackSpec.flat;frame.secondDamageDie=additionalDamage;log('Урон '+names[attacker]+': к'+attackSpec.die+' ['+regularRolls.join(', ')+'] = '+initialDamage+' (кости) +'+(crit?'к'+attackSpec.die+' ['+criticalRolls.join(', ')+'] = ':'')+additionalDamage+' (критические кости) +'+attackSpec.flat+' (бонус) = '+frame.raw+'.');}s.attackFrame=frame;v19NextAttackReaction();}
 
-  nextAttackReaction(){const a=s.attackFrame;if(!a)return;
+  nextAttackReaction(){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();const a=s.attackFrame;if(!a)return;
    const t=s.units[a.target],pal=s.units.lyutobor;
    if(a.hit){const options=[];
     if(a.target==='daphne'&&!a.crit&&t.reaction>0&&!effect('daphne','shield')&&a.total<AC('daphne')+5&&(t.shieldFree>0||t.slots[1]>0)&&!a.applied.includes('shield'))options.push('shield');
@@ -81,10 +96,14 @@ class CombatReactionResolver {
    }
    v19FinishAttack();}
 
-  finishAttack(){const a=s.attackFrame;if(!a)return;s.attackFrame=null;s.v19AttackSource=null;s.pending=null;if(a.hit&&a.raw>0)hurt(a.target,a.raw,'оружие');v19LogEvent('attack-closed',{attacker:a.attacker,target:a.target,damage:a.hit?a.raw:0,reactions:a.applied});
-   if(!a.test){advance()}else if(s.moving&&!s.pending){setTimeout(walk,150)}render();hostSave()}
+  finishAttack(){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();const a=s.attackFrame;if(!a)return;s.attackFrame=null;s.v19AttackSource=null;s.pending=null;if(a.hit&&a.raw>0)hurt(a.target,a.raw,'оружие');v19LogEvent('attack-closed',{attacker:a.attacker,target:a.target,damage:a.hit?a.raw:0,reactions:a.applied});
+   if(!a.test){advance()}else if(s.moving&&!s.pending){schedule(walk,150)}render();hostSave()}
 
-  reactChoice(choice){const p=s.pending;if(!p||p.kind!=='v19react')return;
+  reactChoice(choice){
+    const s=this._port.getState();
+    const {turn,log,names,isHero,rad,dist,LOS,at,AC,effect,addBuff,hasStatus,hurt,dice,die,sum,render,hostSave,v18TargetCheck,v18Execute,v18QueueArea,v19SlotLevels,v19HostileCounterFor,v19Alert,v19PushSpell,v19AdvanceSpellStack,v19FinishPlayerSpell,v19HandPerform,v19UnitIds,v19CasterCanCounter,v19AttackFrame,v19NextAttackReaction,v19FinishAttack,v19LogEvent,check,apply,advance,walk,schedule}=this._port.services();const p=s.pending;if(!p||p.kind!=='v19react')return;
    s.pending=null;
    if(p.phase==='spell'){
     if(choice==='counterspell'&&p.choiceFor==='daphne'&&v19CasterCanCounter('daphne',p.event.caster)){
@@ -114,4 +133,4 @@ class CombatReactionResolver {
    }
   }
 }
-const combatReactionResolver=new CombatReactionResolver();
+const combatReactionResolver=new CombatReactionResolver(reactionPort);

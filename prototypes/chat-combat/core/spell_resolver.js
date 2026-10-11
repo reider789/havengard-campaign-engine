@@ -1,6 +1,9 @@
 // Advanced spells, staged saves, Indomitable and Bigby's Hand. Runtime state remains serialized.
 class CombatSpellResolver {
-  execute(d){const id=turn(),u=me(),k=d.key,t=d.target,p=d.point||{x:u.x,y:u.y};const error=v18TargetCheck(d);if(error){s.info=error;render();return false}v18Cost(id,k);let amount=0;log(names[id]+' использует «'+(v18Catalogue[id].find(z=>z[0]===k)?.[1]||k)+'».');
+  constructor(port){if(!port||typeof port.getState!=='function'||typeof port.services!=='function')throw Error('Не настроены зависимости боевого обработчика');this._port=port;}
+  execute(d){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();const id=turn(),u=me(),k=d.key,t=d.target,p=d.point||{x:u.x,y:u.y};const error=v18TargetCheck(d);if(error){s.info=error;render();return false}v18Cost(id,k);let amount=0;log(names[id]+' использует «'+(v18Catalogue[id].find(z=>z[0]===k)?.[1]||k)+'».');
    switch(k){
    case 'know':{const enemy=s.units[t];log('Анализ '+names[t]+': броня '+AC(t)+', ПЗ '+enemy.hp+'/'+enemy.max+', известных иммунитетов и уязвимостей нет в учебном профиле');break}
    case 'bait':{const friend=s.units[t];const old={x:u.x,y:u.y};u.x=friend.x;u.y=friend.y;friend.x=old.x;friend.y=old.y;u.superiority--;const extra=die(10);addBuff(id,'bait',[t],6);friend.baitAC=extra;log('Приманка и смена: '+names[t]+' получает +'+extra+' КД до следующего хода Яра.');break}
@@ -46,19 +49,31 @@ class CombatSpellResolver {
   }
 
   queueArea(caster,targets,protectedTargets,stat,dc,raw,type,opts={}){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();
    s.areaWork={caster,targets:targets.filter(z=>s.units[z]?.hp>0),protectedTargets,stat,dc,raw,type,index:0,opts};
    v18ContinueArea();
   }
 
-  applyAreaTarget(t,passed){const q=s.areaWork;if(!q)return;let n=passed?Math.floor(q.raw/2):q.raw;if(t==='rada'&&q.stat==='DEX')n=passed?0:Math.floor(q.raw/2);if(n)hurt(t,n,q.type);if(q.opts.pushOnFail&&!passed){const u=s.units[q.caster],v=s.units[t],x=v.x+Math.sign(v.x-u.x),y=v.y+Math.sign(v.y-u.y);if(x>=0&&y>=0&&x<11&&y<8&&!wall(x,y)&&!at(x,y)){v.x=x;v.y=y;log(names[t]+' отброшен в '+pos(x,y))}}}
+  applyAreaTarget(t,passed){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();const q=s.areaWork;if(!q)return;let n=passed?Math.floor(q.raw/2):q.raw;if(t==='rada'&&q.stat==='DEX')n=passed?0:Math.floor(q.raw/2);if(n)hurt(t,n,q.type);if(q.opts.pushOnFail&&!passed){const u=s.units[q.caster],v=s.units[t],x=v.x+Math.sign(v.x-u.x),y=v.y+Math.sign(v.y-u.y);if(x>=0&&y>=0&&x<11&&y<8&&!wall(x,y)&&!at(x,y)){v.x=x;v.y=y;log(names[t]+' отброшен в '+pos(x,y))}}}
 
-  continueArea(){const q=s.areaWork;if(!q)return;while(q.index<q.targets.length){const t=q.targets[q.index];if(!s.units[t]||s.units[t].hp<=0){q.index++;continue}if(q.protectedTargets.includes(t)){log('Скульптура: '+names[t]+' защищён, 0 урона');q.index++;continue}const ok=saving(t,q.stat,q.dc);if(!ok&&t==='yar'&&(s.units.yar.indomitable??1)>0){s.pending={kind:'indomitable',stat:q.stat,dc:q.dc,target:t};render();hostSave();return}v18ApplyAreaTarget(t,ok);q.index++}s.areaWork=null;s.pending=null;render();hostSave()}
+  continueArea(){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();const q=s.areaWork;if(!q)return;while(q.index<q.targets.length){const t=q.targets[q.index];if(!s.units[t]||s.units[t].hp<=0){q.index++;continue}if(q.protectedTargets.includes(t)){log('Скульптура: '+names[t]+' защищён, 0 урона');q.index++;continue}const ok=saving(t,q.stat,q.dc);if(!ok&&t==='yar'&&(s.units.yar.indomitable??1)>0){s.pending={kind:'indomitable',stat:q.stat,dc:q.dc,target:t};render();hostSave();return}v18ApplyAreaTarget(t,ok);q.index++}s.areaWork=null;s.pending=null;render();hostSave()}
 
-  retryIndomitable(stat,dc){const scores={DEX:2,CON:8,WIS:2,STR:10,INT:0,CHA:0},u=s.units.yar,ly=s.units.lyutobor,aur=ly.hp>0&&dist(u,ly)<=10?2:0,shield=ly.hp>0&&dist(u,ly)<=5?1:0,b=(effect('yar','bless')||effect('yar','heroism'))?die(4):0,d=die(20),total=d+(scores[stat]??0)+10+aur+shield+b;log('Несгибаемость Яра: новый к20 '+d+' +10 уровень + бонусы '+(total-d-10)+' = '+total+' против СЛ '+dc);return total>=dc}
+  retryIndomitable(stat,dc){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();const scores={DEX:2,CON:8,WIS:2,STR:10,INT:0,CHA:0},u=s.units.yar,ly=s.units.lyutobor,aur=ly.hp>0&&dist(u,ly)<=10?2:0,shield=ly.hp>0&&dist(u,ly)<=5?1:0,b=(effect('yar','bless')||effect('yar','heroism'))?die(4):0,d=die(20),total=d+(scores[stat]??0)+10+aur+shield+b;log('Несгибаемость Яра: новый к20 '+d+' +10 уровень + бонусы '+(total-d-10)+' = '+total+' против СЛ '+dc);return total>=dc}
 
-  cancelHand(){s.bigby=null;s.effects=s.effects.filter(z=>!(z.owner==='daphne'&&z.kind==='bigby'));for(const id of v19UnitIds()){if(hasStatus(id,'bigbyGrappled'))removeStatus(id,'bigbyGrappled')}log('Рука Бигби исчезла.');}
+  cancelHand(){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();s.bigby=null;s.effects=s.effects.filter(z=>!(z.owner==='daphne'&&z.kind==='bigby'));for(const id of v19UnitIds()){if(hasStatus(id,'bigbyGrappled'))removeStatus(id,'bigbyGrappled')}log('Рука Бигби исчезла.');}
 
-  placeHand(d){const point=d.point;if(!point||point.x<0||point.x>=11||point.y<0||point.y>=8||wall(point.x,point.y))return'Выбери доступную клетку для руки';
+  placeHand(d){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();const point=d.point;if(!point||point.x<0||point.x>=11||point.y<0||point.y>=8||wall(point.x,point.y))return'Выбери доступную клетку для руки';
    const isCreation=d.key==='bigby',loc=s.bigby;
    if(isCreation){if(at(point.x,point.y))return'Рука создаётся в свободном пространстве'}else {if(!v19HandActive())return'Рука Бигби не существует';if(dist(loc,point)>60)return'Рука может переместиться не дальше 60 фт за команду'}
    if(isCreation&&dist(s.units.daphne,point)>120)return'Рука должна создаваться в 120 фт';
@@ -67,7 +82,9 @@ class CombatSpellResolver {
    return null;
   }
 
-  validateHand(d){const k=d.key,isCreation=k==='bigby',error=v19PlaceHand(d);if(error)return error;
+  validateHand(d){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();const k=d.key,isCreation=k==='bigby',error=v19PlaceHand(d);if(error)return error;
    const id=turn(),u=me();if(id!=='daphne')return'Рукой управляет Дафна';
    if(isCreation){if(!u.action||!u.slots?.[5])return'Нужны действие и ячейка V круга';if(u.spellSlotThisTurn)return'В этом ходу уже использована ячейка заклинания'}
    else if(!u.bonus)return'Для команды нужно бонусное действие';
@@ -79,9 +96,13 @@ class CombatSpellResolver {
    return null;
   }
 
-  pushHandTarget(target,caster,steps){const unit=s.units[target],src=s.bigby,vx=Math.sign(unit.x-src.x),vy=Math.sign(unit.y-src.y);let moved=0;for(let i=0;i<steps;i++){const nx=unit.x+vx,ny=unit.y+vy;if(nx<0||ny<0||nx>10||ny>7||wall(nx,ny)||at(nx,ny))break;unit.x=nx;unit.y=ny;moved+=5;}return moved}
+  pushHandTarget(target,caster,steps){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();const unit=s.units[target],src=s.bigby,vx=Math.sign(unit.x-src.x),vy=Math.sign(unit.y-src.y);let moved=0;for(let i=0;i<steps;i++){const nx=unit.x+vx,ny=unit.y+vy;if(nx<0||ny<0||nx>10||ny>7||wall(nx,ny)||at(nx,ny))break;unit.x=nx;unit.y=ny;moved+=5;}return moved}
 
-  performHand(d){if(d?.key==='bigby'&&!s.v19ResolvingPrepaid&&v19BeginPlayerSpell(d))return true;const k=d.key,id=turn(),u=me(),mode=d.handMode||(k==='bigbyStrike'?'fist':k==='bigbyGrasp'?'grasp':k==='bigbyPush'?'push':k==='bigbyCrush'?'crush':k==='bigbyInterpose'?'interpose':'move');
+  performHand(d){
+    const s=this._port.getState();
+    const {turn,me,log,names,foes,heroes,rad,dist,pos,wall,wallLOS,at,AC,effect,addBuff,hasStatus,addStatus,removeStatus,saving,hurt,heal,dice,die,sum,render,hostSave,v18Catalogue,v18TargetCheck,v18Cost,v18AreaDamage,v18InThunderCube,v18InCone,v18AreaTargets,v18EndConcentration,v18ApplyAreaTarget,v18ContinueArea,v19Alert,v19HandValidate,v19PlaceHand,v19HandTarget,v19UnitIds,v19PushObject,v19HandActive,v21EffectName,v19BeginPlayerSpell}=this._port.services();if(d?.key==='bigby'&&!s.v19ResolvingPrepaid&&v19BeginPlayerSpell(d))return true;const k=d.key,id=turn(),u=me(),mode=d.handMode||(k==='bigbyStrike'?'fist':k==='bigbyGrasp'?'grasp':k==='bigbyPush'?'push':k==='bigbyCrush'?'crush':k==='bigbyInterpose'?'interpose':'move');
    const err=v19HandValidate(d);if(err){v19Alert(err);return false}
    const creation=k==='bigby';if(creation){u.action--;u.slots[5]--;u.spellSlotThisTurn=true;v18EndConcentration(id);addBuff(id,'bigby',[id],60,true);s.bigby={x:d.point.x,y:d.point.y,owner:id,hp:u.max,max:u.max,ac:20,grappled:null,interposing:false,createdRound:s.round};log('Дафна создаёт Руку Бигби: КД 20, ПЗ '+s.bigby.hp)}else u.bonus--;
    const oldTarget=s.bigby.grappled;
@@ -101,4 +122,4 @@ class CombatSpellResolver {
    s.draft=null;render();hostSave();return true;
   }
 }
-const combatSpellResolver=new CombatSpellResolver();
+const combatSpellResolver=new CombatSpellResolver(spellPort);
