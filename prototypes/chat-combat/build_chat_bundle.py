@@ -288,7 +288,7 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
             's.nonlethalMeleeContext=source==="melee"?{attacker:actor,target}:null;'
             'try{hurt(target,amount,"оружие")}finally{delete s.nonlethalMeleeContext}render();},'
             'knockoutChoice:choice=>{const b=root.querySelector("[data-hg-ko="+choice+"]");if(!b)throw Error("no knockout choice");b.click()},'
-            'knockoutWeaponHit:(actor,target,amount)=>afterWeaponHit(actor,target,amount),knockoutActive:id=>knockout2024.knocked(id)});\n'
+            'knockoutWeaponHit:(actor,target,amount)=>afterWeaponHit(actor,target,amount),knockoutHeal:(id,amount)=>heal(id,amount),knockoutActive:id=>knockout2024.knocked(id)});\n'
         )
         source=source.replace(terminal,'\n'+code+'\n'+port+terminal,1)
         modules += ('knockout_2024.js',)
