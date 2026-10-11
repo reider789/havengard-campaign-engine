@@ -10,6 +10,7 @@ on:
       - 'prototypes/chat-combat/core/**'
       - 'prototypes/chat-combat/visual_skin.js'
       - 'prototypes/chat-combat/build_chat_bundle.py'
+      - 'prototypes/chat-combat/build_inline_payload.py'
       - 'prototypes/chat-combat/tests/**'
       - '.github/workflows/build-chat-combat.yml'
       - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
