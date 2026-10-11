@@ -202,7 +202,7 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     state = json.loads((root / 'state/_campaign-state.json').read_text(encoding='utf-8'))
     old_ref_path = root / 'prototypes/combat/app/runtime/latest.json'
     old_ref = json.loads(old_ref_path.read_text(encoding='utf-8')) if old_ref_path.exists() else {}
-    source_path = root / 'prototypes/chat-combat/engine-v25.html'
+    source_path = root / 'prototypes/chat-combat/engine-v26.html'
     source = source_path.read_text(encoding='utf-8')
     # Compile all source modules into one self-contained script; no runtime network fetch.
     core_dir = root / 'prototypes/chat-combat/core'
@@ -225,6 +225,26 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
         if source.count(terminal) != 1:
             raise ValueError('Unexpected combat source ending, cannot attach visuals')
         source = source.replace(terminal, chr(10) + skin + terminal, 1)
+
+    # In-chat theme and bounded DOM-only visual effects, no extra runtime JS fetch.
+    fantasy_path = root / 'prototypes/chat-combat/fantasy_ui.css'
+    if fantasy_path.exists():
+        css = fantasy_path.read_text(encoding='utf-8')
+        source = source.replace('</style>', '</style>\n<style>\n' + css + '\n</style>', 1)
+    fx_path = root / 'prototypes/chat-combat/core/visual_fx.js'
+    if fx_path.exists():
+        terminal = chr(10) + '})();' + chr(10) + '</script>'
+        if source.count(terminal) != 1:
+            raise ValueError('Missing v26 combat script terminator')
+        fx = fx_path.read_text(encoding='utf-8')
+        bootstrap = ("\nroot.classList.add('hv-fantasy');\n" + fx +
+                     "\ncombatFX=new CombatVisualFX(root,()=>s,()=>names);\n" +
+                     "const v26PriorRender=render;render=function(){v26PriorRender();combatFX?.afterRender()};\n" +
+                     "if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{" +
+                     "fxMode:()=>combatFX.mode,fxSetMode:mode=>combatFX.setMode(mode)," +
+                     "fxEmit:event=>combatFX.emit(event),fxStats:()=>({...combatFX.stats})});\n")
+        source = source.replace(terminal, bootstrap + terminal, 1)
+        modules += ('visual_fx.js',)
     if '<div id="hv12">' not in source or '<script>' not in source:
         raise ValueError('Unknown combat HTML format')
     if '<script type="application/json" data-hg-runtime>' in source:
@@ -244,12 +264,12 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     output = output_path or root / 'prototypes/chat-combat' / ('story-chat-battle.html' if scene else 'current-chat-battle.html')
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(result, encoding='utf-8')
-    metadata = {'schema_version': 2, 'engine': 'engine-v25.html',
+    metadata = {'schema_version': 2, 'engine': 'engine-v26.html',
                 'bundle': output.name,
                 'source_revision': state['state_revision'], 'hero_count': len(runtime['characters']),
                 'usage': 'Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.',
                 'canonical': False, 'mode': 'story' if scene else 'training',
-                'architecture': {'version': 'v25', 'bundled_modules': list(modules), 'offline': True},
+                'architecture': {'version': 'v26', 'bundled_modules': list(modules), 'offline': True, 'theme': 'heroes-inspired', 'visual_fx': 'css-transforms', 'quality_modes': ['off','standard','rich']},
                 'battle_id': scene['battle_id'] if scene else None,
                 'chronicle_anchor': scene['chronicle_anchor'] if scene else None,
                 'visual_skin': {'engine_module': 'visual_skin.js', 'offline_art_pack_schema': 'havengard-combat-art-v1', 'expected_assets': 24, 'embedded': False, 'auto_cached_cdn': True, 'asset_requests_on_cache_miss': 1},

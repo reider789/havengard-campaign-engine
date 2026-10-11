@@ -1,0 +1,79 @@
+
+/* Хейвенгард v26. Original Heroes-inspired bronze, timber and stone tactical skin. */
+#hv12.hv-fantasy{font:12px/1.5 system-ui,-apple-system,sans-serif;color:#e7dec7;background:repeating-linear-gradient(93deg,#15201d 0 13px,#111a18 14px 21px,#1b2420 22px 31px);border:2px solid #a9814b;box-shadow:inset 0 0 0 2px #342816,0 14px 35px #050907bb;border-radius:12px}
+#hv12.hv-fantasy button:focus-visible,#hv12.hv-fantasy select:focus-visible{outline:2px solid #ffdf9c;outline-offset:2px}
+#hv12.hv-fantasy header{background:radial-gradient(ellipse at 9% 0,#655034 0,transparent 65%),linear-gradient(108deg,#303a31,#162522);border-bottom:3px double #aa8551;box-shadow:inset 0 -2px #352719;padding:15px}
+#hv12.hv-fantasy header small{color:#f0c991;letter-spacing:1.2px}
+#hv12.hv-fantasy header h2{font:26px Georgia,serif;color:#ffe3a8;text-shadow:0 2px 9px #120f0b}
+#hv12.hv-fantasy header span{color:#ded2b9}
+#hv12.hv-fantasy header strong{background:#26352e;border:1px solid #cfab71;color:#f8dfa9;box-shadow:inset 0 0 0 2px #20302a}
+#hv12.hv-fantasy aside{background:linear-gradient(145deg,#29332d,#1c2826);border-left:2px solid #82673e}
+#hv12.hv-fantasy .lower{background:linear-gradient(#222e28,#172320);border-top:3px double #886b42}
+#hv12.hv-fantasy .heading{font:bold 12px Georgia,serif;letter-spacing:.7px;color:#f0ce93;border-bottom:1px solid #92734999;padding-bottom:7px}
+#hv12.hv-fantasy .heading span{font:400 10px system-ui,sans-serif;color:#cdc6b0;letter-spacing:0}
+#hv12.hv-fantasy .boardframe{background:#34483a;border:3px ridge #b29360;box-shadow:0 0 0 2px #342518,inset 0 0 0 1px #c4a477}
+#hv12.hv-fantasy .tile{background:#4c654c;border:1px solid #d8d0ab1f;color:#efe9d5}
+#hv12.hv-fantasy .tile:nth-child(even){background:#536c50}
+#hv12.hv-fantasy .tile.wall{background:repeating-linear-gradient(30deg,#757d71 0 6px,#526058 7px 12px)}
+#hv12.hv-fantasy .tile.rubble{background:#817055}
+#hv12.hv-fantasy .tile.smoke{background:#647c7b}
+#hv12.hv-fantasy .tile.aoe{background:#915444}
+#hv12.hv-fantasy .tile.targetcell{outline:2px solid #ffe39e}
+#hv12.hv-fantasy .unit{border:2px solid #c4c5ab;border-radius:50%;background:linear-gradient(#587693,#2d4360);color:#fff5e5;box-shadow:inset 0 -3px 7px #1119,0 2px 5px #050807aa}
+#hv12.hv-fantasy .unit.foe{background:linear-gradient(#a65c50,#512d2a);border-color:#edbcaa}
+#hv12.hv-fantasy .unit.now{outline:2px solid #ffda86;outline-offset:1px}
+#hv12.hv-fantasy .unit small{color:#fff4df}
+#hv12.hv-fantasy .health{height:5px;width:82%;background:#713631;border:1px solid #32291f}
+#hv12.hv-fantasy .health i{background:linear-gradient(90deg,#70bd73,#c4ebaa)}
+#hv12.hv-fantasy .axisx,#hv12.hv-fantasy .axisy{color:#f0c989;font-weight:bold}
+#hv12.hv-fantasy .legend{color:#d3d6bd}
+#hv12.hv-fantasy .note,#hv12.hv-fantasy .actor,#hv12.hv-fantasy .syncbar{background:linear-gradient(140deg,#304034,#24332d);border:1px solid #a18558;color:#eaddc5;box-shadow:inset 0 0 0 1px #1d2823}
+#hv12.hv-fantasy .actor b{font-family:Georgia,serif;color:#f8d6a0}
+#hv12.hv-fantasy .queue span{background:#354238;border-color:#7f815f}
+#hv12.hv-fantasy .queue span.on{background:#73593b;border-color:#e2b976}
+#hv12.hv-fantasy .tabs button,#hv12.hv-fantasy .choice,#hv12.hv-fantasy .buttons .btn,#hv12.hv-fantasy .footer button{background:linear-gradient(#465a4b,#2b4137);border:1px solid #ad8b56;color:#f2e7d0;border-radius:5px;box-shadow:inset 0 1px #fff2c51f,0 2px 2px #0003;text-shadow:0 1px #101914}
+#hv12.hv-fantasy .tabs button.on,#hv12.hv-fantasy .choice.chosen,#hv12.hv-fantasy .btn.primary{background:linear-gradient(#85643e,#60492d);border-color:#f4d18f;color:#fff2d7}
+#hv12.hv-fantasy button:hover:not(:disabled){filter:brightness(1.1)}
+#hv12.hv-fantasy .choice small{color:#d4d3bc}
+#hv12.hv-fantasy .choice.muted{background:#34443a}
+#hv12.hv-fantasy .panel,#hv12.hv-fantasy .inspector,#hv12.hv-fantasy .col{background:linear-gradient(135deg,#304034,#24312c);border:1px solid #997a4b;color:#f0e5d0}
+#hv12.hv-fantasy .panel h3,#hv12.hv-fantasy .inspector h3,#hv12.hv-fantasy .col b{color:#f5d79f}
+#hv12.hv-fantasy .heroes .hero{background:linear-gradient(#405345,#293b31);border:1px solid #927d55;color:#f8efdb}
+#hv12.hv-fantasy .heroes .hero.on{background:linear-gradient(#755b3e,#4f3d2b);border-color:#e9c586}
+#hv12.hv-fantasy .heroes .hero small{color:#d4cfba}
+#hv12.hv-fantasy .journal{background:linear-gradient(115deg,#373b2e,#212c25)!important;border:1px solid #907349;box-shadow:inset 0 0 13px #10150d;color:#e9dfcb}
+#hv12.hv-fantasy .event{color:#e9dec5;border-bottom-color:#83684e55!important}
+#hv12.hv-fantasy .hvfx-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:9px 0;padding:8px 9px;background:#25352d;border:1px solid #9b8053;border-radius:6px;color:#f3dfa9}
+#hv12.hv-fantasy .hvfx-toolbar label{font:650 11px system-ui,sans-serif}
+#hv12.hv-fantasy .hvfx-toolbar select{background:#344739;color:#f5e6c2;border:1px solid #b08b55;border-radius:5px;padding:5px;min-height:30px;font-size:11px}
+#hv12.hv-fantasy .hvfx-toolbar small{font:10px system-ui,sans-serif;color:#d2cbb2}
+#hv12 .hvfx-layer{position:absolute;inset:0;z-index:20;pointer-events:none;overflow:hidden}
+#hv12 .hvfx-mark{position:absolute;top:0;left:0;display:grid;place-items:center;transform:translate(-50%,-50%);user-select:none;will-change:transform,opacity}
+#hv12 .hvfx-mark.hvfx-spark{font-size:24px;text-shadow:0 0 9px currentColor;animation:hvfx-spark .48s ease-out both}
+#hv12 .hvfx-mark.hvfx-miss{color:#f1ede1}
+#hv12 .hvfx-mark.hvfx-fire{color:#ffb267}
+#hv12 .hvfx-mark.hvfx-ice{color:#a1e9f4}
+#hv12 .hvfx-mark.hvfx-storm{color:#c2bcff}
+#hv12 .hvfx-mark.hvfx-mind{color:#e1b6fd}
+#hv12 .hvfx-mark.hvfx-holy{color:#ffe49c}
+#hv12 .hvfx-mark.hvfx-web{color:#f0f6f2}
+#hv12 .hvfx-mark.hvfx-arcane{color:#e5c6ff}
+#hv12 .hvfx-mark.hvfx-damage{font:900 17px system-ui,sans-serif;text-shadow:0 1px 2px #111;animation:hvfx-float .8s ease-out both}
+#hv12 .hvfx-mark.hvfx-shield{font-size:29px;animation:hvfx-spark .68s ease-out both}
+#hv12 .hvfx-mark.hvfx-rune{font-size:28px;text-shadow:0 0 10px currentColor;animation:hvfx-rune .72s ease-out both}
+#hv12 .hvfx-mark.hvfx-projectile{width:9px;height:9px;background:currentColor;border-radius:50%;box-shadow:0 0 7px currentColor;animation:hvfx-fly .36s ease-out both}
+#hv12 .hvfx-mark.hvfx-area{width:var(--hvfx-size,70px);height:var(--hvfx-size,70px);border:2px solid currentColor;border-radius:50%;animation:hvfx-area .56s ease-out both}
+#hv12 .unit.hvfx-state-burn{outline:2px solid #eb9a55;outline-offset:1px}
+#hv12 .unit.hvfx-state-poison{outline:2px solid #91ca7d;outline-offset:1px}
+#hv12 .unit.hvfx-state-frost{outline:2px solid #9be6eb;outline-offset:1px}
+#hv12 .unit.hvfx-state-web{outline:2px dashed #e0e6df;outline-offset:1px}
+#hv12 .unit.hvfx-state-bless{border-color:#f9d57d!important}
+#hv12 .unit.hvfx-state-shield{border-color:#95ddfa!important}
+#hv12 .unit.hvfx-state-aim{border-color:#f3ba64!important}
+@keyframes hvfx-spark{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}40%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.45)}}
+@keyframes hvfx-float{0%{opacity:1;transform:translate(-50%,-40%)}100%{opacity:0;transform:translate(-50%,-170%)}}
+@keyframes hvfx-rune{0%{opacity:0;transform:translate(-50%,-50%) rotate(-30deg) scale(.5)}35%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(60deg) scale(1.4)}}
+@keyframes hvfx-fly{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:0;transform:translate(calc(var(--hvfx-dx) - 50%),calc(var(--hvfx-dy) - 50%)) scale(1.2)}}
+@keyframes hvfx-area{0%{opacity:.75;transform:translate(-50%,-50%) scale(.15)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+@media(max-width:700px){#hv12.hv-fantasy .layout{grid-template-columns:1fr}#hv12.hv-fantasy aside{border-left:0;border-top:2px solid #987649}#hv12.hv-fantasy header h2{font-size:22px}#hv12.hv-fantasy .boardframe{border-width:2px}}
+@media(prefers-reduced-motion:reduce){#hv12 .hvfx-mark{animation:none!important}#hv12.hv-fantasy .tile{transition:none}}

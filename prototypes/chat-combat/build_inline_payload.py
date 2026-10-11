@@ -13,15 +13,15 @@ META = ROOT / "inline-payload-manifest.json"
 
 def build():
     html = SOURCE.read_bytes()
-    if b'data-hg-runtime' not in html or b'class CombatDiceRoller' not in html or b'class CombatSpellResolver' not in html or b'class CombatReactionResolver' not in html or b'class CombatStatePort' not in html or b'v21NewScenario' not in html:
-        raise RuntimeError("Not the self-contained modular v25 bundle")
+    if b'data-hg-runtime' not in html or b'class CombatDiceRoller' not in html or b'class CombatSpellResolver' not in html or b'class CombatReactionResolver' not in html or b'class CombatStatePort' not in html or b'class CombatVisualFX' not in html or b'v21NewScenario' not in html:
+        raise RuntimeError("Not the self-contained modular v26 bundle")
     compressed = gzip.compress(html, compresslevel=9, mtime=0)
     if gzip.decompress(compressed) != html:
         raise RuntimeError("Round-trip mismatch")
     payload = base64.b64encode(compressed).decode("ascii")
     TARGET.write_text(payload + "\n", encoding="ascii")
     metadata = {
-        "schema": 1, "encoding": "gzip+base64", "engine": "v25",
+        "schema": 1, "encoding": "gzip+base64", "engine": "v26",
         "bytes_original": len(html), "bytes_gzip": len(compressed),
         "bytes_base64": len(payload),
         "sha256_original": hashlib.sha256(html).hexdigest(),
