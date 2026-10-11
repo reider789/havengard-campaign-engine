@@ -56,19 +56,26 @@ class CombatNarrativeHandoff {
   if(s.pending||s.moving||(s.spellStack&&s.spellStack.length)){
    this._status('Завершите реакцию, движение или цепочку заклинаний прежде передачи.');return false;
   }
+  // Do not end or clear the active combat when the host handoff is unavailable.
+  // The DIL host control submits the report in an actual user click; calling
+  // setValue only stages it, and MUST NOT claim a new chat turn was created.
+  const callback=globalThis.__bindings?.setValue;
+  if(typeof callback!=='function'){
+   this._status('Связь с чатом недоступна. Бой НЕ завершён; прогресс сохранён локально.');
+   return false;
+  }
   if(s.phase!=='ended'){
    s.phase='ended';this.o.log('Бой остановлен по решению игрока.');
    this.o.render();this.o.save();
   }
   const report=this._report();this.lastReport=report;
-  const callback=globalThis.__bindings?.setValue;
-  if(typeof callback!=='function'){
-   this._status('В этом клиенте нет связи с чатом. Локальная сессия сохранена.');return false;
-  }
   try{
    callback({kind:'havengard-battle-handoff-v1',report});
-   this._status('Отчёт отправлен в интерфейс чата. Проверьте, появилось ли сообщение мастера.');
+   this._status('Отчёт подготовлен. Нажмите «Передать мастеру» под игровой панелью — это отправит сообщение в чат.');
    return true;
-  }catch(e){this._status('Передача не удалась: '+String(e.message||e));return false}
+  }catch(e){
+   this._status('Отчёт сформирован, но связь с чатом не ответила: '+String(e.message||e));
+   return false;
+  }
  }
 }
