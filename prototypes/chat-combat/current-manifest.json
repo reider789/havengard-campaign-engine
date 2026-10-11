@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "engine": "engine-v24.html",
+  "engine": "engine-v25.html",
   "bundle": "current-chat-battle.html",
   "source_revision": 27,
   "hero_count": 4,
@@ -8,13 +8,15 @@
   "canonical": false,
   "mode": "training",
   "architecture": {
-    "version": "v24",
+    "version": "v25",
     "bundled_modules": [
       "dice.js",
       "journal.js",
       "conditions.js",
       "battlefield.js",
       "state_port.js",
+      "dom_renderer.js",
+      "persistence.js",
       "spell_resolver.js",
       "reaction_resolver.js"
     ],
@@ -26,8 +28,10 @@
     "engine_module": "visual_skin.js",
     "offline_art_pack_schema": "havengard-combat-art-v1",
     "expected_assets": 24,
-    "embedded": true
+    "embedded": false,
+    "auto_cached_cdn": true,
+    "asset_requests_on_cache_miss": 1
   },
-  "bundle_sha256": "157e3233c9d760f03d87a7dca7548747daf9ba9190e9533df96b80adfac84547",
-  "bundle_size_bytes": 332039
+  "bundle_sha256": "eb71707e90b23960f4e27653805555fa489cb42259426b3de924d71f27ab1018",
+  "bundle_size_bytes": 329813
 }
