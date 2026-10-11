@@ -6,7 +6,7 @@ on:
     branches: [main]
     paths:
       - 'state/_campaign-state.json'
-      - 'prototypes/chat-combat/engine-v28.html'
+      - 'prototypes/chat-combat/engine-v29.html'
       - 'prototypes/chat-combat/core/**'
       - 'prototypes/chat-combat/visual_skin.js'
       - 'prototypes/chat-combat/fantasy_ui.css'
@@ -65,6 +65,8 @@ jobs:
         run: python prototypes/chat-combat/tests/qa_v27_handoff.py
       - name: Verify v28 D&D 2024 nonlethal knockout choices
         run: python prototypes/chat-combat/tests/qa_v28_nonlethal.py
+      - name: Verify v29 optimal and smooth auto-movement
+        run: python prototypes/chat-combat/tests/qa_v29_pathfinding.py
       - name: Generate checksum for offline ChatGPT file loader
         run: python prototypes/chat-combat/build_inline_payload.py
       - name: Browser-test canonical story handoff
