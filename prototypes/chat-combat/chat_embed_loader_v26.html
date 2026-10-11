@@ -1,0 +1,108 @@
+<div id="hg-v26-embed" style="font-family:system-ui,sans-serif;color:#e8dcc3;width:100%;min-width:0">
+ <div class="hg-embed-bar" style="border:2px solid #a98551;border-radius:10px;background:linear-gradient(115deg,#4d3c2d,#1d332a);padding:12px;margin-bottom:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+   <div style="color:#f8d8a1;font:20px Georgia,serif">⚔ Хейвенгард · v26</div>
+   <span style="color:#e2cd9f;font-size:11px">Тестовый бой, не канон</span>
+  </div>
+  <p id="hg-embed-status" role="status" aria-live="polite" style="margin:9px 0;font-size:12px;line-height:1.5">Подготовка полного боевого движка…</p>
+  <button type="button" id="hg-embed-retry" style="border:1px solid #ebca91;border-radius:5px;padding:7px 12px;background:linear-gradient(#775f3c,#4c3c29);color:#fff0cf;cursor:pointer">↻ Перезапустить панель</button>
+ </div>
+ <div id="hg-embed-battle"></div>
+</div>
+<script>
+(()=>{
+ 'use strict';
+ const wrapper=document.getElementById('hg-v26-embed');
+ if(!wrapper||wrapper.dataset.started)return;
+ wrapper.dataset.started='1';
+ const battle=wrapper.querySelector('#hg-embed-battle'),
+       status=wrapper.querySelector('#hg-embed-status'),
+       retry=wrapper.querySelector('#hg-embed-retry');
+ const revision='005b196a29c6286593b1b9c73623c60828de0950';
+ const path='prototypes/chat-combat/current-chat-battle.html';
+ const providers=[
+   'https://cdn.jsdelivr.net/gh/reider789/havengard-campaign-engine@'+revision+'/'+path,
+   'https://raw.githubusercontent.com/reider789/havengard-campaign-engine/'+revision+'/'+path
+ ];
+ let running=false;
+ let currentGeneration=0;
+ let activeController=null;
+ function message(t){status.textContent=t;}
+ async function getSource(controller){
+   const errors=[];
+   for(const url of providers){
+     try{
+       const res=await fetch(url,{method:'GET',cache:'force-cache',signal:controller.signal});
+       if(!res.ok)throw Error('HTTP '+res.status);
+       const body=await res.text();
+       if(body.length<160000||body.length>550000||!body.includes('class CombatVisualFX')||
+          !body.includes('class CombatReactionResolver')||!body.includes('data-hg-runtime')||
+          !body.includes('БОЕВОЙ ИНТЕРФЕЙС V26'))
+         throw Error('неполная или неподходящая сборка');
+       return body;
+     }catch(error){
+       if(controller.signal.aborted)throw error;
+       errors.push(url.split('/')[2]+': '+String(error.message||error));
+     }
+   }
+   throw Error('Источники недоступны. '+errors.join(' · '));
+ }
+ async function start(){
+   if(running)return;
+   running=true;
+   const generation=++currentGeneration;
+   if(activeController)activeController.abort();
+   const controller=new AbortController();
+   activeController=controller;
+   retry.disabled=true;
+   battle.replaceChildren();
+   message('Загружаю полный боевой движок v26 из GitHub…');
+   const timeout=setTimeout(()=>controller.abort(),18000);
+   try{
+     const source=await getSource(controller);
+     if(generation!==currentGeneration)return;
+     message('Сборка получена. Инициализирую игровые правила и поле…');
+     const template=document.createElement('template');
+     template.innerHTML=source;
+     const root=template.content.querySelector('#hv12');
+     if(!root)throw Error('В HTML отсутствует корень боевого движка.');
+     const mainScript=root.querySelector('script:not([type])');
+     if(!mainScript||mainScript.textContent.length<65000)throw Error('Не найден исполнительный код движка.');
+     const code=mainScript.textContent;
+     mainScript.remove(); 
+     battle.appendChild(root);
+     const executable=document.createElement('script');
+     executable.textContent=code;
+     root.appendChild(executable);
+     let tries=0;
+     const waitForBoot=()=>new Promise((resolve,reject)=>{
+       const probe=()=>{
+         if(generation!==currentGeneration){reject(Error('Запуск отменён.'));return}
+         tries++;
+         const board=root.querySelectorAll('#board button[data-tile]').length;
+         if(root.dataset.init==='1'&&board===88&&root.querySelector('#actor')&&
+            root.querySelector('#choices')&&root.querySelector('#journal')&&
+            root.querySelector('#hvfx-quality')){
+           resolve();return;
+         }
+         if(tries>=50){reject(Error('Движок не инициализировался: поле '+board+'/88, состояние '+(root.dataset.init||'нет')+'. Возможно, политика безопасности заблокировала выполнение встроенного кода.'));return}
+         setTimeout(probe,100);
+       };
+       probe();
+     });
+     await waitForBoot();
+     message('✓ Полный v26 запущен: 88 клеток, четыре героя, заклинания, реакции, сохранения и анимации. Выбирай действия в панели ниже.');
+   }catch(error){
+     if(generation===currentGeneration){
+       battle.replaceChildren();
+       message('Не удалось запустить полную версию: '+String(error.message||error)+'. Учебную схватку не подменяю демонстрацией.');
+     }
+   }finally{
+     clearTimeout(timeout);
+     if(generation===currentGeneration){running=false;retry.disabled=false;}
+   }
+ }
+ retry.addEventListener('click',()=>start());
+ start();
+})();
+</script>
