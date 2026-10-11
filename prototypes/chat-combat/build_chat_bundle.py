@@ -188,12 +188,10 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     skin_path = root / 'prototypes/chat-combat/visual_skin.js'
     if skin_path.exists():
         skin = skin_path.read_text(encoding='utf-8')
-        terminal = '\\n})();\\n</script>'
-        # The source has precisely one closing IIFE at the end.
-        terminal = terminal.replace('\\\\n', '\\n')
+        terminal = chr(10) + '})();' + chr(10) + '</script>'
         if source.count(terminal) != 1:
-            raise ValueError('Unexpected combat source closing script; cannot attach visuals')
-        source = source.replace(terminal, '\n' + skin + terminal, 1)
+            raise ValueError('Unexpected combat source ending, cannot attach visuals')
+        source = source.replace(terminal, chr(10) + skin + terminal, 1)
     if '<div id="hv12">' not in source or '<script>' not in source:
         raise ValueError('Unknown combat HTML format')
     if '<script type="application/json" data-hg-runtime>' in source:
