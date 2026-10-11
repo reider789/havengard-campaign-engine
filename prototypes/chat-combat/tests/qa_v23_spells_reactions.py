@@ -66,6 +66,10 @@ with sync_playwright() as p:
     after=page.evaluate(f'{api}.snapshot()')
     assert after['units']['daphne']['reaction']==0,after
     assert after['units']['daphne']['slots'][3]==2
+    # The enemy mage can answer her Counterspell with its own reaction:
+    # this is a genuine nested cast, not merely a single reaction prompt.
+    assert after['units']['mage']['reaction']==0,after['history'][-15:]
+    assert any('Маг применяет Контрзаклинание' in h for h in after['history']),after['history'][-15:]
     assert any('Контрзаклинание' in h for h in after['history']),after['history'][-15:]
     assert not errors,errors
     browser.close()
