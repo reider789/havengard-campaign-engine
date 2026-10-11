@@ -111,7 +111,7 @@ class CombatSpellResolver {
    s.bigby.x=d.point.x;s.bigby.y=d.point.y;s.bigby.interposing=mode==='interpose';
    if(mode==='fist'){
      const r=die(20),hit=r===20||(r!==1&&r+11>=AC(d.target));log('Кулак Бигби: к20 '+r+'+11 против КД '+AC(d.target)+(hit?' попадание':' промах'));
-     if(hit){let dmg=sum(dice(r===20?10:5,8));if(!s.bigby.evocationUsed){dmg+=5;s.bigby.evocationUsed=true;log('Усиленное воплощение +5 один раз за срок заклинания')}hurt(d.target,dmg,'силовой')}
+     if(hit){let dmg=sum(dice(r===20?10:5,8));if(!s.bigby.evocationUsed){dmg+=5;s.bigby.evocationUsed=true;log('Усиленное воплощение +5 один раз за срок заклинания')}s.nonlethalMeleeContext={attacker:id,target:d.target,source:'рукопашная атака заклинанием'};try{hurt(d.target,dmg,'силовой')}finally{delete s.nonlethalMeleeContext}}
    }else if(mode==='push'){
      if(!saving(d.target,'STR',19)){const moved=v19PushObject(d.target,id,6);log('Толкающая рука Бигби: '+names[d.target]+' оттеснён на '+moved+' фт.');s.bigby.x=s.units[d.target].x;s.bigby.y=s.units[d.target].y;}
    }else if(mode==='grasp'){
