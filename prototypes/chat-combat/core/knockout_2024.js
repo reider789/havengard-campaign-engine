@@ -21,7 +21,7 @@ class CombatKnockout2024 {
    if(mark&&mark.target===target&&p.party().includes(mark.attacker)&&
       p.foes().includes(target)&&unit&&unit.hp>0&&!knocked(target)&&
       Number.isFinite(n)&&n>0&&n-Math.max(0,unit.temp||0)>=unit.hp){
-    state.pending={kind:'nonlethal2024',target,attacker:mark.attacker,rawDamage:n,damageType:type};
+    state.pending={kind:'nonlethal2024',target,attacker:mark.attacker,rawDamage:n,damageType:type,opt:[]};
     p.log(names()[mark.attacker]+': решающий рукопашный удар по '+names()[target]+
       '. Выберите исход по правилам D&D 2024: оставить без сознания или нанести смертельный удар.');
     p.render();p.save();
