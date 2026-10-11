@@ -1227,7 +1227,7 @@ function v21GuideContent(id,key,title){
  const source=v21SourceRow(id,title)||v21SourceRow(id,v21GuideKeys[key]);
  const advanced=v18Catalogue[id]?.find(e=>e[0]===key);
  const details=[v21Detailed[key],source?.description?.split(/ · (?:История|Расследование|Проницательность|Магия|Восприятие|Атлетика|Акробатика|Убеждение|Природа|Религия|Медицина|Скрытность|Выживание|Обман|Запугивание|Ловкость рук|Выступление) · [+-]?\d+ · /)[0],advanced?.[2]].filter(x=>typeof x==='string'&&x.trim());
- if(key==='attack'){const weapon=weapons[id].find(w=>w[0]===s.units[id].weapon);if(weapon?.[4])details.push('Выбранное оружие: '+weapon[1]+' · '+weapon[2]);else details.push('Текущее снаряжение предназначено для магии и не даёт оружейной атаки. Выбери оружие либо используй заклинание.');}
+ // General rules for the Attack action only; current equipment belongs in the Weapons tab.
  if(!details.length&&item[key])details.push(item[key][1]);
  if(!details.length)details.push('Полное описание отсутствует в карточке кампании. Неизвестную механику нужно согласовать с ведущим, не расходуя ресурсы автоматически.');
  return [...new Set(details)].join('\n\n');
