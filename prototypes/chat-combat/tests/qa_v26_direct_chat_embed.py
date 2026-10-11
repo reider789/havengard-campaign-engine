@@ -5,6 +5,7 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 LOADER=(ROOT/'chat_embed_loader_v26.html').read_text(encoding='utf-8')
 BUNDLE=(ROOT/'current-chat-battle.html').read_text(encoding='utf-8')
+assert LOADER.count('</script>')==1, 'Literal closing-script tag would break bootstrap HTML parsing'
 assert 'iframe' not in LOADER.lower()
 assert 'crypto.subtle' not in LOADER.lower()
 assert 'class CombatVisualFX' in BUNDLE
