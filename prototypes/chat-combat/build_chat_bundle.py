@@ -53,9 +53,14 @@ def make_manifest(state: dict, previous: dict | None = None) -> dict:
             parts = row.get('cells') or []
             if not parts or not parts[0]:
                 continue
+            # Strip an adjacent unrelated skill occasionally carried on a
+            # single live-sheet combat-reference row (without changing canon).
+            description = ' · '.join(str(c) for c in parts[1:] if c is not None)
+            skill_names = r'Атлетика|Акробатика|Ловкость рук|Скрытность|Магия|История|Расследование|Природа|Религия|Уход за животными|Проницательность|Медицина|Восприятие|Выживание|Обман|Запугивание|Выступление|Убеждение'
+            description = re.split(r' · (?:' + skill_names + r') · [+-]?\d+ · ', description, maxsplit=1)[0]
             details.append({'id': f'{hero}-live-{row.get("source_row", "unknown")}',
                             'name': str(parts[0]),
-                            'description': ' · '.join(str(c) for c in parts[1:] if c is not None)[:1100],
+                            'description': description[:1100],
                             'category': 'live_sheet'})
         prev_names = {v['name'] for v in details}
         for old_entry in old.get('skills_attacks_spells', []):
