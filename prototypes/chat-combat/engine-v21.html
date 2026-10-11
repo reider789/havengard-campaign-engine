@@ -1046,7 +1046,11 @@ function v21NewScenario(raw){
  const a=v21CheckScenario(raw); // validate before replacing current state
  s=v21Seed(applySourceSeed(newState()));
  s.units.guard.hp=0;s.units.archer.hp=0;
- for(const id of v21Party){s.units[id].x=a.party[id].x;s.units[id].y=a.party[id].y;}
+ for(const id of v21Party){
+  const unit=s.units[id];unit.x=a.party[id].x;unit.y=a.party[id].y;
+  unit.hidden=raw.heroes?.[id]?.hidden===true; // no inherited demo stealth
+  unit.action=0;unit.bonus=0;unit.move=0;unit.attacks=0;unit.sneakUsed=false;
+ }
  s.extraEnemies=a.enemies.map((e,i)=>({id:'enemy_'+(i+1),...e,joinRound:1}));
   s.scenario={terrain:a.terrain,initiative:a.initiative};s.battleName=a.name;s.sessionKind=a.kind;
  s.battleId=typeof raw.battle_id==='string'?raw.battle_id:null;
