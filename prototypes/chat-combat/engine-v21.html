@@ -1366,6 +1366,58 @@ root.addEventListener('click',event=>{
 if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{
  embeddedStory:()=>v21EmbeddedStory?{battle_id:v21EmbeddedStory.battle_id,source_revision:v21EmbeddedStory.source_revision}:null
 });
+
+// V21.4 Web control: a four-by-four area, with repeatable saves on entry/turn.
+function v21WebInside(p){
+ const a=s?.web;
+ return !!(a&&effect('daphne','web')&&p&&p.x>=a.x&&p.x<a.x+4&&p.y>=a.y&&p.y<a.y+4);
+}
+function v21WebClean(){
+ if(!s?.web||effect('daphne','web'))return;
+ for(const id of Object.keys(s.units))if(hasStatus(id,'restrained'))removeStatus(id,'restrained');
+ s.web=null;
+}
+function v21WebSave(id){
+ const u=s.units[id];if(!v21WebInside(u)||u.hp<=0||hasStatus(id,'restrained'))return false;
+ log(names[id]+': Паутина — спасбросок Ловкости СЛ 19.');
+ if(!saving(id,'DEX',19)){addStatus(id,'restrained',null);u.move=0;return true}
+ return false;
+}
+const v21WebTurnStatus=startTurnStatus;
+startTurnStatus=function(id){v21WebClean();v21WebTurnStatus(id);v21WebSave(id)};
+const v21WebOldEnemyTurn=enemyTurn;
+enemyTurn=function(id){
+ v21WebClean();
+ if(hasStatus(id,'restrained')){
+  const mod=s.units[id].enemySaves?.STR??3,d=die(20),total=d+mod,success=total>=19;
+  log(names[id]+': действие — освободиться из паутины; к20 ['+d+'] +'+mod+' (Сила/Атлетика) = '+total+' против СЛ 19 — '+(success?'УСПЕХ':'ПРОВАЛ')+'.');
+  s.units[id].action=0;if(success)removeStatus(id,'restrained');return false;
+ }
+ return v21WebOldEnemyTurn(id);
+};
+const v21WebOldWalk=walk;
+walk=function(){
+ const id=turn(),u=me(),previous={x:u.x,y:u.y};
+ if(hasStatus(id,'restrained')){s.moving=false;s.path=[];s.info='Опутан: сначала освобождение действием.';render();return}
+ v21WebOldWalk();
+ if(u.x!==previous.x||u.y!==previous.y){
+  if(v21WebInside(u)&&!v21WebInside(previous)){v21WebSave(id);if(hasStatus(id,'restrained')){s.moving=false;s.path=[]}}
+  else if(hasStatus(id,'restrained')&&!v21WebInside(u))removeStatus(id,'restrained');
+ }
+};
+const v21WebOldRender=render;
+render=function(){
+ v21WebOldRender();
+ if(!s?.web||!effect('daphne','web'))return;
+ for(const tile of $('board').querySelectorAll('button[data-tile]')){
+  const [x,y]=tile.dataset.tile.split(',').map(Number);
+  if(v21WebInside({x,y})){tile.classList.add('web');tile.title+=' · Паутина — труднопроходимо';}
+ }
+};
+const v21WebStyles=document.createElement('style');
+v21WebStyles.textContent='#hv12 .tile.web{box-shadow:inset 0 0 0 2px #d5eeeecc!important;background-image:repeating-linear-gradient(45deg,transparent 0 7px,#c8e7e788 8px 9px)!important}';
+root.appendChild(v21WebStyles);
+
 if(v21EmbeddedStory)v21StartEmbeddedStory();
 else render();
 
