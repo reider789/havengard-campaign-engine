@@ -182,7 +182,16 @@ with sync_playwright() as p:
     assert state['units']['guard']['hp']==28
     assert state.get('battleName') is None
     assert 'wall' not in page.locator('[data-tile="6,1"]').get_attribute('class'), 'Custom terrain leaked into reset'
-    assert 'wall' in page.locator('[data-tile="5,2"]').get_attribute('class'), 'Original terrain lost'
+    assert len(state['trainingTerrain']['walls'])==5
+    assert len(state['trainingTerrain']['rubble'])==6
+    for xy in state['trainingTerrain']['walls']:
+        x,y=map(int,xy.split(','))
+        assert all(max(abs(x-v['x']),abs(y-v['y']))>1
+                   for v in state['units'].values() if v['hp']>0), 'Wall spawned beside a combatant'
+    checkpoint=page.evaluate(f'{api}.checkpoint()')
+    saved_walls=page.evaluate(f'{api}.snapshot().trainingTerrain.walls')
+    page.evaluate(f'(cp)=>{api}.load(cp)',checkpoint)
+    assert page.evaluate(f'{api}.snapshot().trainingTerrain.walls')==saved_walls, 'Training terrain moved after restore'
     # Maximum supported enemy roster: skipping dead enemies must cross to round 2.
     extra=json.loads(json.dumps(sample))
     extra['name']='Большое сражение'
