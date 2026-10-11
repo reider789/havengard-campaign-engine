@@ -184,6 +184,16 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     old_ref = json.loads(old_ref_path.read_text(encoding='utf-8')) if old_ref_path.exists() else {}
     source_path = root / 'prototypes/chat-combat/engine-v21.html'
     source = source_path.read_text(encoding='utf-8')
+    # Offline graphical add-on runs inside the exact same battle closure; no remote JS.
+    skin_path = root / 'prototypes/chat-combat/visual_skin.js'
+    if skin_path.exists():
+        skin = skin_path.read_text(encoding='utf-8')
+        terminal = '\\n})();\\n</script>'
+        # The source has precisely one closing IIFE at the end.
+        terminal = terminal.replace('\\\\n', '\\n')
+        if source.count(terminal) != 1:
+            raise ValueError('Unexpected combat source closing script; cannot attach visuals')
+        source = source.replace(terminal, '\n' + skin + terminal, 1)
     if '<div id="hv12">' not in source or '<script>' not in source:
         raise ValueError('Unknown combat HTML format')
     if '<script type="application/json" data-hg-runtime>' in source:
