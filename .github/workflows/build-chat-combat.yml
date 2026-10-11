@@ -48,6 +48,8 @@ jobs:
         run: python prototypes/chat-combat/tests/qa_art_skin.py
       - name: Check detailed Russian logs, Web control and randomized training arenas
         run: python prototypes/chat-combat/tests/qa_v21_detail_and_web.py
+      - name: Verify object-oriented spell and reaction dispatch
+        run: python prototypes/chat-combat/tests/qa_v23_spells_reactions.py
       - name: Generate checksum for offline ChatGPT file loader
         run: python prototypes/chat-combat/build_inline_payload.py
       - name: Browser-test canonical story handoff
