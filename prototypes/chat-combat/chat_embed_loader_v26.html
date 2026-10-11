@@ -66,7 +66,7 @@
      // executable script from SOURCE (not querySelector: HTML template parsing
      // can relocate scripts placed after embedded styles).
      const scriptStart=source.lastIndexOf('<script>');
-     const scriptEnd=source.indexOf('</script>',scriptStart+8);
+     const scriptEnd=source.indexOf('</scr'+'ipt>',scriptStart+8);
      if(scriptStart<0||scriptEnd<0||scriptEnd-scriptStart<65000)
        throw Error('Не найден исполнительный код движка v26.');
      const code=source.slice(scriptStart+8,scriptEnd);
