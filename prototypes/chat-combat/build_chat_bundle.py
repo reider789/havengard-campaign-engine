@@ -202,7 +202,7 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     state = json.loads((root / 'state/_campaign-state.json').read_text(encoding='utf-8'))
     old_ref_path = root / 'prototypes/combat/app/runtime/latest.json'
     old_ref = json.loads(old_ref_path.read_text(encoding='utf-8')) if old_ref_path.exists() else {}
-    source_path = root / 'prototypes/chat-combat/engine-v26.html'
+    source_path = root / 'prototypes/chat-combat/engine-v27.html'
     source = source_path.read_text(encoding='utf-8')
     # Compile all source modules into one self-contained script; no runtime network fetch.
     core_dir = root / 'prototypes/chat-combat/core'
@@ -245,6 +245,24 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
                      "fxEmit:event=>combatFX.emit(event),fxStats:()=>({...combatFX.stats})});\n")
         source = source.replace(terminal, bootstrap + terminal, 1)
         modules += ('visual_fx.js',)
+
+    # A read-only, player-triggered narrative handoff lives in the same closure.
+    handoff_path = root / 'prototypes/chat-combat/core/narrative_handoff.js'
+    if handoff_path.exists():
+        terminal = chr(10) + '})();' + chr(10) + '</script>'
+        if source.count(terminal) != 1:
+            raise ValueError('Missing combat script terminator for narrative handoff')
+        code = handoff_path.read_text(encoding='utf-8')
+        bootstrap = (
+            "\n" + code + "\n"
+            + "const combatHandoff=new CombatNarrativeHandoff({"
+            + "root,state:()=>s,runtime:()=>runtime,party:()=>heroes,enemies:()=>foes,names:()=>names,"
+            + "outcome:()=>v21Outcome(),log,render:()=>render(),save:()=>hostSave()});\n"
+            + "if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{"
+            + "handoffReport:()=>combatHandoff._report(),handoffSend:()=>combatHandoff.send()});\n"
+        )
+        source = source.replace(terminal,bootstrap + terminal,1)
+        modules += ('narrative_handoff.js',)
     if '<div id="hv12">' not in source or '<script>' not in source:
         raise ValueError('Unknown combat HTML format')
     if '<script type="application/json" data-hg-runtime>' in source:
@@ -264,12 +282,12 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     output = output_path or root / 'prototypes/chat-combat' / ('story-chat-battle.html' if scene else 'current-chat-battle.html')
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(result, encoding='utf-8')
-    metadata = {'schema_version': 2, 'engine': 'engine-v26.html',
+    metadata = {'schema_version': 2, 'engine': 'engine-v27.html',
                 'bundle': output.name,
                 'source_revision': state['state_revision'], 'hero_count': len(runtime['characters']),
                 'usage': 'Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.',
                 'canonical': False, 'mode': 'story' if scene else 'training',
-                'architecture': {'version': 'v26', 'bundled_modules': list(modules), 'offline': True, 'theme': 'heroes-inspired', 'visual_fx': 'css-transforms', 'quality_modes': ['off','standard','rich']},
+                'architecture': {'version': 'v27', 'bundled_modules': list(modules), 'offline': True, 'theme': 'heroes-inspired', 'visual_fx': 'css-transforms', 'quality_modes': ['off','standard','rich'], 'narrative_handoff': 'player_click_to_chat'},
                 'battle_id': scene['battle_id'] if scene else None,
                 'chronicle_anchor': scene['chronicle_anchor'] if scene else None,
                 'visual_skin': {'engine_module': 'visual_skin.js', 'offline_art_pack_schema': 'havengard-combat-art-v1', 'expected_assets': 24, 'embedded': False, 'auto_cached_cdn': True, 'asset_requests_on_cache_miss': 1},
