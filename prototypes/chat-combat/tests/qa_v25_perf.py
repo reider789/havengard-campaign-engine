@@ -44,12 +44,12 @@ with sync_playwright() as p:
     state_before=page.evaluate(f'{api}.snapshot()')
     p0=page.evaluate(f'{api}.persistenceStats()')
     stats0=page.evaluate(f'{api}.uiStats()')
-    elapsed=page.evaluate(f'''async()=>{
+    elapsed=page.evaluate('''async()=>{
       const start=performance.now();
       for(let i=0;i<15;i++)window.__HV_TEST_API.render();
       await Promise.resolve();
       return performance.now()-start;
-    }}''')
+    }''')
     p1=page.evaluate(f'{api}.persistenceStats()')
     stats1=page.evaluate(f'{api}.uiStats()')
     first_after=page.locator('[data-tile="0,0"]').element_handle()
@@ -83,12 +83,12 @@ with sync_playwright() as p:
     page.evaluate(f'(scene)=>{api}.newScenario(scene)',scene)
     assert page.locator('[data-tile]').count()==88
     assert page.evaluate(f'Object.keys({api}.snapshot().units).length')>=24
-    large_ms=page.evaluate(f'''async()=>{
+    large_ms=page.evaluate('''async()=>{
         const before=performance.now();
         for(let i=0;i<8;i++)window.__HV_TEST_API.render();
         await Promise.resolve();
         return performance.now()-before;
-    }}''')
+    }''')
     checkpoint=page.evaluate(f'{api}.checkpoint()')
     page.evaluate(f'(cp)=>{api}.load(cp)',checkpoint)
     assert page.evaluate(f'{api}.snapshot().battleName')==scene['name']
