@@ -37,6 +37,7 @@ with sync_playwright() as p:
  page=browser.new_page(viewport={'width':1250,'height':1100})
  errors=[]
  page.on('pageerror',lambda e:errors.append(str(e)))
+ page.route('**/hayvengard_art_v1.json',lambda route: route.abort())
  page.evaluate('window.__HV_ENABLE_TEST_APIS=true')
  page.set_content(HTML)
  page.wait_for_timeout(120)
@@ -45,7 +46,7 @@ with sync_playwright() as p:
  assert page.locator('#board button[data-tile]').count()==88
  assert page.locator('#hg-skin-settings').count()==1
  assert not page.evaluate(f'{api}.artLoaded()')
- # Validate pack shape before applying and render real data URLs (no fetch).
+ # The offline fallback remains playable; simulated installation only tests the renderer.
  page.evaluate(f'(p)=>{api}.artInstall(p)',pack)
  assert page.evaluate(f'{api}.artLoaded()')
  assert page.locator('#hv12').evaluate("(e)=>e.classList.contains('hg-skin-on')")

@@ -6,7 +6,7 @@ on:
     branches: [main]
     paths:
       - 'state/_campaign-state.json'
-      - 'prototypes/chat-combat/engine-v24.html'
+      - 'prototypes/chat-combat/engine-v25.html'
       - 'prototypes/chat-combat/core/**'
       - 'prototypes/chat-combat/visual_skin.js'
       - 'prototypes/chat-combat/build_chat_bundle.py'
@@ -36,10 +36,12 @@ jobs:
         run: python prototypes/chat-combat/build_chat_bundle.py --root .
       - name: Check embedded JavaScript syntax
         run: |
-          python -c "from pathlib import Path; x=Path('prototypes/chat-combat/current-chat-battle.html').read_text(); Path('/tmp/havengard-v24.js').write_text(x.rsplit('<script>',1)[1].split('</script>',1)[0])"
-          node --check /tmp/havengard-v24.js
+          python -c "from pathlib import Path; x=Path('prototypes/chat-combat/current-chat-battle.html').read_text(); Path('/tmp/havengard-v25.js').write_text(x.rsplit('<script>',1)[1].split('</script>',1)[0])"
+          node --check /tmp/havengard-v25.js
       - name: Verify state-port injection and state replacement
         run: node prototypes/chat-combat/tests/qa_v24_state_ports.js
+      - name: Verify save coalescing and source snapshot deduplication
+        run: node prototypes/chat-combat/tests/qa_v25_persistence.js
       - name: Install browser for real end-to-end regression
         run: |
           python -m pip install playwright
@@ -52,6 +54,8 @@ jobs:
         run: python prototypes/chat-combat/tests/qa_v21_detail_and_web.py
       - name: Verify object-oriented spell and reaction dispatch
         run: python prototypes/chat-combat/tests/qa_v23_spells_reactions.py
+      - name: Browser-benchmark incremental rendering and no-upload artwork
+        run: python prototypes/chat-combat/tests/qa_v25_perf.py
       - name: Generate checksum for offline ChatGPT file loader
         run: python prototypes/chat-combat/build_inline_payload.py
       - name: Browser-test canonical story handoff

@@ -9,6 +9,8 @@ const HG_SKIN_REQUIRED=[
  'obstacles.wall','obstacles.rubble'
 ];
 const HG_SKIN_STORAGE='havengard-chat-visual-pack-1';
+const HG_SKIN_ART_URL='https://cdn.jsdelivr.net/gh/reider789/havengard-campaign-engine@acb428fc97a3281800feb7111931cc73d058a67c/prototypes/chat-combat/art/hayvengard_art_v1.json';
+let hgSkinLoading=false, hgSkinNotice='';
 let hgSkinAssets=null;
 function hgSkinValidate(raw){
  if(!raw||raw.schema!=='havengard-combat-art-v1'||raw.version!==1||
@@ -75,13 +77,13 @@ function hgSkinPaint(){
    '<label>Местность <select id="hg-skin-theme" style="color:#edf4f9;background:#234155;border:1px solid #8295a3;border-radius:4px;padding:5px">'+
    '<option value="meadow">Луг и дорога</option><option value="forest">Лесная поляна</option>'+
    '<option value="ruins">Руины</option><option value="city">Город</option></select></label>'+
-   '<label class="btn" style="cursor:pointer">📁 Загрузить изображения<input type="file" id="hg-skin-file" accept=".json,application/json" style="display:none"></label></div>'+
+   '<button type="button" class="btn" data-hg-art-retry>↻ Обновить оформление</button></div>'+
    '<small id="hg-skin-note" style="color:#c0d2de;font-size:10px"></small>';
   root.querySelector('.legend')?.insertAdjacentElement('afterend',ctrl);
  }
  $('hg-skin-theme').value=theme;
  $('hg-skin-note').textContent=hgSkinAssets?'✓ 4 фона · 4 героя · 8 типов врагов · препятствия':
-  'Нет графического пакета: выбери hayvengard_art_v1.json (достаточно одного раза, если браузер сохраняет данные)';
+  (hgSkinLoading?'Загрузка изображений…':hgSkinNotice||'Оформление доступно автоматически при подключении к сети. Сейчас используется резервный стиль.');
  const frame=$('board')?.parentElement;
  if(!frame)return;
  if(!hgSkinAssets){
@@ -90,7 +92,8 @@ function hgSkinPaint(){
   return;
  }
  root.classList.add('hg-skin-on');
- frame.style.backgroundImage='url("'+hgSkinAssets['backgrounds.'+theme]+'")';
+ const nextBackground='url("'+hgSkinAssets['backgrounds.'+theme]+'")';
+ if(frame.style.backgroundImage!==nextBackground)frame.style.backgroundImage=nextBackground;
  frame.style.backgroundSize='100% 100%';
  frame.style.backgroundPosition='center';
  for(const tile of root.querySelectorAll('#board .tile')){
@@ -100,10 +103,11 @@ function hgSkinPaint(){
    const id=at(coord[0],coord[1]);
    const k=heroes.includes(id)?'heroes.'+id:'enemies.'+hgSkinEnemy(id);
    const url=hgSkinAssets[k];
-   if(url){
+   if(url&&actorToken.dataset.hgSkinKey!==k){
     actorToken.style.backgroundImage='url("'+url+'")';
     actorToken.style.backgroundSize='cover';
     actorToken.style.backgroundPosition='center';
+    actorToken.dataset.hgSkinKey=k;
    }
   }
   if(tile.classList.contains('wall')||tile.classList.contains('rubble')){
@@ -114,46 +118,56 @@ function hgSkinPaint(){
    const defaultVariant=variants[(xy[0]*3+xy[1])%variants.length];
    const desired=s.obstacleSkins?.[cell]||defaultVariant;
    const url=hgSkinAssets['obstacles.'+desired]||hgSkinAssets['obstacles.'+which];
-   if(url){
+   if(url&&tile.dataset.hgSkinKey!==desired){
     tile.style.backgroundImage='url("'+url+'")';
     tile.style.backgroundSize='90% 90%';
     tile.style.backgroundRepeat='no-repeat';
     tile.style.backgroundPosition='center';
+    tile.dataset.hgSkinKey=desired;
    }
   }
  }
 }
 const hgSkinPriorRender=render;
 render=function(){hgSkinPriorRender();hgSkinPaint();};
-root.addEventListener('change',async event=>{
- if(event.target?.id==='hg-skin-theme'){
-  s.visualTheme=event.target.value;
-  render();hostSave();return;
- }
- if(event.target?.id!=='hg-skin-file')return;
- const file=event.target.files?.[0];if(!file)return;
- try{
-  if(file.size>3500000)throw Error('Файл больше 3,5 МБ');
-  const pack=JSON.parse(await file.text());
-  hgSkinAssets=hgSkinValidate(pack);
-  try{localStorage.setItem(HG_SKIN_STORAGE,JSON.stringify(pack))}catch(_){}
-  render();hostSave();
- }catch(err){const note=$('hg-skin-note');if(note)note.textContent='Ошибка оформления: '+String(err.message||err);}
+function hgSkinAutoLoad(){
+ if(hgSkinAssets||hgSkinLoading)return;
+ hgSkinLoading=true;hgSkinNotice='';
+ const after=()=>{hgSkinLoading=false;render()};
+ fetch(HG_SKIN_ART_URL,{cache:'force-cache'})
+  .then(response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.json()})
+  .then(pack=>{
+   hgSkinAssets=hgSkinValidate(pack);
+   try{localStorage.setItem(HG_SKIN_STORAGE,JSON.stringify(pack))}catch(_){}
+   after();
+  }).catch(err=>{
+   hgSkinNotice='Изображения недоступны: используется встроенный стиль. '+String(err.message||err).slice(0,90);
+   after();
+  });
+}
+root.addEventListener('change',event=>{
+ if(event.target?.id!=='hg-skin-theme')return;
+ s.visualTheme=event.target.value;render();hostSave();
+},true);
+root.addEventListener('click',event=>{
+ if(!event.target.closest('[data-hg-art-retry]'))return;
+ event.preventDefault();hgSkinAssets=null;hgSkinAutoLoad();
 },true);
 try{
  const bundled=root.querySelector('script[data-hg-artpack]')?.textContent;
- if(bundled){hgSkinAssets=hgSkinValidate(JSON.parse(bundled));try{localStorage.setItem(HG_SKIN_STORAGE,bundled)}catch(_){}}
+ if(bundled)hgSkinAssets=hgSkinValidate(JSON.parse(bundled));
  else{
   const cached=localStorage.getItem(HG_SKIN_STORAGE);
   if(cached)hgSkinAssets=hgSkinValidate(JSON.parse(cached));
  }
 }catch(_){hgSkinAssets=null}
-// Trigger the first decorated render after the original boot render and after
-// inline artwork (if any) has been parsed. This is required for fresh UI boots.
 render();
+if(!hgSkinAssets)hgSkinAutoLoad();
 if(globalThis.__HV_ENABLE_TEST_APIS===true){
  Object.assign(globalThis.__HV_TEST_API,{
   artLoaded:()=>!!hgSkinAssets,
+  artLoading:()=>hgSkinLoading,
+  artURL:()=>HG_SKIN_ART_URL,
   artTheme:()=>s.visualTheme,
   artInstall:pack=>{hgSkinAssets=hgSkinValidate(pack);render()}
  });
