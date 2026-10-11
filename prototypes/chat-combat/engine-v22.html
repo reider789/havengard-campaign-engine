@@ -148,16 +148,6 @@ const resumable=v21EmbeddedStory?
 let s=resumable||newState();
 // Inserted at BUILD TIME; there are no runtime module imports or remote scripts.
 /*__HV_COMBAT_CORE_MODULES__*/
-const diceRoller=new CombatDiceRoller();
-const combatJournal=new CombatJournal(()=>s,v21LocalizeLog);
-const conditions=new CombatConditions({
- getState:()=>s,log,name:id=>names[id],statusName:v21StatusName,
- effectName:v21EffectName,isHero,distance:dist
-});
-const battlefield=new CombatBattlefield({
- walls,rubble,key:idxy,occupant:at,actor:me,
- webDifficult:(x,y)=>v21WebInside({x,y})
-});
 // Canonical resources are applied only when a NEW tactical session is created, never over in-progress combat.
 function applySourceSeed(state){
 for(const h of heroes){const data=runtime?.characters?.[h];if(!data)continue;const u=state.units[h];u.hp=initialResource(h,'hp',u.hp);u.max=data.resources?.hp?.max??u.max}
@@ -177,6 +167,16 @@ function hostSave(){
  return saved;
 }
 const turn=()=>order[s.index],me=()=>s.units[turn()],isHero=id=>heroes.includes(id),at=(x,y)=>Object.keys(s.units).find(id=>s.units[id].hp>0&&s.units[id].x===x&&s.units[id].y===y);
+const diceRoller=new CombatDiceRoller();
+const combatJournal=new CombatJournal(()=>s,v21LocalizeLog);
+const conditions=new CombatConditions({
+ getState:()=>s,log,name:id=>names[id],statusName:v21StatusName,
+ effectName:v21EffectName,isHero,distance:dist
+});
+const battlefield=new CombatBattlefield({
+ walls,rubble,key:idxy,occupant:at,actor:me,
+ webDifficult:(x,y)=>v21WebInside({x,y})
+});
 function log(t){return combatJournal.append(t)}
 const v21StatusTitles={aim:'Точный прицел',burn:'Горение',toxic:'Отравляющий яд — реакции недоступны',poisoned:'Отравление',prone:'Лежит',goad:'Провокация',living:'Живая стрела — остановка',sliver:'Расщепление разума — штраф к спасброску',frost:'Охлаждение — снижение скорости',commanded:'Приказ: Стой',paralyzed:'Паралич',blinded:'Слепота',deafened:'Глухота',grappled:'Захват',bigbyGrappled:'Захват рукой Бигби',restrained:'Опутан паутиной',slow:'Замедление',abjured:'Изгнание',web:'Паутина',shield:'Щит',bless:'Благословение',mage:'Доспехи мага',faith:'Щит веры',sacred:'Священное оружие',vex:'Преследование цели'};
 function v21StatusName(kind){return v21StatusTitles[kind]||v21EffectName(kind)}
