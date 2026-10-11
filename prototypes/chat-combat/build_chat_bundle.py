@@ -282,15 +282,15 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
             'isMeleeWeapon:(attacker,weapon,target)=>{'
             'const w=weapons[attacker]?.find(v=>v[0]===weapon);'
             'return Boolean(w&&(w[7]===5||(weapon==="dagger"&&dist(s.units[attacker],s.units[target])<=5)));'
-            '}});\\n'
+            '}});\n'
             'if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{'
             'knockoutHit:(actor,target,amount,source="melee")=>{'
             's.nonlethalMeleeContext=source==="melee"?{attacker:actor,target}:null;'
             'try{hurt(target,amount,"оружие")}finally{delete s.nonlethalMeleeContext}render();},'
             'knockoutChoice:choice=>{const b=root.querySelector("[data-hg-ko="+choice+"]");if(!b)throw Error("no knockout choice");b.click()},'
-            'knockoutActive:id=>knockout2024.knocked(id)});\\n'
+            'knockoutWeaponHit:(actor,target,amount)=>afterWeaponHit(actor,target,amount),knockoutActive:id=>knockout2024.knocked(id)});\n'
         )
-        source=source.replace(terminal,'\\n'+code+'\\n'+port+terminal,1)
+        source=source.replace(terminal,'\n'+code+'\n'+port+terminal,1)
         modules += ('knockout_2024.js',)
     if '<div id="hv12">' not in source or '<script>' not in source:
         raise ValueError('Unknown combat HTML format')
