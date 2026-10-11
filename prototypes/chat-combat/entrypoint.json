@@ -18,10 +18,10 @@
     "Indomitable pause/resume accept/reject",
     "offline immediate fallback"
   ],
-  "status": "v25 incremental grid, coalesced state saves and auto-cached optional CDN visuals, standalone in-chat battle (no user upload)",
+  "status": "v26 Heroes-inspired CSS skin with bounded event-driven hit, spell, reaction and status animations; off/standard/rich",
   "note": "Current UI bundle is generated from canonical state. Reload new encounters only, never overwrite active combat. Save checkpoints as JSON.",
   "chat_mode": "self-contained HTML/CSS/JavaScript source; no external script injection",
-  "version": "v25",
+  "version": "v26",
   "implemented_v19": [
     "event-driven multi-stage attack reactions Protection > Mark > Uncanny/Cloak/Riposte",
     "2024 Counterspell with CON save, spell slot refund on cancellation and nested reaction stack",
@@ -36,7 +36,7 @@
     "New monster unique mechanics require adjudication until handler tested"
   ],
   "architecture": {
-    "template": "prototypes/chat-combat/engine-v25.html",
+    "template": "prototypes/chat-combat/engine-v26.html",
     "core_modules": [
       "core/dice.js",
       "core/journal.js",
@@ -46,10 +46,12 @@
       "core/reaction_resolver.js",
       "core/state_port.js",
       "core/dom_renderer.js",
-      "core/persistence.js"
+      "core/persistence.js",
+      "core/visual_fx.js"
     ],
     "build": "one offline HTML / no external scripts",
     "saved_session_schema": 12,
-    "no_user_uploads": true
+    "no_user_uploads": true,
+    "theme": "fantasy_ui.css"
   }
 }

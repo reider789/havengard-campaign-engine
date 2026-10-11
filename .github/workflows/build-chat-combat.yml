@@ -6,9 +6,10 @@ on:
     branches: [main]
     paths:
       - 'state/_campaign-state.json'
-      - 'prototypes/chat-combat/engine-v25.html'
+      - 'prototypes/chat-combat/engine-v26.html'
       - 'prototypes/chat-combat/core/**'
       - 'prototypes/chat-combat/visual_skin.js'
+      - 'prototypes/chat-combat/fantasy_ui.css'
       - 'prototypes/chat-combat/build_chat_bundle.py'
       - 'prototypes/chat-combat/build_inline_payload.py'
       - 'prototypes/chat-combat/tests/**'
@@ -36,8 +37,8 @@ jobs:
         run: python prototypes/chat-combat/build_chat_bundle.py --root .
       - name: Check embedded JavaScript syntax
         run: |
-          python -c "from pathlib import Path; x=Path('prototypes/chat-combat/current-chat-battle.html').read_text(); Path('/tmp/havengard-v25.js').write_text(x.rsplit('<script>',1)[1].split('</script>',1)[0])"
-          node --check /tmp/havengard-v25.js
+          python -c "from pathlib import Path; x=Path('prototypes/chat-combat/current-chat-battle.html').read_text(); Path('/tmp/havengard-v26.js').write_text(x.rsplit('<script>',1)[1].split('</script>',1)[0])"
+          node --check /tmp/havengard-v26.js
       - name: Verify state-port injection and state replacement
         run: node prototypes/chat-combat/tests/qa_v24_state_ports.js
       - name: Verify save coalescing and source snapshot deduplication
