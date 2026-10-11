@@ -86,7 +86,6 @@ with TemporaryDirectory() as work:
         assert scene['chronicle_anchor'] in got
         assert resumed.locator('#actor').count()==1
         # Page error would occur if a demo or a stale effect dictionary overwrote the saved state.
-        resumed_page=page.evaluate('()=>null')  # client remains separate
         assert resumed.locator('#round').inner_text()=='Раунд 3'
         resumed.close()
         # An unrelated saved battle must never be resumed in the narrative scene.
@@ -123,5 +122,27 @@ with TemporaryDirectory() as work:
         assert reset['round']==1 and reset['battleId']==scene['battle_id']
         assert reset['units']['guard']['hp']==0
         assert not errors,errors
+        # A real scene may start with a foe, not a hero. The first enemy acts or
+        # pauses on a defender's reaction; the encounter never waits for an absent hero button.
+        enemy_first=json.loads(json.dumps(scene))
+        enemy_first['battle_id']='qa_story_enemy_first'
+        enemy_first['enemies'][0]['initiative']=35
+        enemy_first['enemies'][0]['attack']['range']=80
+        enemy_first_path=Path(work)/'enemy-first.json'
+        enemy_first_html=Path(work)/'enemy-first.html'
+        enemy_first_path.write_text(json.dumps(enemy_first,ensure_ascii=False),encoding='utf-8')
+        build(REPO,enemy_first_path,enemy_first_html)
+        foe_page=browser.new_page()
+        foe_errors=[]
+        foe_page.on('pageerror',lambda exc:foe_errors.append(str(exc)))
+        foe_page.evaluate('window.__HV_ENABLE_TEST_APIS=true')
+        foe_page.set_content(enemy_first_html.read_text(encoding='utf-8'))
+        foe_page.wait_for_timeout(150)
+        assert not foe_errors,foe_errors
+        foe_state=foe_page.evaluate(f'{api}.snapshot()')
+        assert foe_state['battleId']=='qa_story_enemy_first'
+        assert foe_state['round']==1
+        assert foe_state['pending'] or any('атакует' in line for line in foe_state['history']), 'Enemy at top initiative did nothing'
+        foe_page.close()
         browser.close()
     print('V21 STORY BATTLE AUTOBOOT QA PASSED')
