@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "engine": "engine-v28.html",
+  "engine": "engine-v29.html",
   "bundle": "current-chat-battle.html",
   "source_revision": 27,
   "hero_count": 4,
@@ -8,7 +8,7 @@
   "canonical": false,
   "mode": "training",
   "architecture": {
-    "version": "v28",
+    "version": "v29",
     "bundled_modules": [
       "dice.js",
       "journal.js",
@@ -44,6 +44,6 @@
     "auto_cached_cdn": true,
     "asset_requests_on_cache_miss": 1
   },
-  "bundle_sha256": "1c55f17cf89d5e6251ca7ae340e09d899249a242a68d7850bbdd838e26c16235",
-  "bundle_size_bytes": 357190
+  "bundle_sha256": "0d577915e2eeb0dfba337754947526bdec418a08722b19ad4a66b8fbfb20cd6b",
+  "bundle_size_bytes": 359338
 }
