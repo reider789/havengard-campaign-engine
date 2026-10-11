@@ -864,7 +864,7 @@ function v20ValidatedEnemy(raw){
  const attack=raw.attack||raw.enemyAttack||{},bonus=v20Numbers(attack.bonus,-10,25,4),count=v20Numbers(attack.count,1,12,1),die=v20Numbers(attack.die,4,12,6),flat=v20Numbers(attack.flat,-10,40,2),range=v20Numbers(attack.range,5,600,5);
  if(!name||x===-1||y===-1||hp===-1||ac===-1||![4,6,8,10,12].includes(die)||range%5!==0)throw Error('Проверь имя, клетку, ПЗ, КД и параметры атаки');
  const sav=raw.saves||{},saves={};for(const stat of ['STR','DEX','CON','INT','WIS','CHA'])saves[stat]=v20Numbers(sav[stat],-10,25,0);
- return {name,x,y,hp,ac,initiative,enemyAttack:{bonus,count,die,flat,range},enemySaves:saves,initiativeRoll:initiative,abilities:Array.isArray(raw.abilities)?raw.abilities.map(v=>v20SafeName(v)).filter(Boolean).slice(0,12):[]};
+ return {name,x,y,hp,ac,initiative,enemyAttack:{bonus,count,die,flat,range},enemySaves:saves,initiativeRoll:initiative,abilities:Array.isArray(raw.abilities)?raw.abilities.map(v=>v20SafeName(v)).filter(Boolean).slice(0,12):[],tokenKey:(typeof raw.tokenKey==='string'&&['warrior','rogue','archer','mage','wolf','orc','undead','dragon'].includes(raw.tokenKey)?raw.tokenKey:null)};
 }
 function v20RebuildInitiative(){
  const prior=order[s.index]||'daphne';
@@ -1053,6 +1053,7 @@ function v21NewScenario(raw){
  }
  s.extraEnemies=a.enemies.map((e,i)=>({id:'enemy_'+(i+1),...e,joinRound:1}));
   s.scenario={terrain:a.terrain,initiative:a.initiative};s.battleName=a.name;s.sessionKind=a.kind;
+ s.visualTheme=['meadow','forest','ruins','city'].includes(raw.theme)?raw.theme:null;
  s.battleId=typeof raw.battle_id==='string'?raw.battle_id:null;
  s.chronicleAnchor=typeof raw.chronicle_anchor==='string'?raw.chronicle_anchor:null;
  s.narrativeContext=typeof raw.narrative_context==='string'?raw.narrative_context:null;
