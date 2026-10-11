@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "engine": "engine-v27.html",
+  "engine": "engine-v28.html",
   "bundle": "current-chat-battle.html",
   "source_revision": 27,
   "hero_count": 4,
@@ -8,7 +8,7 @@
   "canonical": false,
   "mode": "training",
   "architecture": {
-    "version": "v27",
+    "version": "v28",
     "bundled_modules": [
       "dice.js",
       "journal.js",
@@ -20,7 +20,8 @@
       "spell_resolver.js",
       "reaction_resolver.js",
       "visual_fx.js",
-      "narrative_handoff.js"
+      "narrative_handoff.js",
+      "knockout_2024.js"
     ],
     "offline": true,
     "theme": "heroes-inspired",
@@ -30,7 +31,8 @@
       "standard",
       "rich"
     ],
-    "narrative_handoff": "player_click_to_chat"
+    "narrative_handoff": "player_click_to_chat",
+    "nonlethal": "2024 melee knockout at 1 HP"
   },
   "battle_id": null,
   "chronicle_anchor": null,
@@ -42,6 +44,6 @@
     "auto_cached_cdn": true,
     "asset_requests_on_cache_miss": 1
   },
-  "bundle_sha256": "d3f2d056e9b53593da265724a022c4739b002a1f279ef4e1aecf64faa8ed37c1",
-  "bundle_size_bytes": 350798
+  "bundle_sha256": "1c55f17cf89d5e6251ca7ae340e09d899249a242a68d7850bbdd838e26c16235",
+  "bundle_size_bytes": 357190
 }
