@@ -32,6 +32,7 @@ with sync_playwright() as p:
     page.wait_for_function(f'{api} && {api}.artLoaded()',timeout=15000)
     assert len(requests)==1,requests
     assert page.locator('#hg-skin-file').count()==0
+    assert page.locator('[data-hg-art-retry]').count()==1
     assert page.locator('#board button[data-tile]').count()==88,errors
     assert page.locator('.unit').first.get_attribute('style') is not None
     # A save sends the SESSION only when the identical canonical reference is inside HTML.
@@ -63,6 +64,22 @@ with sync_playwright() as p:
     page.wait_for_timeout(25)
     assert page.evaluate('window.__lastChatSave.session.units.yar.hp')==state_before['units']['yar']['hp']-3
     assert page.evaluate('window.__lastChatSave.source') is None
+    # Web overlay must clear when concentration ends, including on retained tiles.
+    page.evaluate(f'''{api}.set(s=>{{
+      s.web={{x:2,y:2,owner:'daphne',until:s.elapsed+3600}};
+      s.effects.push({{owner:'daphne',kind:'web',targets:['daphne'],
+                      until:s.elapsed+3600,concentration:true}});
+    }})''')
+    tile=page.locator('[data-tile="2,2"]')
+    assert 'web' in tile.get_attribute('class').split()
+    page.evaluate(f'{api}.render()')
+    assert tile.get_attribute('title').count('Паутина')==1
+    page.evaluate(f'''{api}.set(s=>{{
+      s.web=null;s.effects=s.effects.filter(e=>e.kind!=='web');
+    }})''')
+    tile=page.locator('[data-tile="2,2"]')
+    assert 'web' not in tile.get_attribute('class').split()
+    assert 'Паутина' not in tile.get_attribute('title')
     # Scene stress: 20 enemies, same 88-cell area, retained board DOM and checkpoint import.
     used={'E6','B7','D6','C6'}
     cells=[chr(65+x)+str(y) for y in range(1,9) for x in range(11)
