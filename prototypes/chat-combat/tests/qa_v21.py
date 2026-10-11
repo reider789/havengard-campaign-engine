@@ -96,6 +96,43 @@ with sync_playwright() as p:
     assert after['pending'] is None
     assert after['units']['daphne']['shieldFree']==0
     assert after['units']['daphne']['hp']==hp
+    # Player can back out of a successful attack while damage is still pending.
+    # Undo must restore action economy, HP, attack uses, resources and journal,
+    # and must persist across an exported/imported reaction checkpoint.
+    page.evaluate(f'''{api}.set(s=>{{
+       s.index=3;s.tab="actions";s.pending=null;s.draft=null;
+       s.units.yar.action=1;s.units.yar.bonus=1;s.units.yar.attacks=0;
+       s.units.guard.x=2;s.units.guard.y=4;s.target="guard";
+    }})''')
+    before_undo=page.evaluate(f'{api}.snapshot()')
+    page.locator('[data-action="attack"]').click()
+    assert page.locator('[data-op="apply"]').is_enabled()
+    page.locator('[data-op="apply"]').click()
+    pending_undo=page.evaluate(f'{api}.snapshot()')
+    assert pending_undo['pending']['kind']=='maneuver'
+    assert pending_undo['units']['yar']['action']==before_undo['units']['yar']['action']-1
+    assert page.locator('[data-v21-undo-action]').count()==1
+    assert page.locator('[data-choice="no"]').count()==1, 'Continue attack without maneuver must remain available'
+    undo_checkpoint=page.evaluate(f'{api}.checkpoint()')
+    page.evaluate(f'(cp)=>{api}.load(cp)',undo_checkpoint)
+    assert page.locator('[data-v21-undo-action]').count()==1, 'Undo missing after restoring a suspended roll'
+    page.locator('[data-v21-undo-action]').click()
+    undone=page.evaluate(f'{api}.snapshot()')
+    assert undone['pending'] is None and undone['draft'] is None
+    assert undone['units']['yar']['action']==before_undo['units']['yar']['action']
+    assert undone['units']['yar']['attacks']==before_undo['units']['yar']['attacks']
+    assert undone['units']['yar']['superiority']==before_undo['units']['yar']['superiority']
+    assert undone['units']['yar']['savageUsed']==before_undo['units']['yar'].get('savageUsed')
+    assert undone['units']['guard']['hp']==before_undo['units']['guard']['hp']
+    assert undone['history'][-1].find('отменено')!=-1
+    # Other actions are selectable immediately, without needing to end Yar's turn.
+    page.locator('[data-action="wind"]').click()
+    switched=page.evaluate(f'{api}.snapshot()')
+    assert switched['draft']['key']=='wind' and switched['units']['yar']['action']==1
+    assert page.locator('[data-v21-undo-action]').count()==0
+    page.locator('[data-op="cancel"]').click()
+    # Resume default test hero/turn without resetting canonical resources.
+    page.evaluate(f'{api}.set(s=>{{s.index=1;s.tab="actions";s.draft=null;}})')
     # Invalid arena must not discard the original encounter.
     invalid=json.loads(json.dumps(sample));invalid['heroes']['yar']['cell']='E6'
     try:
