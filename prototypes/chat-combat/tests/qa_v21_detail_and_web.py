@@ -50,7 +50,7 @@ with sync_playwright() as p:
     # Restrained imposes disadvantage on Dexterity saves (D&D 2024).
     page.evaluate('window.__qaD20=[0.95,0.05];Math.random=()=>window.__qaD20.shift()??0.05')
     assert page.evaluate(f'{api}.save("guard","DEX",19)') is False
-    assert any('ПОМЕХА: к20 [20, 2] → 2' in line for line in page.evaluate(f'{api}.snapshot().history'))
+    assert any('ПОМЕХА: к20 [20, 2] → 2' in line for line in page.evaluate(f'{api}.snapshot().history')), page.evaluate(f'{api}.snapshot().history')[-8:]
     # Advantage against restrained targets, full d20 rolls, modifiers, target AC.
     page.evaluate('Math.random=()=>0.90')
     page.evaluate(f'{api}.set(s=>{{s.index=3;s.units.yar.action=1;s.units.yar.superiority=0;s.units.yar.weapon="sword";s.target="guard";s.units.guard.x=2;s.units.guard.y=4;}})')
