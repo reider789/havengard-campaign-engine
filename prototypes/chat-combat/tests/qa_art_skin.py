@@ -15,8 +15,25 @@ assets.update({'enemies.'+x:{'mime':'image/webp','data':DUMMY} for x in ENEMIES}
 assets.update({'obstacles.'+x:{'mime':'image/webp','data':DUMMY} for x in OBSTACLES})
 pack={'schema':'havengard-combat-art-v1','version':1,'assets':assets}
 assert 'const HG_SKIN_THEME=' in HTML, 'Visual skin is not compiled into current chat battle'
+# Offline art must be painted on the INITIAL rendering pass when the pack
+# has been inserted into the game root before the engine script executes.
+art_tag='<script type="application/json" data-hg-artpack>'+json.dumps(pack,separators=(',',':'))+'</script>'
+embedded=HTML.replace('<div id="hv12">','<div id="hv12">'+art_tag,1)
+assert embedded!=HTML
 with sync_playwright() as p:
  browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
+ first=browser.new_page(viewport={'width':1250,'height':1100})
+ bootstrap_errors=[]
+ first.on('pageerror',lambda e:bootstrap_errors.append(str(e)))
+ first.evaluate('window.__HV_ENABLE_TEST_APIS=true')
+ first.set_content(embedded)
+ first.wait_for_timeout(150)
+ assert not bootstrap_errors,bootstrap_errors
+ assert first.locator('#board button[data-tile]').count()==88
+ assert first.locator('#hv12').evaluate("(e)=>e.classList.contains('hg-skin-on')")
+ assert 'data:image/webp;base64' in first.locator('.boardframe').get_attribute('style')
+ assert first.evaluate('window.__HV_TEST_API.artLoaded()')
+ first.close()
  page=browser.new_page(viewport={'width':1250,'height':1100})
  errors=[]
  page.on('pageerror',lambda e:errors.append(str(e)))
