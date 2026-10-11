@@ -59,6 +59,8 @@ jobs:
         run: python prototypes/chat-combat/tests/qa_v25_perf.py
       - name: Browser-test v26 fantasy UI, effects and resource limits
         run: python prototypes/chat-combat/tests/qa_v26_fantasy_fx.py
+      - name: Verify direct in-chat v26 boot without iframe or crypto
+        run: python prototypes/chat-combat/tests/qa_v26_direct_chat_embed.py
       - name: Generate checksum for offline ChatGPT file loader
         run: python prototypes/chat-combat/build_inline_payload.py
       - name: Browser-test canonical story handoff
