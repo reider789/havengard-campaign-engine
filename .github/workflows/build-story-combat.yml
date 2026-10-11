@@ -1,0 +1,55 @@
+name: Build plot encounter for in-chat combat
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'prototypes/chat-combat/story/active-scene.json'
+      - '.github/workflows/build-story-combat.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: story-chat-combat
+  cancel-in-progress: false
+jobs:
+  story:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate the authored scene and package pinned canon
+        run: |
+          test -f prototypes/chat-combat/story/active-scene.json
+          python prototypes/chat-combat/build_chat_bundle.py \
+            --root . \
+            --scenario prototypes/chat-combat/story/active-scene.json \
+            --output prototypes/chat-combat/story/story-chat-battle.html
+      - name: Check standalone story JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text=Path('prototypes/chat-combat/story/story-chat-battle.html').read_text(encoding='utf-8')
+          assert '<script type="application/json" data-hg-scene>' in text
+          Path('/tmp/hg-story.js').write_text(text.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
+          PY
+          node --check /tmp/hg-story.js
+      - name: Browser tests including revision isolation
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          python prototypes/chat-combat/tests/qa_v21_story.py
+      - name: Publish only the story bundle, never canonical state
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add prototypes/chat-combat/story/story-chat-battle.html prototypes/chat-combat/story/story-manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'build(chat-combat): package current story encounter [skip ci]'
+            git -c pull.rebase=true pull --rebase origin main
+            git push origin HEAD:main
+          fi
