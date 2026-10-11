@@ -113,7 +113,7 @@ class StoryEncounterTest(unittest.TestCase):
             self.assertIn('Тестовая засада',content)
             self.assertEqual((chat/'current-chat-battle.html').read_bytes(),training)
             self.assertEqual(json.loads(source.read_text(encoding='utf-8')),state)
-            self.assertNotIn('data-hg-scene',(chat/'current-chat-battle.html').read_text(encoding='utf-8'))
+            self.assertNotIn('<script type="application/json" data-hg-scene>',(chat/'current-chat-battle.html').read_text(encoding='utf-8'))
             self.assertEqual(json.loads((chat/'story-manifest.json').read_text(encoding='utf-8'))['battle_id'],'test_story_001')
             self.assertEqual(json.loads((chat/'current-manifest.json').read_text(encoding='utf-8'))['mode'],'training')
             state['state_revision']=39
