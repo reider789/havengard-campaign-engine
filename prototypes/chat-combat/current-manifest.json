@@ -42,6 +42,6 @@
     "auto_cached_cdn": true,
     "asset_requests_on_cache_miss": 1
   },
-  "bundle_sha256": "8b2eacf23c65863b599561fa35357ed5da7b7e63449c21639cb52888b6a4246b",
-  "bundle_size_bytes": 350438
+  "bundle_sha256": "d3f2d056e9b53593da265724a022c4739b002a1f279ef4e1aecf64faa8ed37c1",
+  "bundle_size_bytes": 350798
 }
