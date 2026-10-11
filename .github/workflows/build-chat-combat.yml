@@ -17,8 +17,8 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: chat-combat-bundle
-  cancel-in-progress: false
+  group: chat-combat-bundle-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   package:
     runs-on: ubuntu-latest
