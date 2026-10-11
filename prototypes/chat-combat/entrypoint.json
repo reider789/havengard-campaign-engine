@@ -18,10 +18,10 @@
     "Indomitable pause/resume accept/reject",
     "offline immediate fallback"
   ],
-  "status": "v21 encounter configuration and result draft; in-chat client rendering remains unverified",
+  "status": "v22 modular core compiled into a self-contained ChatGPT bundle; embedded client validation pending",
   "note": "Current UI bundle is generated from canonical state. Reload new encounters only, never overwrite active combat. Save checkpoints as JSON.",
   "chat_mode": "self-contained HTML/CSS/JavaScript source; no external script injection",
-  "version": "v21",
+  "version": "v22",
   "implemented_v19": [
     "event-driven multi-stage attack reactions Protection > Mark > Uncanny/Cloak/Riposte",
     "2024 Counterspell with CON save, spell slot refund on cancellation and nested reaction stack",
@@ -34,5 +34,17 @@
     "Confirm full embedded ChatGPT client rendering with actual user",
     "Verify campaign outcome via explicit approval before writing canonical transactions",
     "New monster unique mechanics require adjudication until handler tested"
-  ]
+  ],
+  "architecture": {
+    "template": "prototypes/chat-combat/engine-v22.html",
+    "core_modules": [
+      "core/dice.js",
+      "core/journal.js",
+      "core/conditions.js",
+      "core/battlefield.js"
+    ],
+    "build": "one offline HTML / no external scripts",
+    "saved_session_schema": 12,
+    "no_user_uploads": true
+  }
 }
