@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "engine": "engine-v25.html",
+  "engine": "engine-v26.html",
   "bundle": "current-chat-battle.html",
   "source_revision": 27,
   "hero_count": 4,
@@ -8,7 +8,7 @@
   "canonical": false,
   "mode": "training",
   "architecture": {
-    "version": "v25",
+    "version": "v26",
     "bundled_modules": [
       "dice.js",
       "journal.js",
@@ -18,9 +18,17 @@
       "dom_renderer.js",
       "persistence.js",
       "spell_resolver.js",
-      "reaction_resolver.js"
+      "reaction_resolver.js",
+      "visual_fx.js"
     ],
-    "offline": true
+    "offline": true,
+    "theme": "heroes-inspired",
+    "visual_fx": "css-transforms",
+    "quality_modes": [
+      "off",
+      "standard",
+      "rich"
+    ]
   },
   "battle_id": null,
   "chronicle_anchor": null,
@@ -32,6 +40,6 @@
     "auto_cached_cdn": true,
     "asset_requests_on_cache_miss": 1
   },
-  "bundle_sha256": "eb71707e90b23960f4e27653805555fa489cb42259426b3de924d71f27ab1018",
-  "bundle_size_bytes": 329813
+  "bundle_sha256": "424530a9a001fc4d6a91a8e334e97786301d81884bba6f4f1ff61ed4d38ff465",
+  "bundle_size_bytes": 346285
 }
