@@ -27,6 +27,31 @@ with sync_playwright() as p:
     assert initial['sourceRevision']==27, initial['sourceRevision']
     assert initial['units']['yar']['storm']==20
     assert initial['units']['daphne']['shieldFree']==1
+    # Boot a second panel from a saved chat state containing active effects.
+    # This previously threw: Cannot access 'v21EffectTitles' before initialization.
+    restored=json.loads(json.dumps(initial))
+    restored['effects']=[
+        {'kind':'bless','owner':'lyutobor','targets':['yar'],'until':120,'concentration':True},
+        {'kind':'mage','owner':'daphne','targets':['daphne'],'until':28800,'concentration':False},
+    ]
+    restored['inspected']='daphne'
+    restored_html=HTML.replace(
+        'const received=globalThis.__bindings?.value;',
+        'const received={session:'+json.dumps(restored,ensure_ascii=False,separators=(',',':'))+'};',
+        1,
+    )
+    assert restored_html!=HTML, 'Saved-state injection point is missing'
+    resumed=browser.new_page()
+    resume_errors=[]
+    resumed.on('pageerror',lambda e:resume_errors.append(str(e)))
+    resumed.set_content(restored_html)
+    resumed.wait_for_timeout(120)
+    assert resumed.locator('[data-tile]').count()==88, resume_errors
+    assert 'Доспехи мага' in resumed.locator('#inspector').inner_text(), resume_errors
+    resumed.locator('[data-inspect="yar"]').click()
+    assert 'Благословение' in resumed.locator('#inspector').inner_text(), resume_errors
+    assert not resume_errors, resume_errors
+    resumed.close()
     # UX: no more than 9 visible buttons in the long Actions/All lists.
     visible=lambda: page.locator('#choices button.choice:visible').count()
     assert visible()<=9 and visible()>=1, ('actions page',visible())
