@@ -202,12 +202,12 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     state = json.loads((root / 'state/_campaign-state.json').read_text(encoding='utf-8'))
     old_ref_path = root / 'prototypes/combat/app/runtime/latest.json'
     old_ref = json.loads(old_ref_path.read_text(encoding='utf-8')) if old_ref_path.exists() else {}
-    source_path = root / 'prototypes/chat-combat/engine-v24.html'
+    source_path = root / 'prototypes/chat-combat/engine-v25.html'
     source = source_path.read_text(encoding='utf-8')
     # Compile all source modules into one self-contained script; no runtime network fetch.
     core_dir = root / 'prototypes/chat-combat/core'
     module_sites = {
-        '/*__HV_COMBAT_CORE_MODULES__*/': ('dice.js', 'journal.js', 'conditions.js', 'battlefield.js', 'state_port.js'),
+        '/*__HV_COMBAT_CORE_MODULES__*/': ('dice.js', 'journal.js', 'conditions.js', 'battlefield.js', 'state_port.js', 'dom_renderer.js', 'persistence.js'),
         '/*__HV_SPELL_RESOLVER__*/': ('spell_resolver.js',),
         '/*__HV_REACTION_RESOLVER__*/': ('reaction_resolver.js',),
     }
@@ -244,15 +244,15 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
     output = output_path or root / 'prototypes/chat-combat' / ('story-chat-battle.html' if scene else 'current-chat-battle.html')
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(result, encoding='utf-8')
-    metadata = {'schema_version': 2, 'engine': 'engine-v24.html',
+    metadata = {'schema_version': 2, 'engine': 'engine-v25.html',
                 'bundle': output.name,
                 'source_revision': state['state_revision'], 'hero_count': len(runtime['characters']),
                 'usage': 'Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.',
                 'canonical': False, 'mode': 'story' if scene else 'training',
-                'architecture': {'version': 'v24', 'bundled_modules': list(modules), 'offline': True},
+                'architecture': {'version': 'v25', 'bundled_modules': list(modules), 'offline': True},
                 'battle_id': scene['battle_id'] if scene else None,
                 'chronicle_anchor': scene['chronicle_anchor'] if scene else None,
-                'visual_skin': {'engine_module': 'visual_skin.js', 'offline_art_pack_schema': 'havengard-combat-art-v1', 'expected_assets': 24, 'embedded': skin_path.exists()},
+                'visual_skin': {'engine_module': 'visual_skin.js', 'offline_art_pack_schema': 'havengard-combat-art-v1', 'expected_assets': 24, 'embedded': False, 'auto_cached_cdn': True, 'asset_requests_on_cache_miss': 1},
                 'bundle_sha256': hashlib.sha256(result.encode('utf-8')).hexdigest(),
                 'bundle_size_bytes': len(result.encode('utf-8'))}
     manifest_path = output.parent / ('story-manifest.json' if scene else 'current-manifest.json')

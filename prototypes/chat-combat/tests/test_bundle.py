@@ -14,7 +14,7 @@ class ChatBundleTest(unittest.TestCase):
             root=Path(work)
             (root/'state').mkdir()
             (root/'prototypes/chat-combat').mkdir(parents=True)
-            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v24.html',root/'prototypes/chat-combat/engine-v24.html')
+            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v25.html',root/'prototypes/chat-combat/engine-v25.html')
             shutil.copytree(Path(__file__).resolve().parents[1]/'core',root/'prototypes/chat-combat/core')
             state={'state_revision':38,'characters':{}}
             for h in ('yar','daphne','lyutobor','rada'):
@@ -31,7 +31,7 @@ class ChatBundleTest(unittest.TestCase):
             self.assertIn('"healing":4',txt)
             self.assertIn('"current":17',txt)
             self.assertIn('data-hg-runtime',txt)
-            for core_class in ('CombatDiceRoller','CombatJournal','CombatConditions','CombatBattlefield','CombatSpellResolver','CombatReactionResolver','CombatStatePort'):
+            for core_class in ('CombatDiceRoller','CombatJournal','CombatConditions','CombatBattlefield','CombatSpellResolver','CombatReactionResolver','CombatStatePort','CombatDOMRenderer','CombatPersistenceCoordinator'):
                 self.assertIn('class '+core_class,txt)
             self.assertNotIn('/*__HV_COMBAT_CORE_MODULES__*/',txt)
             self.assertNotIn('/*__HV_SPELL_RESOLVER__*/',txt)
@@ -40,7 +40,7 @@ class ChatBundleTest(unittest.TestCase):
             self.assertIn('combatReactionResolver.reactChoice(choice)',txt)
             self.assertIn('const s=this._port.getState()',txt)
             self.assertIn('new CombatStatePort(()=>s',txt)
-            self.assertIn('"version": "v24"',json.dumps(manifest))
+            self.assertIn('"version": "v25"',json.dumps(manifest))
             self.assertNotIn('<script src=',txt)
             state['state_revision']=39
             state['characters']['yar']['inventory_catalog']['potion']['quantity']=6
@@ -101,7 +101,7 @@ class StoryEncounterTest(unittest.TestCase):
             (root/'state').mkdir()
             chat=root/'prototypes/chat-combat'
             chat.mkdir(parents=True)
-            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v24.html',chat/'engine-v24.html')
+            shutil.copy(Path(__file__).resolve().parents[1]/'engine-v25.html',chat/'engine-v25.html')
             shutil.copytree(Path(__file__).resolve().parents[1]/'core',chat/'core')
             state={'state_revision':38,'characters':{}}
             for h in ('yar','daphne','lyutobor','rada'):
