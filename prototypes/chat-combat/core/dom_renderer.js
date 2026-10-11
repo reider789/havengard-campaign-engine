@@ -3,7 +3,7 @@ class CombatDOMRenderer {
  constructor(board){this._board=board;this._previous=[];this.stats={boardPaints:0,tilesCreated:0,tilesUpdated:0,tilesRetained:0};}
  paintBoard(html){
   this.stats.boardPaints++;
-  const cells=html.match(/<button data-tile="\\d+,\\d+"[\\s\\S]*?<\\/button>/g);
+  const cells=html.match(/<button data-tile="\d+,\d+"[\s\S]*?<\/button>/g);
   if(!cells||cells.length!==88||this._board.children.length!==88||this._previous.length!==88){
    this._board.innerHTML=html;
    this._previous=cells||[];
