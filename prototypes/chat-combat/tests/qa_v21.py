@@ -22,7 +22,7 @@ with sync_playwright() as p:
     page.set_content(HTML)
     page.wait_for_timeout(120)
     api='window.__HV_TEST_API'
-    assert page.locator('[data-tile]').count()==88
+    assert page.locator('[data-tile]').count()==88, {'pageerrors': errors, 'body': page.locator('body').inner_text()[:800]}
     initial=page.evaluate(f'{api}.snapshot()')
     assert initial['sourceRevision']==27, initial['sourceRevision']
     assert initial['units']['yar']['storm']==20
