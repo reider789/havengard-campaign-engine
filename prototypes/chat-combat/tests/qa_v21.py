@@ -122,7 +122,7 @@ with sync_playwright() as p:
     assert undone['units']['yar']['action']==before_undo['units']['yar']['action']
     assert undone['units']['yar']['attacks']==before_undo['units']['yar']['attacks']
     assert undone['units']['yar']['superiority']==before_undo['units']['yar']['superiority']
-    assert undone['units']['yar']['savageUsed']==before_undo['units']['yar'].get('savageUsed')
+    assert undone['units']['yar'].get('savageUsed')==before_undo['units']['yar'].get('savageUsed')
     assert undone['units']['guard']['hp']==before_undo['units']['guard']['hp']
     assert undone['history'][-1].find('отменено')!=-1
     # Other actions are selectable immediately, without needing to end Yar's turn.
