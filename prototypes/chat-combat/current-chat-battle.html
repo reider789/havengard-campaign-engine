@@ -33,6 +33,8 @@ const dist=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))*5,rad=(a,b)=>Mat
 const die=n=>Math.floor(Math.random()*n)+1,dice=(n,s)=>Array.from({length:n},()=>die(s)),sum=arr=>arr.reduce((x,y)=>x+y,0),esc=x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const item={healing:['Лечебное зелье','2к4+2 ПЗ · бонусное','drink'],greater:['Улучшенное лечебное зелье','4к4+4 ПЗ · бонусное','drink'],antitoxin:['Противоядие','1 час: преимущество против Отравления','drink'],fire:['Алхимический огонь','20 фт · 1к4 и горение','throw'],acid:['Кислота','20 фт · 2к6, одна цель','throw'],smoke:['Дымовая бомба','Домашние настройки: радиус 10 фт / 1 минута / 30 фт','smoke'],speed:['Зелье скорости','Частично: +2 КД на 1 минуту; прочее требует полного обработчика','manual'],climb:['Зелье лазания','Лазание на 1 час (вертикальных клеток пока нет)','drink'],giant:['Зелье силы холмового великана','СИЛ 21 на 1 час; часть проверок ещё не автоматизирована','drink'],fireRes:['Зелье сопротивления огню','Сопротивление огню на 1 час','drink'],growth:['Зелье роста','Часть эффектов ещё не автоматизирована','manual'],heroism:['Зелье героизма','10 временных ПЗ и Благословение 1 час','drink'],poison:['Яд быстрого хищника','Покрыть оружие, следующий удар','poison'],flare:['Сигнальная ракета','Нужна оценка ведущего','manual'],trap:['Металлическая ловушка','Нужна оценка ведущего','manual']};
 const sourceText=root.querySelector('script[data-hg-runtime]')?.textContent;
+const sceneText=root.querySelector('script[data-hg-scene]')?.textContent;
+const v21EmbeddedStory=sceneText?JSON.parse(sceneText):null;
 const received=globalThis.__bindings?.value;
 const CHAT_STANDALONE=true;const PUBLIC_GITHUB='https://raw.githubusercontent.com/reider789/havengard-campaign-engine/main/';
 const PUBLIC_MANIFEST=(location.hostname.endsWith('github.io')?'./runtime/latest.json':PUBLIC_GITHUB+'prototypes/combat/app/runtime/latest.json');
@@ -139,7 +141,12 @@ for(const id of heroes){if(sourceDetails[id]?.length)featureNames[id]=[...new Se
 function newState(){const u=(x,y,hp,more={})=>({x,y,hp,max:hp,action:0,bonus:0,reaction:1,move:0,attacks:0,interaction:false,temp:0,status:[],vex:null,sneakUsed:false,coated:false,...more});return{version:12,sourceRevision:runtime?.source_state_revision??"offline",phase:'active',round:1,index:1,elapsed:0,inspected:'daphne',target:'guard',tab:'actions',showAll:false,draft:null,path:[],manual:false,moving:false,shift:0,pending:null,smoke:[],effects:[],inv:JSON.parse(JSON.stringify(stock)),info:'Ход Дафны. Выбери действие, расходник или персонажа для просмотра. Передача — отдельная вкладка.',history:['Рада: выстрел по стражу, 8 урона. Страж 28/36 ПЗ.','Рада скрылась в E6 (Скрытность 23).'],units:{rada:u(4,5,63,{ac:17,weapon:'bow',arrows:57,hidden:true,leaf:2,living:1}),daphne:u(1,6,62,{ac:12,action:1,bonus:1,move:30,weapon:'focus',slots:[0,4,3,3,3,2],shieldFree:1}),lyutobor:u(3,5,104,{ac:20,weapon:'longsword',slots:[0,4,3,2],lay:50,channel:2,mark:3,smiteFree:1}),yar:u(2,5,114,{ac:11,weapon:'sword',storm:20,cloak:2,wind:4,surge:1,superiority:5}),guard:u(7,3,28,{ac:16}),archer:u(9,2,30,{ac:14})}}}
 let storedSession=null;
 try{storedSession=JSON.parse(localStorage.getItem('havengard-combat-session-v12')||'null')}catch(e){}
-const resumable=received?.session?.version===12?received.session:storedSession?.kind==='havengard-combat-session'&&storedSession?.session?.version===12?storedSession.session:null;
+const storedCandidate=received?.session?.version===12?received.session:storedSession?.kind==='havengard-combat-session'&&storedSession?.session?.version===12?storedSession.session:null;
+const resumable=v21EmbeddedStory?
+  (storedCandidate?.battleId===v21EmbeddedStory.battle_id&&
+   storedCandidate?.sessionKind==='story'&&
+   storedCandidate?.sourceRevision===v21EmbeddedStory.source_revision?storedCandidate:null):
+  (storedCandidate?.sessionKind==='story'?null:storedCandidate);
 let s=resumable||newState();
 // Canonical resources are applied only when a NEW tactical session is created, never over in-progress combat.
 function applySourceSeed(state){
@@ -840,7 +847,7 @@ if(globalThis.__HV_ENABLE_TEST_APIS===true){globalThis.__HV_TEST_API={snapshot:(
 // On session re-import, reinstate optional mage in initiative and source-known rules.
 const v19BeforeAdvance=advance;
 advance=function(){v19RestoreMage();return v19BeforeAdvance()};
-render();
+if(!v21EmbeddedStory)render();
 
 // V20 — dynamic enemy roster, durable session checkpoints and transactional import.
 // The library of enemy behavior is DATA, not custom JavaScript from a JSON file.
@@ -1041,10 +1048,19 @@ function v21NewScenario(raw){
  const a=v21CheckScenario(raw); // validate before replacing current state
  s=v21Seed(applySourceSeed(newState()));
  s.units.guard.hp=0;s.units.archer.hp=0;
- for(const id of v21Party){s.units[id].x=a.party[id].x;s.units[id].y=a.party[id].y;}
+ for(const id of v21Party){
+  const unit=s.units[id];unit.x=a.party[id].x;unit.y=a.party[id].y;
+  unit.hidden=raw.heroes?.[id]?.hidden===true; // no inherited demo stealth
+  unit.action=0;unit.bonus=0;unit.move=0;unit.attacks=0;unit.sneakUsed=false;
+ }
  s.extraEnemies=a.enemies.map((e,i)=>({id:'enemy_'+(i+1),...e,joinRound:1}));
- s.scenario={terrain:a.terrain,initiative:a.initiative};s.battleName=a.name;s.sessionKind=a.kind;
- s.history=['Новый бой «'+a.name+'»; никакие результаты не перенесены в Campaign Engine.'];
+  s.scenario={terrain:a.terrain,initiative:a.initiative};s.battleName=a.name;s.sessionKind=a.kind;
+ s.battleId=typeof raw.battle_id==='string'?raw.battle_id:null;
+ s.chronicleAnchor=typeof raw.chronicle_anchor==='string'?raw.chronicle_anchor:null;
+ s.narrativeContext=typeof raw.narrative_context==='string'?raw.narrative_context:null;
+  s.history=['Новый бой «'+a.name+'»; никакие результаты не перенесены в Campaign Engine.'];
+ if(s.chronicleAnchor)s.history.push('Сюжетная точка: '+s.chronicleAnchor);
+ if(s.narrativeContext)s.history.push('Перед началом боя: '+s.narrativeContext);
  v21RestoreTerrain(s);v20SyncEnemyProfiles();s.index=0;s.target=s.extraEnemies[0].id;s.inspected='rada';
  me().action=1;me().bonus=1;me().reaction=1;me().move=me().baseSpeed??30;
  s.startSnapshot=v21Start(s);s.v21Editor=false;s.info='Новый сценарий подготовлен ('+s.sourceRevision+').';
@@ -1064,6 +1080,10 @@ const v21OldLoad=v20LoadSession;
 v20LoadSession=function(json){
  const draft=typeof json==='string'?JSON.parse(json):json;
  v21ValidateStoredScenario(draft?.session); // before any state mutation
+ if(v21EmbeddedStory&&(draft?.session?.battleId!==v21EmbeddedStory.battle_id||
+    draft?.session?.sessionKind!=='story'||
+    draft?.session?.sourceRevision!==v21EmbeddedStory.source_revision))
+    throw Error('Сохранение другого боя или другой ревизии нельзя открыть в этой сюжетной сцене.');
  const val=v21OldLoad(draft);
  if(val.scenario){v21RestoreTerrain(val);v20SyncEnemyProfiles();render();}
  return val;
@@ -1086,7 +1106,10 @@ function v21Outcome(){
   }
   for(const [key,value] of Object.entries(before.other))if(Number.isInteger(value)&&now[key]!==value)manual_review.push({id,resource:key,before:value,after:now[key],reason:'Требует сверки с каноном'});
  }
- return {kind:'havengard-combat-outcome-draft',battle:s.battleName||'Старый мост',session_kind:s.sessionKind||'training',source_revision:b.sourceRevision,requires_player_confirmation:true,canonical_state_unchanged:true,operations,manual_review,round:s.round,phase:s.phase};
+ return {kind:'havengard-combat-outcome-draft',battle:s.battleName||'Старый мост',battle_id:s.battleId||null,chronicle_anchor:s.chronicleAnchor||null,
+ session_kind:s.sessionKind||'training',source_revision:b.sourceRevision,
+ requires_player_confirmation:true,canonical_state_unchanged:true,outcome_can_be_applied_automatically:false,
+ operations,manual_review,round:s.round,phase:s.phase};
 }
 function v21Export(name,object){const blob=new Blob([JSON.stringify(object,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 const v21BaseDraw=render;
@@ -1100,7 +1123,7 @@ render=function(){
 };
 root.addEventListener('click',e=>{const b=e.target.closest('[data-v21-new],[data-v21-create],[data-v21-cancel],[data-v21-outcome]');if(!b)return;
  e.preventDefault();e.stopImmediatePropagation();
- if(b.hasAttribute('data-v21-new')){s.v21Editor=true;render();return}
+ if(b.hasAttribute('data-v21-new')){if(v21EmbeddedStory){s.info='Сюжетную сцену подготовила ведущая. Для изменения карты нужен новый сюжетный пакет.';render();return} s.v21Editor=true;render();return}
  if(b.hasAttribute('data-v21-cancel')){s.v21Editor=false;render();return}
  if(b.hasAttribute('data-v21-create')){try{v21NewScenario(JSON.parse($('v21json').value))}catch(error){v19Alert('Ошибка сценария: '+(error.message||String(error)))}return}
  if(b.hasAttribute('data-v21-outcome')){try{v21Export('havengard-outcome-v21.json',v21Outcome());v19Alert('Проект итогов экспортирован. Канон не изменён.')}catch(error){v19Alert(error.message||String(error))}return}
@@ -1109,6 +1132,7 @@ root.addEventListener('click',e=>{const b=e.target.closest('[data-v21-new],[data
 root.addEventListener('click',e=>{
  const button=e.target.closest('button[data-op="reset"]');if(!button||!root.contains(button))return;
  e.preventDefault();e.stopImmediatePropagation();
+ if(v21EmbeddedStory){s.storyResetPending=true;render();hostSave();return}
  walls.clear();v21DefaultTerrain.walls.forEach(v=>walls.add(v));
  rubble.clear();v21DefaultTerrain.rubble.forEach(v=>rubble.add(v));
  v20BaseInit.splice(0,v20BaseInit.length,...v21DefaultTerrain.initiative);
@@ -1273,8 +1297,66 @@ if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_AP
  canUndo:()=>v21UndoEligible(),cancelAction:()=>v21CancelPendingAction()
 });
 
-// Preserve original initial demo (Daphne's first turn); no simulated combat is committed to campaign.
-render();
+// Story bundle: initialize once at the very end, after all render wrappers.
+// A scene's ID and canon revision are pinned; another saved training fight is not reused.
+function v21RunFirstEnemyTurn(){
+ if(isHero(turn()))return;
+ const u=me();u.action=1;u.bonus=1;u.reaction=1;u.move=u.baseSpeed??30;
+ log('Первый по инициативе: '+names[turn()]+'.');
+ const acted=enemyTurn(turn());
+ if(!acted&&!s.pending)advance();
+}
+function v21StartEmbeddedStory(){
+ if(!v21EmbeddedStory)return;
+ if(v21EmbeddedStory.schema_version!==1||v21EmbeddedStory.kind!=='story'||
+    !v21EmbeddedStory.battle_id||v21EmbeddedStory.source_revision!==runtime?.source_state_revision)
+    throw Error('Сюжетный сценарий не совпадает с ревизией канона. Нужна новая сборка.');
+ if(!resumable){
+  const valid=v21CheckScenario(v21EmbeddedStory);
+  if(valid.kind!=='story')throw Error('Некорректный тип сюжетной сцены');
+  v21NewScenario(v21EmbeddedStory);
+  v21RunFirstEnemyTurn();
+  log('Бой связан с летописью: '+v21EmbeddedStory.chronicle_anchor+'.');
+ }else{
+  v21ValidateStoredScenario({scenario:s.scenario});
+  v21RestoreTerrain(s);v20SyncEnemyProfiles();
+  if(s.battleId!==v21EmbeddedStory.battle_id)throw Error('Сохранение другого боя не принимается.');
+  s.info='Продолжаем сюжетный бой «'+s.battleName+'». Прежние ПЗ, ходы и ресурсы сохранены.';
+ }
+ render();hostSave();
+}
+const v21StoryDraw=render;
+render=function(){
+ v21StoryDraw();
+ if(!v21EmbeddedStory)return;
+ const area=$('v21setup');if(!area)return;
+ area.querySelector('[data-v21-new]')?.remove();
+ let card=area.querySelector('#v21story-context');
+ if(!card){card=document.createElement('div');card.id='v21story-context';area.prepend(card);}
+ card.innerHTML='<b>📜 Сюжетный бой: '+esc(s.battleName||v21EmbeddedStory.name)+'</b>'+
+  '<p class="hint">Летопись: '+esc(s.chronicleAnchor||v21EmbeddedStory.chronicle_anchor)+'</p>'+
+  '<p class="hint">'+esc(s.narrativeContext||v21EmbeddedStory.narrative_context)+'</p>'+
+  '<p class="hint">Источник: ревизия '+esc(s.sourceRevision)+' · ID: '+esc(s.battleId||v21EmbeddedStory.battle_id)+'</p>'+
+  (s.storyResetPending?'<p class="warning">Начать сюжетный бой заново? Это уничтожит текущий прогресс этой схватки, но не изменит канон.</p><div class="buttons"><button class="btn" data-v21-story-reset-confirm>Да, начать заново</button><button class="btn" data-v21-story-reset-cancel>Не сбрасывать</button></div>':'');
+};
+root.addEventListener('click',event=>{
+ const b=event.target.closest('[data-v21-story-reset-confirm],[data-v21-story-reset-cancel]');
+ if(!b||!root.contains(b))return;
+ event.preventDefault();event.stopImmediatePropagation();
+ if(b.hasAttribute('data-v21-story-reset-cancel')){s.storyResetPending=false;render();hostSave();return;}
+ if(b.hasAttribute('data-v21-story-reset-confirm')&&s.storyResetPending){
+  v21NewScenario(v21EmbeddedStory);
+  v21RunFirstEnemyTurn();
+  s.storyResetPending=false;
+  log('Бой начат заново по подтверждению игрока.');
+  render();hostSave();
+ }
+},true);
+if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{
+ embeddedStory:()=>v21EmbeddedStory?{battle_id:v21EmbeddedStory.battle_id,source_revision:v21EmbeddedStory.source_revision}:null
+});
+if(v21EmbeddedStory)v21StartEmbeddedStory();
+else render();
 
 })();
 </script>
