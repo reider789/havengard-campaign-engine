@@ -148,6 +148,9 @@ try{
   if(cached)hgSkinAssets=hgSkinValidate(JSON.parse(cached));
  }
 }catch(_){hgSkinAssets=null}
+// Trigger the first decorated render after the original boot render and after
+// inline artwork (if any) has been parsed. This is required for fresh UI boots.
+render();
 if(globalThis.__HV_ENABLE_TEST_APIS===true){
  Object.assign(globalThis.__HV_TEST_API,{
   artLoaded:()=>!!hgSkinAssets,
