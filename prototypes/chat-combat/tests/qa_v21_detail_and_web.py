@@ -39,10 +39,11 @@ with sync_playwright() as p:
     assert any(x['kind']=='web' and x['concentration'] for x in state['effects'])
     assert len(page.locator('#board .tile.web').all())==16
     # A non-hero walks into the Web and fails a save.
-    page.evaluate(f'{api}.set(s=>{{s.units.guard.x=2;s.units.guard.y=3;s.units.guard.hp=28;}})')
+    page.evaluate(f'{api}.set(s=>{{s.units.guard.x=2;s.units.guard.y=3;s.units.guard.hp=28;s.units.guard.move=20;}})')
     page.evaluate(f'{api}.webSave("guard")')
     state=page.evaluate(f'{api}.snapshot()')
     assert any(x['kind']=='restrained' for x in state['units']['guard']['status'])
+    assert state['units']['guard']['move']==20, 'Web must not permanently erase unspent movement after escape'
     assert any('спасбросок Ловкости' in x for x in state['history'])
     assert any('ПРОВАЛ' in x for x in state['history'])
     assert any('Опутан' in x for x in state['history'])
