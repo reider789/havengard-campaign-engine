@@ -1122,6 +1122,7 @@ root.addEventListener('click',e=>{const b=e.target.closest('[data-v21-new],[data
 root.addEventListener('click',e=>{
  const button=e.target.closest('button[data-op="reset"]');if(!button||!root.contains(button))return;
  e.preventDefault();e.stopImmediatePropagation();
+ if(v21EmbeddedStory){s.storyResetPending=true;render();hostSave();return}
  walls.clear();v21DefaultTerrain.walls.forEach(v=>walls.add(v));
  rubble.clear();v21DefaultTerrain.rubble.forEach(v=>rubble.add(v));
  v20BaseInit.splice(0,v20BaseInit.length,...v21DefaultTerrain.initiative);
@@ -1286,8 +1287,63 @@ if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_AP
  canUndo:()=>v21UndoEligible(),cancelAction:()=>v21CancelPendingAction()
 });
 
-// Preserve original initial demo (Daphne's first turn); no simulated combat is committed to campaign.
-render();
+// Story bundle: initialize once at the very end, after all render wrappers.
+// A scene's ID and canon revision are pinned; another saved training fight is not reused.
+function v21StartEmbeddedStory(){
+ if(!v21EmbeddedStory)return;
+ if(v21EmbeddedStory.schema_version!==1||v21EmbeddedStory.kind!=='story'||
+    !v21EmbeddedStory.battle_id||v21EmbeddedStory.source_revision!==runtime?.source_state_revision)
+    throw Error('Сюжетный сценарий не совпадает с ревизией канона. Нужна новая сборка.');
+ if(!resumable){
+  const valid=v21CheckScenario(v21EmbeddedStory);
+  if(valid.kind!=='story')throw Error('Некорректный тип сюжетной сцены');
+  v21NewScenario(v21EmbeddedStory);
+  if(!isHero(turn())){
+   const u=me();u.action=1;u.bonus=1;u.reaction=1;u.move=u.baseSpeed??30;
+   log('Первый по инициативе: '+names[turn()]+'.');
+   const acted=enemyTurn(turn());
+   if(!acted&&!s.pending)advance();
+  }
+  log('Бой связан с летописью: '+v21EmbeddedStory.chronicle_anchor+'.');
+ }else{
+  v21ValidateStoredScenario({scenario:s.scenario});
+  v21RestoreTerrain(s);v20SyncEnemyProfiles();
+  if(s.battleId!==v21EmbeddedStory.battle_id)throw Error('Сохранение другого боя не принимается.');
+  s.info='Продолжаем сюжетный бой «'+s.battleName+'». Прежние ПЗ, ходы и ресурсы сохранены.';
+ }
+ render();hostSave();
+}
+const v21StoryDraw=render;
+render=function(){
+ v21StoryDraw();
+ if(!v21EmbeddedStory)return;
+ const area=$('v21setup');if(!area)return;
+ area.querySelector('[data-v21-new]')?.remove();
+ let card=area.querySelector('#v21story-context');
+ if(!card){card=document.createElement('div');card.id='v21story-context';area.prepend(card);}
+ card.innerHTML='<b>📜 Сюжетный бой: '+esc(s.battleName||v21EmbeddedStory.name)+'</b>'+
+  '<p class="hint">Летопись: '+esc(s.chronicleAnchor||v21EmbeddedStory.chronicle_anchor)+'</p>'+
+  '<p class="hint">'+esc(s.narrativeContext||v21EmbeddedStory.narrative_context)+'</p>'+
+  '<p class="hint">Источник: ревизия '+esc(s.sourceRevision)+' · ID: '+esc(s.battleId||v21EmbeddedStory.battle_id)+'</p>'+
+  (s.storyResetPending?'<p class="warning">Начать сюжетный бой заново? Это уничтожит текущий прогресс этой схватки, но не изменит канон.</p><div class="buttons"><button class="btn" data-v21-story-reset-confirm>Да, начать заново</button><button class="btn" data-v21-story-reset-cancel>Не сбрасывать</button></div>':'');
+};
+root.addEventListener('click',event=>{
+ const b=event.target.closest('[data-v21-story-reset-confirm],[data-v21-story-reset-cancel]');
+ if(!b||!root.contains(b))return;
+ event.preventDefault();event.stopImmediatePropagation();
+ if(b.hasAttribute('data-v21-story-reset-cancel')){s.storyResetPending=false;render();hostSave();return;}
+ if(b.hasAttribute('data-v21-story-reset-confirm')&&s.storyResetPending){
+  v21NewScenario(v21EmbeddedStory);
+  s.storyResetPending=false;
+  log('Бой начат заново по подтверждению игрока.');
+  render();hostSave();
+ }
+},true);
+if(globalThis.__HV_ENABLE_TEST_APIS===true)Object.assign(globalThis.__HV_TEST_API,{
+ embeddedStory:()=>v21EmbeddedStory?{battle_id:v21EmbeddedStory.battle_id,source_revision:v21EmbeddedStory.source_revision}:null
+});
+if(v21EmbeddedStory)v21StartEmbeddedStory();
+else render();
 
 })();
 </script>
