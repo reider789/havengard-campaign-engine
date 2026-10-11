@@ -142,7 +142,7 @@ root.addEventListener('change',async event=>{
 },true);
 try{
  const bundled=root.querySelector('script[data-hg-artpack]')?.textContent;
- if(bundled)hgSkinAssets=hgSkinValidate(JSON.parse(bundled));
+ if(bundled){hgSkinAssets=hgSkinValidate(JSON.parse(bundled));try{localStorage.setItem(HG_SKIN_STORAGE,bundled)}catch(_){}}
  else{
   const cached=localStorage.getItem(HG_SKIN_STORAGE);
   if(cached)hgSkinAssets=hgSkinValidate(JSON.parse(cached));
