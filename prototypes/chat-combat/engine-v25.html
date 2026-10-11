@@ -422,12 +422,8 @@ decide=function(choice){const p=s.pending;if(p?.kind==='precision'){s.pending=nu
 };
 const v18OldEnemyRoll=enemyRoll;
 enemyRoll=function(target,test,forced,disadvantage,attacker=turn()){return v18OldEnemyRoll(target,test,forced,disadvantage,attacker)};
-const v18OldSaving=saving;
-saving=function(id,stat,dc){return v18OldSaving(id,stat,dc)};
 const v18OldAdvance=advance;
 advance=function(){v18OldAdvance();if(s.phase==='active'&&isHero(turn())){const u=me();if(effect(turn(),'speed'))u.move=Math.max(u.move,60);u.spellSlotThisTurn=false;u.hewReady=false;u.lastCrit=false;u.baitAC=0;}}
-const v18OldHurt=hurt;
-hurt=function(id,n,type='оружие'){return v18OldHurt(id,n,type)};
 // Correct no-spend-on-invalid-target rule for persistent spell objects.
 const v18UnpatchedReady=v18Ready;
 v18Ready=function(id,k){const original=v18UnpatchedReady(id,k);if(original)return original;const u=s.units[id];if(k==='leaf'&&!u.leaf)return'Шаг листвы: заряды исчерпаны';if(k==='living'&&!u.living)return'Живая стрела: заряд исчерпан';return null};
@@ -763,8 +759,6 @@ root.addEventListener('click',e=>{const b=e.target.closest('[data-v20-open],[dat
   s.info='Контрольная точка сохранена в JSON: её можно загрузить в новой сессии через «Импорт JSON».';render();hostSave();return}
 },true);
 // Once per state mutation notify host. The bound payload preserves pending chains.
-const v20BeforeHostSave=hostSave;
-hostSave=function(){try{const r=v20BeforeHostSave();return r}catch(err){return false}};
 if(globalThis.__HV_ENABLE_TEST_APIS===true){
  Object.assign(globalThis.__HV_TEST_API,{addEnemy:v20AddEnemy,checkpoint:v20CreateCheckpoint,load:v20LoadSession,validate:v20ValidateSession,resume:()=>v19AdvanceSpellStack()});
 }
