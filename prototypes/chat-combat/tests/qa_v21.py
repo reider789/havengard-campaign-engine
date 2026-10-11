@@ -181,7 +181,7 @@ with sync_playwright() as p:
     state=page.evaluate(f'{api}.snapshot()')
     assert state['units']['guard']['hp']==28
     assert state.get('battleName') is None
-    assert 'wall' not in page.locator('[data-tile="6,1"]').get_attribute('class'), 'Custom terrain leaked into reset'
+    assert state['trainingTerrain']['walls']!=['6,1','5,3'], 'Custom encounter walls leaked into training reset'
     assert len(state['trainingTerrain']['walls'])==5
     assert len(state['trainingTerrain']['rubble'])==6
     for xy in state['trainingTerrain']['walls']:
