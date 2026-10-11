@@ -1407,7 +1407,7 @@ function v21WebClean(){
 function v21WebSave(id){
  const u=s.units[id];if(!v21WebInside(u)||u.hp<=0||hasStatus(id,'restrained'))return false;
  log(names[id]+': Паутина — спасбросок Ловкости СЛ 19.');
- if(!saving(id,'DEX',19)){addStatus(id,'restrained',null);u.move=0;return true}
+ if(!saving(id,'DEX',19)){addStatus(id,'restrained',null);return true}
  return false;
 }
 const v21WebTurnStatus=startTurnStatus;
