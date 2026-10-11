@@ -5,6 +5,7 @@ on:
     paths:
       - 'state/_campaign-state.json'
       - 'prototypes/chat-combat/engine-v21.html'
+      - 'prototypes/chat-combat/visual_skin.js'
       - 'prototypes/chat-combat/build_chat_bundle.py'
       - 'prototypes/chat-combat/tests/**'
       - '.github/workflows/build-chat-combat.yml'
