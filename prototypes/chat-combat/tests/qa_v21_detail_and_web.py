@@ -47,6 +47,7 @@ with sync_playwright() as p:
     assert any('ПРОВАЛ' in x for x in state['history'])
     assert any('Опутан' in x for x in state['history'])
     # Advantage against restrained targets, full d20 rolls, modifiers, target AC.
+    page.evaluate('Math.random=()=>0.90')
     page.evaluate(f'{api}.set(s=>{{s.index=3;s.units.yar.action=1;s.units.yar.superiority=0;s.units.yar.weapon="sword";s.target="guard";s.units.guard.x=2;s.units.guard.y=4;}})')
     page.locator('[data-action="attack"]').evaluate('(e)=>e.click()')
     page.locator('[data-op="apply"]').click()
