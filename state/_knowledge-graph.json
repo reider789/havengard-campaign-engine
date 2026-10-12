@@ -222,16 +222,19 @@
         "group:havengard_research_core"
       ],
       "knowledge_ids": [
-        "K015"
+        "K023",
+        "K024",
+        "K025",
+        "K026"
       ],
       "linked_thread_id": null,
-      "salience": "major",
+      "salience": "core",
       "status": "active",
-      "title": "Таэрны и дипломатический поход к Аэр-Тал"
+      "title": "Таэрны — дипломатическая миссия в Тал-Аэрине"
     }
   },
   "campaign_id": "yar-warrior",
-  "graph_revision": 5,
+  "graph_revision": 6,
   "policy": {
     "do_not_infer_unseen_information": true,
     "knowledge_requires_source": true,
