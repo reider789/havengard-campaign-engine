@@ -1,7 +1,9 @@
 """V27: player-click report transfer, reaction safety and exact battle facts."""
 from pathlib import Path
+import json
 from playwright.sync_api import sync_playwright
 HTML=(Path(__file__).resolve().parents[1]/'current-chat-battle.html').read_text(encoding='utf-8')
+CANON=json.loads((Path(__file__).resolve().parents[3]/'state/_campaign-state.json').read_text(encoding='utf-8'))
 assert 'class CombatNarrativeHandoff' in HTML
 assert 'Завершить бой и передать мастеру' in HTML
 with sync_playwright() as pw:
@@ -30,7 +32,7 @@ with sync_playwright() as pw:
  reports=page.evaluate("window.__handoffs.filter(x=>x.kind==='havengard-battle-handoff-v1')")
  assert len(reports)==1
  assert reports[0]['report']['kind']=='havengard-battle-report-v1'
- assert reports[0]['report']['battle']['source_revision']==27
+ assert reports[0]['report']['battle']['source_revision']==CANON['state_revision']
  assert reports[0]['report']['battle']['mode']=='training'
  assert reports[0]['report']['battle']['result']=='stopped'
  assert len(reports[0]['report']['allies'])==4
