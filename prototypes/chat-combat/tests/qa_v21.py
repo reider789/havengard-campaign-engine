@@ -3,7 +3,9 @@ import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-HTML=(Path(__file__).resolve().parents[1]/'current-chat-battle.html').read_text(encoding='utf-8')
+CHAT=Path(__file__).resolve().parents[1]
+CANON=json.loads((CHAT.parents[1]/'state/_campaign-state.json').read_text(encoding='utf-8'))
+HTML=(CHAT/'current-chat-battle.html').read_text(encoding='utf-8')
 sample={
     'name':'Проверочная засада', 'kind':'story',
     'heroes':{'rada':{'cell':'E6','initiative':20},'daphne':{'cell':'B7','initiative':16},
@@ -24,7 +26,7 @@ with sync_playwright() as p:
     api='window.__HV_TEST_API'
     assert page.locator('[data-tile]').count()==88, {'pageerrors': errors, 'body': page.locator('body').inner_text()[:800]}
     initial=page.evaluate(f'{api}.snapshot()')
-    assert initial['sourceRevision']==27, initial['sourceRevision']
+    assert initial['sourceRevision']==CANON['state_revision'], (initial['sourceRevision'],CANON['state_revision'])
     assert initial['units']['yar']['storm']==20
     assert initial['units']['daphne']['shieldFree']==1
     # Boot a second panel from a saved chat state containing active effects.
