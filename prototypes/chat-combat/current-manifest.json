@@ -2,7 +2,7 @@
   "schema_version": 2,
   "engine": "engine-v29.html",
   "bundle": "current-chat-battle.html",
-  "source_revision": 27,
+  "source_revision": 29,
   "hero_count": 4,
   "usage": "Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.",
   "canonical": false,
@@ -44,6 +44,6 @@
     "auto_cached_cdn": true,
     "asset_requests_on_cache_miss": 1
   },
-  "bundle_sha256": "0d577915e2eeb0dfba337754947526bdec418a08722b19ad4a66b8fbfb20cd6b",
-  "bundle_size_bytes": 359338
+  "bundle_sha256": "d05670089cf867ffa09488e178cce25b1098b1dfd9d7fe0d5320731e08efa39d",
+  "bundle_size_bytes": 359483
 }
