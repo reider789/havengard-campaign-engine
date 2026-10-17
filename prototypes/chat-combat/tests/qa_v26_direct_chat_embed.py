@@ -1,8 +1,10 @@
 """Full v26 in-chat bootstrap: same DOM, no iframe, no crypto, no stubbed mechanics."""
 from pathlib import Path
+import json
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
+CANON=json.loads((ROOT.parents[1]/'state/_campaign-state.json').read_text(encoding='utf-8'))
 LOADER=(ROOT/'chat_embed_loader_v29.html').read_text(encoding='utf-8')
 BUNDLE=(ROOT/'current-chat-battle.html').read_text(encoding='utf-8')
 assert LOADER.count('</script>')==1, 'Literal closing-script tag would break bootstrap HTML parsing'
@@ -37,7 +39,7 @@ with sync_playwright() as p:
     assert page.locator('#hv12').evaluate("e=>e.classList.contains('hv-fantasy')")
     assert 'gradient' in page.locator('#hv12').evaluate("e=>getComputedStyle(e).backgroundImage")
     snapshot=page.evaluate('window.__HV_TEST_API.snapshot()')
-    assert snapshot['sourceRevision']==27
+    assert snapshot['sourceRevision']==CANON['state_revision'], (snapshot['sourceRevision'],CANON['state_revision'])
     assert snapshot['units']['rada']['hp']>0
     assert snapshot['units']['daphne']['hp']>0
     assert snapshot['units']['lyutobor']['hp']>0

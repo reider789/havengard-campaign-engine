@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "repository": "reider789/rin_dnd",
+  "commit": "b1bad6ab0019ac6d3e55b5226519918e2c1be339",
+  "engine_version": "30.2.0",
+  "content_api": 1,
+  "canonical_migration_complete": false,
+  "files": {
+    "core/battlefield.js": "e62571232bebb06cfbcf87a8571cde590e5fbc6cd1aa493ebe76e5c7a94bdc98",
+    "core/capabilities.js": "276792535dbfd21f2a72e032eb06514b94f2d587719bde789fbb49baa6329f8c",
+    "core/content_pack.js": "f92bbd203a8cf9d74a4b67699dc0c75f7c820674155cbd28f96cd803e9ee3562",
+    "core/rules_engine.js": "a9549b33b61695b1ad3da999ff7025b4e1b699af789c0061388077053d67ee42",
+    "core/tactical_ai.js": "ea4c73540f39b9b6aea5e43d3df1001516781009893568017af570a26cda18df",
+    "core/campaign_adapter.js": "440ba1e24254d92b41e18d183552a116e41fa3f4024ff3d95c4c4c0c808009a4",
+    "web/combat_app.js": "fd10a2e490e0e8a3f39314ecfaa2b8077c6851105e70a1f3adb6f017bb75d293",
+    "sdk/index.js": "96e1a7125af5a1767f07fe34e72dd438f0d5e079f3d0cca6e6376212e7f1db98",
+    "sdk/cli.js": "a724817cb856f7177a4ecc4464bd015fa89214fe8bc236d96e1da43e1d4513e6",
+    "sdk/verify.js": "089df4df73703fb952c1b7a8175dce89007ac227b85f146e846bd0ed68f5b5b6",
+    "web/shell.html": "8ea17482700b5ceec07904fbcf59977490959b1ed743a40ec73bb6fed09f0cb1",
+    "web/desktop.css": "ebb3f2abc9ebc48fdade26a46809cf17c45f381575c0141628d1111447d3421e",
+    "tools/combat_bundle.py": "de50f34a5b816714035eddcdf7df03008036107e85ef992aa4d1701d68feff5a",
+    "tools/build_combat.py": "634511cd9858b61cef6db1f11e19e5e36a7ca50cc5341499ba944dad64933ddc",
+    "tools/export_engine.py": "ff9c97f21e8d617b76e924cf8aaff1e708ca9c19b7aff9042a6caacfeb6880b1",
+    "tools/audit_havengard.py": "857d2d18956266ccd7537df16a5a57bad71d324624976ee221380697c29e07f9",
+    "tests/test_content_packs.js": "5d3845d70d90f7524c802b1fc2d8e8f43be1599c59200a7472f61f572d6a75b5",
+    "examples/portable/border-watch.json": "5abae0eab8ff918c47c8e7f3dfe2aa74f05496c6ef299267fdd067cb606fd216",
+    "docs/CONTENT_PACKS.md": "2c6186252cb2c660dfd9d79ada277498e8f4c00a3ca5a35d1c1eed382370045d",
+    "docs/PORTABLE_ENGINE.md": "7dc6641c751f80c0d9ae98ef35b8ff9165dbc819ee5346d397811929c8de9b01"
+  }
+}

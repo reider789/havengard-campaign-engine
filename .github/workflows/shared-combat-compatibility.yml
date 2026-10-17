@@ -1,0 +1,35 @@
+name: Shared combat compatibility
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read pinned engine
+        id: engine
+        run: |
+          python - <<'PY'
+          import json,os,re
+          lock=json.load(open('prototypes/shared-combat/engine-lock.json'))
+          assert re.fullmatch('[0-9a-f]{40}',lock['commit'])
+          assert lock['repository']=='reider789/rin_dnd'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('commit='+lock['commit']+'\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          repository: reider789/rin_dnd
+          ref: ${{ steps.engine.outputs.commit }}
+          path: .shared-combat
+      - name: Check shared engine and audit current characters
+        run: python tools/check_shared_combat.py --engine-root .shared-combat --output "${{ runner.temp }}/shared-combat-audit.json"
