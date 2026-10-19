@@ -7,5 +7,7 @@
   "usage": "Do not fetch remote JavaScript inside AppBlock; chat sandbox may block it. The assistant loads verified canonical state through GitHub connector and renders native DIL controls, using issueNewTurn with full action context for rules adjudication. Browser site and GitHub remain optional deployment/backup.",
   "tested_version": "v16",
   "notes": "Always use latest loaded canonical campaign data for NEW battles. Embedded viewer changes do not choose actions for the player.",
-  "chat_engine_mode": "native-DIL-with-GM-resolution"
+  "chat_engine_mode": "native-DIL-with-GM-resolution",
+  "archived": true,
+  "active_entrypoint": "prototypes/chat-combat/entrypoint.json"
 }

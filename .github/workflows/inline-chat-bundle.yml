@@ -1,10 +1,5 @@
-name: Package offline ChatGPT combat payload
+name: Manually repair offline combat payload
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'prototypes/chat-combat/current-chat-battle.html'
-      - '.github/workflows/inline-chat-bundle.yml'
   workflow_dispatch:
 permissions:
   contents: write

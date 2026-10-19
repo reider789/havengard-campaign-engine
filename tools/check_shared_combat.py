@@ -12,7 +12,7 @@ if cap['engine']!=lock['engine_version'] or cap['api']!=lock['content_api']:rais
 state=project/'state/_campaign-state.json';before=state.read_bytes()
 def run(*args):subprocess.run(args,cwd=engine,check=True)
 run('node','sdk/cli.js','validate','examples/portable/border-watch.json')
-run('node','--test','tests/test_content_packs.js','tests/test_class_features.js','tests/test_defenses.js','tests/test_martial_features.js')
+run('node','--test','tests/test_content_packs.js','tests/test_class_features.js','tests/test_defenses.js','tests/test_martial_features.js','tests/test_desktop_reliability.js')
 run('node','sdk/cli.js','validate','examples/portable/class-defense-lab.json')
 with tempfile.TemporaryDirectory(prefix='shared-combat-check-') as tmp:
     run(sys.executable,'tools/build_combat.py','--pack','examples/portable/border-watch.json','--output',str(Path(tmp)/'battle.html'))

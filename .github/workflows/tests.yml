@@ -3,12 +3,37 @@ name: Campaign Engine Tests
 on:
   push:
     branches: [main]
+    paths:
+      - 'state/**'
+      - 'rules/**'
+      - 'views/**'
+      - 'tools/**'
+      - 'tests/**'
+      - 'config/**'
+      - 'migrations/**'
+      - 'map/**'
+      - 'transactions/**'
+      - '.github/workflows/tests.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'state/**'
+      - 'rules/**'
+      - 'views/**'
+      - 'tools/**'
+      - 'tests/**'
+      - 'config/**'
+      - 'migrations/**'
+      - 'map/**'
+      - 'transactions/**'
+      - '.github/workflows/tests.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+concurrency:
+  group: campaign-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
