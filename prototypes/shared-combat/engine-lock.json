@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "reider789/rin_dnd",
-  "commit": "0e4e1f70e7844a0812f20e59d3e735ee4218057a",
+  "commit": "bfef413657e943e1be61a80f92e932af5366e83c",
   "engine_version": "30.5.2",
   "content_api": 1,
   "canonical_migration_complete": true,
@@ -24,7 +24,7 @@
     "sdk/cli.js": "8d78fac2fb1fce02dbd192abc0648a34d4b148ae36a8bd13d11327bd7879df91",
     "sdk/verify.js": "089df4df73703fb952c1b7a8175dce89007ac227b85f146e846bd0ed68f5b5b6",
     "web/shell.html": "067e516286ab065573d66b2073216e49931b208fc6093fb1e413b42f09e9e131",
-    "web/desktop.css": "7bf6d8950b4038dda864c2fd9194ed5fde2bb40e7da797a038dede54d218bf02",
+    "web/desktop.css": "7b0f41ee10a7036451f20f2890645591c025d330feada91349ab260b04f2bd98",
     "tools/combat_handoff.py": "fef1aabda9c794455e4acbfab58e83bc04da9e2819e99aacc860b58cb23ab4ca",
     "tools/combat_bundle.py": "c9cb06c426dc298bab799b3748824d668015313e5d5351451e9056c86ce6624e",
     "tools/combat_resources.py": "3b7b213f2e2982946ec00b41ff06a762f4351ac927fec4c3b81cc8cf6f78af59",
