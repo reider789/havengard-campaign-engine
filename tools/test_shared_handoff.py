@@ -26,9 +26,45 @@ with tempfile.TemporaryDirectory() as d:
  result=json.loads(report_file.read_text());updated=build_result(state,prepare(result,state,engine));assert build_result(updated,prepare(result,updated,engine))==updated
  cap=json.loads(subprocess.check_output(['node',str(engine/'sdk/cli.js'),'capabilities'],text=True));next_pack=d/'next-pack.json';next_pack.write_text(json.dumps(build(updated,cap),ensure_ascii=False))
  subprocess.run(['node',str(ROOT/'tools/test_shared_continuity.js'),str(engine),str(next_pack),'check'],check=True)
+ # Life state must survive SDK export -> canonical transaction -> rebuilt pack -> turn.
+ for life in [dict(dead=False,stable=True,deathSuccesses=0,deathFailures=0),
+              dict(dead=True,stable=False,deathSuccesses=0,deathFailures=3),
+              dict(dead=False,stable=False,deathSuccesses=1,deathFailures=2)]:
+  subprocess.run(['node',str(ROOT/'tools/test_shared_continuity.js'),str(engine),str(source),str(report_file),json.dumps(life)],check=True)
+  r=json.loads(report_file.read_text());assert r['continuity']['life']['yar']==life
+  new=build_result(state,prepare(r,state,engine));assert new['characters']['yar']['combat_continuity']['life']==life
+  next_pack.write_text(json.dumps(build(new,cap),ensure_ascii=False))
+  subprocess.run(['node','-e',r'''
+const fs=require('node:fs'),assert=require('node:assert/strict'),{createBattle}=require(process.argv[1]+'/sdk');
+const {engine:e}=createBattle(JSON.parse(fs.readFileSync(process.argv[2]))),life=JSON.parse(process.argv[3]);
+for(const [k,v] of Object.entries(life))assert.equal(e.unit('yar')[k],v);
+e.s.started=true;e.s.queue=[];e.s.pending=null;e.s.index=e.s.order.indexOf('yar');e.s.random.tape=[10];e.enqueue({kind:'startTurn'});e.run();
+assert.equal(e.unit('yar').deathSuccesses,life.deathSuccesses+(life.dead||life.stable?0:1));
+assert.equal(e.unit('yar').dead,life.dead);assert.equal(e.unit('yar').stable,life.stable);
+''',str(engine),str(next_pack),json.dumps(life)],check=True)
+  if life['stable']:
+   healed=copy.deepcopy(new);healed['characters']['yar']['resources']['hp']['current']=5;synchronize(healed)
+   assert healed['characters']['yar']['combat_continuity']['life']==dict(dead=False,stable=False,deathSuccesses=0,deathFailures=0)
+ # Reject corrupt continuity before any canonical mutation.
+ for mutate in [lambda r:r['continuity']['effects'][0].update(kind='unknown'),
+                lambda r:r['continuity']['units'].append(dict(summoner='daphne',hp=10)),
+                lambda r:r['continuity']['statuses']['yar'].append(dict(kind='invented'))]:
+  bad=copy.deepcopy(result);mutate(bad);before=copy.deepcopy(state)
+  try:prepare(bad,state,engine)
+  except (ValueError,RuntimeError):pass
+  else:raise AssertionError('Corrupt continuity accepted')
+  assert state==before
  assert (ROOT/'state/_campaign-state.json').read_bytes()==original
  # Expiry of temporary HP maximum and armor follows real game seconds, not wall-clock time.
  c=copy.deepcopy(state);clock=c['world']['timekeeping']['elapsed_seconds_from_anchor'];hp=c['characters']['rada']['resources']['hp'];hp['max']+=5;hp['current']+=5
  c['characters']['lyutobor']['combat_continuity']={'effects':[{'id':'aid','kind':'aid','owner':'lyutobor','targets':['rada'],'amount':5,'expires_at':clock+6}]}
- assert not synchronize(c);c['world']['timekeeping']['elapsed_seconds_from_anchor']+=6;assert synchronize(c);assert c['characters']['rada']['resources']['hp']==state['characters']['rada']['resources']['hp']
+ synchronize(c);assert not synchronize(c);c['world']['timekeeping']['elapsed_seconds_from_anchor']+=6;assert synchronize(c);assert c['characters']['rada']['resources']['hp']==state['characters']['rada']['resources']['hp']
+ # Aid/Heroism on a retained mount expire through the same clock without party lookups.
+ c=copy.deepcopy(state);clock=c['world']['timekeeping']['elapsed_seconds_from_anchor']
+ c['characters']['lyutobor']['combat_continuity']={'effects':[
+  dict(id='aid-steed',kind='aid',owner='lyutobor',targets=['lyutobor-steed'],amount=5,expires_at=clock+6),
+  dict(id='hero-steed',kind='heroism',owner='lyutobor',targets=['lyutobor-steed'],expires_at=clock+6)],
+  'summons':[dict(id='lyutobor-steed',hp=29,max=30,persistent_temp=4,persistent_temp_source='hero-steed',persistent_statuses=[dict(kind='poisoned',expires_at=clock+6)])]}
+ synchronize(c);assert not synchronize(c);c['world']['timekeeping']['elapsed_seconds_from_anchor']+=6;assert synchronize(c)
+ mount=c['characters']['lyutobor']['combat_continuity']['summons'][0];assert (mount['hp'],mount['max'],mount['persistent_temp'],mount['persistent_statuses'])==(25,25,0,[])
  print('FULL PARTY HANDOFF OK: three completed story copies, serialized decisions, canonical bounds, exact replay, conflicting replay rejection, expiry; live canon unchanged')

@@ -57,11 +57,12 @@ def build(state,capabilities):
     pack=dict(kind='dnd-combat-pack',version=1,api=1,id=cid,revision=state['state_revision'],name='Хейвенгард · полная партия',rules_version='dnd-2024-2026-10',requires=['spellcasting','magicItems','advancedClasses'],abilities={},profiles=profiles,characters=characters,default_encounter='party-training',encounters={
       'party-training':dict(name='Хейвенгард · учебная встреча',kind='training',width=14,height=10,theme='forest',heroes={k:dict(cell=cell) for k,cell in zip(characters,['C4','B6','D5','C7'])},enemies=[dict(id='raider'+str(i+1),profile='raider',cell=cell) for i,cell in enumerate(['J3','K5','J7','L4','L8'])],walls=['G2','G3','G8','G9'],rubble=['G5','H5'],cover={'C4':5,'C7':5})},source_state_sha256=hashlib.sha256(json.dumps(state,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest(),notes=['Учебная встреча не является сыгранным событием. Все четыре героя управляются игроком. Текущий КД Яра 11: латы не надеты. Неподготовленные заклинания доступны в справочнике книги.'])
     clock=state.get('world',{}).get('timekeeping',{}).get('elapsed_seconds_from_anchor',0)
-    continuity={'effects':[],'temporary_hp':{},'temp_sources':{},'statuses':{},'objects':[],'zones':[]}
+    continuity={'effects':[],'temporary_hp':{},'temp_sources':{},'statuses':{},'objects':[],'zones':[],'life':{}}
     for key in characters:
         saved=state['characters'][key].get('combat_continuity',{})
         continuity['temporary_hp'][key]=saved.get('temporary_hp',0)
         continuity['temp_sources'][key]=saved.get('temp_source')
+        if saved.get('life'):continuity['life'][key]=saved['life']
         continuity['statuses'][key]=[{**z,**({'until':z['expires_at']-clock} if 'expires_at' in z else {})} for z in saved.get('statuses',[]) if 'expires_at' not in z or z['expires_at']>clock]
         for x in saved.get('effects',[]):
             remaining=x['expires_at']-clock
@@ -75,6 +76,10 @@ def build(state,capabilities):
         for u in saved.get('summons',[]):
             if u.get('hp',0)<=0:continue
             uid=u['id'];profile=dict(name=u['name'],hp=u['max'],initialHP=u['hp'],ac=u['ac'],speed=u['speed'],size=u['size'],scores={k:10+2*v for k,v in u['stats'].items()},saves=u['saves'],proficiency=u['proficiency'],features=u['features'],attacks=u['attacks'],summoner=key,summonLevel=u['summonLevel'],summonDC=u['summonDC'],creatureType=u['creatureType'],powerAvailable=u['powerAvailable'])
+            continuity['temporary_hp'][uid]=u.get('persistent_temp',u.get('temp',0))
+            continuity['temp_sources'][uid]=u.get('persistent_temp_source',u.get('tempSource'))
+            continuity['statuses'][uid]=[{**z,**({'until':z['expires_at']-clock} if 'expires_at' in z else {})} for z in u.get('persistent_statuses',[]) if 'expires_at' not in z or z['expires_at']>clock]
+            if u.get('persistent_life'):continuity['life'][uid]=u['persistent_life']
             profiles[uid]=profile
             free=next(chr(65+x)+str(y+1) for y in range(10) for x in range(14) if chr(65+x)+str(y+1) not in occupied and chr(65+x)+str(y+1) not in pack['encounters']['party-training']['walls'])
             occupied.add(free);pack['encounters']['party-training']['heroes'][uid]=dict(profile=uid,cell=free,controlled=True)
