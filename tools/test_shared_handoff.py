@@ -67,4 +67,33 @@ assert.equal(e.unit('yar').dead,life.dead);assert.equal(e.unit('yar').stable,lif
   'summons':[dict(id='lyutobor-steed',hp=29,max=30,persistent_temp=4,persistent_temp_source='hero-steed',persistent_statuses=[dict(kind='poisoned',expires_at=clock+6)])]}
  synchronize(c);assert not synchronize(c);c['world']['timekeeping']['elapsed_seconds_from_anchor']+=6;assert synchronize(c)
  mount=c['characters']['lyutobor']['combat_continuity']['summons'][0];assert (mount['hp'],mount['max'],mount['persistent_temp'],mount['persistent_statuses'])==(25,25,0,[])
+ # B01-B03: final-clock normalization and the actual next field are validated before commit.
+ for mode in ('goad','cast-aid','imported-aid','heroism','large-field'):
+  source_state=copy.deepcopy(state)
+  if mode=='imported-aid':
+   hp=source_state['characters']['yar']['resources']['hp'];hp['max']+=5;hp['current']+=5
+   now=source_state['world']['timekeeping']['elapsed_seconds_from_anchor']
+   source_state['characters']['lyutobor']['combat_continuity']={'effects':[dict(id='effect-900',kind='aid',owner='lyutobor',targets=['yar'],level=2,dc=14,concentration=False,amount=5,expires_at=now+6)]}
+  pack=build(source_state,cap)
+  raw=subprocess.check_output(['node',str(ROOT/'tools/test_shared_boundary.js'),str(engine),mode],input=json.dumps(pack),text=True)
+  r=json.loads(raw);tx=prepare(r,source_state,engine);new=build_result(source_state,tx)
+  assert build_result(new,prepare(r,new,engine))==new
+  assert new['characters']['yar']['resources']['hp']['max']==state['characters']['yar']['resources']['hp']['max']
+  assert new['characters']['yar']['combat_continuity']['temporary_hp']==0
+  assert not any(z['kind']=='goaded' for z in new['characters']['yar']['combat_continuity']['statuses'])
+  next_pack.write_text(json.dumps(build(new,cap),ensure_ascii=False))
+  subprocess.run(['node',str(engine/'sdk/cli.js'),'validate',str(next_pack)],check=True,capture_output=True)
+  if mode=='large-field':
+   restored=json.loads(next_pack.read_text());arena=restored['encounters'][restored['default_encounter']]
+   assert (arena['width'],arena['height'])==(20,12)
+   assert (restored['continuity']['objects'][0]['x'],restored['continuity']['objects'][0]['y'])==(18,10)
+   assert arena['heroes']['lyutobor-steed']['cell']=='J3'
+   assert all(x['cell']!='J3' for x in arena['enemies'])
+   bad=copy.deepcopy(r);bad['continuity']['scene']['positions']['yar']=bad['continuity']['scene']['positions']['daphne']
+   before=copy.deepcopy(source_state)
+   try:prepare(bad,source_state,engine)
+   except ValueError as error:assert 'Следующий бой не запускается' in str(error)
+   else:raise AssertionError('Unlaunchable next battle accepted')
+   assert source_state==before
+ assert (ROOT/'state/_campaign-state.json').read_bytes()==original
  print('FULL PARTY HANDOFF OK: three completed story copies, serialized decisions, canonical bounds, exact replay, conflicting replay rejection, expiry; live canon unchanged')
