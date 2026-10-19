@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "reviewed_engine": "30.5.0",
+  "characters": {
+    "yar": {
+      "sheet_mechanics_sha256": "454b48265902b75bbac55360bff7be9e1d08fef659e8a0e4ce272640534c8cb4",
+      "required_features": {
+        "fighterLevel": 10,
+        "secondWind": true,
+        "actionSurge": true,
+        "tacticalMind": true,
+        "tacticalShift": true,
+        "indomitable": true,
+        "knowEnemy": true,
+        "extraAttack": 2,
+        "greatWeaponFighting": true,
+        "greatWeaponMaster": 4,
+        "savageAttacker": true,
+        "tacticalMaster": true,
+        "superiorityDie": 10,
+        "maneuverDC": 17,
+        "maneuvers": [
+          "precision",
+          "trip",
+          "push",
+          "goad",
+          "maneuvering",
+          "riposte",
+          "bait"
+        ],
+        "masteries": [
+          "graze",
+          "sap"
+        ],
+        "acReaction": 3,
+        "heavyArmorReduction": 4,
+        "heavyArmor": false
+      },
+      "required_prepared": [],
+      "required_cantrips": [],
+      "required_attacks": [
+        "accurateSword",
+        "stormThrower",
+        "forgeMaul",
+        "flail"
+      ],
+      "conditional_availability": [
+        "Латы сейчас не надеты: КД 11, снижение тяжёлой брони не действует.",
+        "Молот не настроен: резонанс и удвоение урона предметам недоступны до настройки.",
+        "Астральное перемещение мантии и предметы, меняющие сцену, требуют решения мастера вне плоской арены."
+      ]
+    },
+    "daphne": {
+      "sheet_mechanics_sha256": "85be6e17b9563ccf022f2a18c829af1b58edb8148e362a8735504ad4804e3e1d",
+      "required_features": {
+        "sculptSpells": true,
+        "potentCantrip": true,
+        "empoweredEvocation": true,
+        "shieldSpell": true,
+        "autoShield": true,
+        "alert": true
+      },
+      "required_prepared": [
+        "mageArmor",
+        "magicMissile",
+        "thunderwave",
+        "fogCloud",
+        "scorchingRay",
+        "mistyStep",
+        "fireball",
+        "slow",
+        "counterspell",
+        "dimensionDoor",
+        "greaterInvisibility",
+        "coneCold",
+        "seeming",
+        "holdMonster",
+        "bigbyHand"
+      ],
+      "required_cantrips": [
+        "fireBolt",
+        "rayFrost",
+        "mindSliver",
+        "mageHand",
+        "prestidigitation"
+      ],
+      "required_attacks": [
+        "staff"
+      ],
+      "conditional_availability": [
+        "В книге сохранены неподготовленные заклинания; они не становятся доступными без смены подготовки.",
+        "Творческие применения Фокусов, Магической руки и Кажущейся внешности фиксируются эффектом; последствие определяет мастер."
+      ]
+    },
+    "lyutobor": {
+      "sheet_mechanics_sha256": "1993a4762dcaf89754c445c660a2e72d445e3c031147d7c1cf8c82ae659c9211",
+      "required_features": {
+        "extraAttack": 2,
+        "masteries": [
+          "sap"
+        ],
+        "auraProtection": 2,
+        "auraRadius": 10,
+        "auraDevotion": true,
+        "auraCourage": true,
+        "guardianSaveBonus": 1,
+        "critNegation": true,
+        "protection": true,
+        "shieldEquipped": true,
+        "heavyArmor": true,
+        "heavyArmorReduction": 4,
+        "layOnHands": true,
+        "sacredWeapon": true,
+        "abjureFoes": true,
+        "shieldMaster": true,
+        "divineSmite": true
+      },
+      "required_prepared": [
+        "bless",
+        "cureWounds",
+        "heroism",
+        "command",
+        "compelledDuel",
+        "protectionEvil",
+        "shieldFaith",
+        "aid",
+        "lesserRestoration",
+        "zoneTruth",
+        "wardingBond",
+        "beaconHope",
+        "dispelMagic",
+        "crusaderMantle",
+        "auraVitality",
+        "divineSmite",
+        "findSteed"
+      ],
+      "required_cantrips": [],
+      "required_attacks": [
+        "longsword"
+      ],
+      "conditional_availability": [
+        "Количество джавелинов не указано: запасные метательные атаки не создаются из воздуха.",
+        "Защитная связь требует двух платиновых колец, Защита от зла и добра — расходуемого компонента; наличие компонентов не подтверждено.",
+        "Мгновенная крепость меняет сцену и требует решения мастера о свободном объёме и размещении."
+      ]
+    },
+    "rada": {
+      "sheet_mechanics_sha256": "9f1b89de3dab36e96b0e5f1df00ca55410bf2f2b41637730cb748e5dc9f8f74a",
+      "required_features": {
+        "sneakDice": 5,
+        "cunningAction": true,
+        "steadyAim": true,
+        "uncannyDodge": true,
+        "evasion": true,
+        "reliableTalent": true,
+        "sharpshooter": true,
+        "masteries": [
+          "vex",
+          "nick"
+        ],
+        "cunningStrike": true,
+        "cunningDC": 17,
+        "stealthAttack": true,
+        "thiefHands": true,
+        "climbSpeed": 30,
+        "poisonerKit": true,
+        "silentShadow": true,
+        "alert": true
+      },
+      "required_prepared": [],
+      "required_cantrips": [],
+      "required_attacks": [
+        "leafBow",
+        "scimitar",
+        "shortsword",
+        "dagger"
+      ],
+      "conditional_availability": [
+        "Скорость лазания 30 фт сохранена; высота и вертикальные маршруты требуют карты с высотой.",
+        "Жезл секретов и защита мыслей отражены в справочнике; автоматическое обнаружение за пределами данных карты не выдумывается."
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "event": {
+    "id": "COMBAT-MANTLE-STARS-NORMALIZED-20261019",
+    "source": "inventory_catalog.yar-star-mantle: 6/6 звёзд; подтверждение игрока о восполненных ресурсах.",
+    "summary": "Звёздная мантия: перенесён явно записанный запас 6/6 звёзд из актуального инвентаря в числовой ресурс для общего боевого движка. Время и предметы не расходуются.",
+    "visibility": "party"
+  },
+  "expected_state_revision": 30,
+  "operations": [
+    {
+      "id": "yar",
+      "resource": "mantle_stars",
+      "type": "set_character_resource",
+      "value": {
+        "current": 6,
+        "max": 6
+      }
+    }
+  ]
+}

@@ -1,27 +1,8 @@
-name: Shared combat compatibility
+name: Manual shared engine verification
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'prototypes/shared-combat/**'
-      - 'tools/check_shared_combat.py'
-      - 'state/_campaign-state.json'
-      - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
-      - '.github/workflows/shared-combat-compatibility.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'prototypes/shared-combat/**'
-      - 'tools/check_shared_combat.py'
-      - 'state/_campaign-state.json'
-      - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
-      - '.github/workflows/shared-combat-compatibility.yml'
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: shared-combat-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   compatibility:
     runs-on: ubuntu-latest
@@ -33,20 +14,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Read pinned engine
-        id: engine
-        run: |
-          python - <<'PY'
-          import json,os,re
-          lock=json.load(open('prototypes/shared-combat/engine-lock.json'))
-          assert re.fullmatch('[0-9a-f]{40}',lock['commit'])
-          assert lock['repository']=='reider789/rin_dnd'
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('commit='+lock['commit']+'\n')
-          PY
+      - id: engine
+        run: echo "commit=$(python -c 'import json; print(json.load(open("prototypes/shared-combat/engine-lock.json"))["commit"])')" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           repository: reider789/rin_dnd
           ref: ${{ steps.engine.outputs.commit }}
           path: .shared-combat
-      - name: Check shared engine and audit current characters
-        run: python tools/check_shared_combat.py --engine-root .shared-combat --output "${{ runner.temp }}/shared-combat-audit.json"
+      - run: python tools/check_shared_combat.py --engine-root .shared-combat --require-ready

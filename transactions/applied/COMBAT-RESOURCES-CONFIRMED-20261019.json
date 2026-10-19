@@ -1,0 +1,146 @@
+{
+  "event": {
+    "id": "COMBAT-RESOURCES-CONFIRMED-20261019",
+    "source": "Игрок, 2026-10-19: «Боев не было давно, естественно все ресурсы восполнены, сделай все до конца».",
+    "summary": "Полные восстанавливаемые ресурсы партии подтверждены игроком перед завершением переноса боевого движка. Боеприпасы и расходники не пополняются.",
+    "visibility": "party"
+  },
+  "expected_state_revision": 29,
+  "operations": [
+    {
+      "id": "yar",
+      "resource": "second_wind",
+      "type": "set_character_resource",
+      "value": {
+        "current": 4,
+        "max": 4
+      }
+    },
+    {
+      "id": "yar",
+      "resource": "superiority",
+      "type": "set_character_resource",
+      "value": {
+        "current": 5,
+        "max": 5
+      }
+    },
+    {
+      "id": "yar",
+      "resource": "indomitable",
+      "type": "set_character_resource",
+      "value": {
+        "current": 1,
+        "max": 1
+      }
+    },
+    {
+      "id": "yar",
+      "resource": "know_enemy",
+      "type": "set_character_resource",
+      "value": {
+        "current": 1,
+        "max": 1
+      }
+    },
+    {
+      "id": "yar",
+      "resource": "cloak_charges",
+      "type": "set_character_resource",
+      "value": {
+        "current": 2,
+        "max": 2
+      }
+    },
+    {
+      "id": "yar",
+      "resource": "forge_resonance",
+      "type": "set_character_resource",
+      "value": {
+        "current": 3,
+        "max": 3
+      }
+    },
+    {
+      "id": "daphne",
+      "resource": "storm_bracers",
+      "type": "set_character_resource",
+      "value": {
+        "current": 2,
+        "max": 2
+      }
+    },
+    {
+      "id": "daphne",
+      "resource": "storm_daily",
+      "type": "set_character_resource",
+      "value": {
+        "current": 2,
+        "max": 2
+      }
+    },
+    {
+      "id": "daphne",
+      "resource": "vaeltir_focus",
+      "type": "set_character_resource",
+      "value": {
+        "current": 2,
+        "max": 2
+      }
+    },
+    {
+      "id": "lyutobor",
+      "resource": "channel_divinity",
+      "type": "set_character_resource",
+      "value": {
+        "current": 2,
+        "max": 2
+      }
+    },
+    {
+      "id": "lyutobor",
+      "resource": "smite_free",
+      "type": "set_character_resource",
+      "value": {
+        "current": 1,
+        "max": 1
+      }
+    },
+    {
+      "id": "lyutobor",
+      "resource": "guardian_mark",
+      "type": "set_character_resource",
+      "value": {
+        "current": 3,
+        "max": 3
+      }
+    },
+    {
+      "id": "lyutobor",
+      "resource": "faithful_steed",
+      "type": "set_character_resource",
+      "value": {
+        "current": 1,
+        "max": 1
+      }
+    },
+    {
+      "id": "rada",
+      "resource": "leaf_charges",
+      "type": "set_character_resource",
+      "value": {
+        "current": 2,
+        "max": 2
+      }
+    },
+    {
+      "id": "rada",
+      "resource": "living_arrow",
+      "type": "set_character_resource",
+      "value": {
+        "current": 1,
+        "max": 1
+      }
+    }
+  ]
+}
