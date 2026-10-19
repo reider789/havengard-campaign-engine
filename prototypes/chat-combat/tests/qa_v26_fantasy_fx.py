@@ -66,16 +66,6 @@ with sync_playwright() as p:
     assert 'visualFX' not in checkpoint['session']
     assert not errors,errors
     context.close()
-    # Small viewport: no missing board or controls.
-    mobile=browser.new_context(viewport={'width':390,'height':844})
-    small=mobile.new_page()
-    small.on('pageerror',lambda e:errors.append(str(e)))
-    small.route('**/hayvengard_art_v1.json',lambda r:r.abort())
-    small.set_content(HTML)
-    small.wait_for_selector('#hvfx-quality')
-    assert small.locator('#board button[data-tile]').count()==88
-    assert small.locator('#hvfx-quality').is_visible()
-    mobile.close()
     # Respect OS reduced-motion default for users without stored choice.
     reduced=browser.new_context(reduced_motion='reduce')
     quiet=reduced.new_page()
@@ -85,7 +75,7 @@ with sync_playwright() as p:
     assert quiet.locator('#hvfx-quality').input_value()=='off'
     reduced.close()
     assert not errors,errors
-    print(json.dumps({'version':'v26','tested':'desktop, mobile, reduced-motion, limited VFX',
+    print(json.dumps({'version':'v26','tested':'desktop, reduced-motion, limited VFX',
                       'quality_modes':3,'fx_max':stats['peak'],'dropped':stats['dropped'],
                       'save_schema':checkpoint['session']['version'],
                       'source_revision':before['sourceRevision']},ensure_ascii=False))

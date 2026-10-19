@@ -1,10 +1,27 @@
 name: Shared combat compatibility
 on:
   push:
+    branches: [main]
+    paths:
+      - 'prototypes/shared-combat/**'
+      - 'tools/check_shared_combat.py'
+      - 'state/_campaign-state.json'
+      - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
+      - '.github/workflows/shared-combat-compatibility.yml'
   pull_request:
+    branches: [main]
+    paths:
+      - 'prototypes/shared-combat/**'
+      - 'tools/check_shared_combat.py'
+      - 'state/_campaign-state.json'
+      - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
+      - '.github/workflows/shared-combat-compatibility.yml'
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: shared-combat-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   compatibility:
     runs-on: ubuntu-latest

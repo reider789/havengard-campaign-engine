@@ -2,6 +2,11 @@ name: Build in-chat combat bundle
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'state/_campaign-state.json'
+      - 'prototypes/chat-combat/**'
+      - '.github/workflows/build-chat-combat.yml'
+      - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
   push:
     branches: [main]
     paths:
@@ -67,6 +72,8 @@ jobs:
         run: python prototypes/chat-combat/tests/qa_v28_nonlethal.py
       - name: Verify v29 optimal and smooth auto-movement
         run: python prototypes/chat-combat/tests/qa_v29_pathfinding.py
+      - name: Verify spacious standalone desktop delivery
+        run: python prototypes/chat-combat/tests/qa_desktop.py
       - name: Generate checksum for offline ChatGPT file loader
         run: python prototypes/chat-combat/build_inline_payload.py
       - name: Browser-test canonical story handoff
@@ -77,7 +84,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add prototypes/chat-combat/current-chat-battle.html prototypes/chat-combat/current-manifest.json prototypes/chat-combat/current-chat-battle.gzip.b64 prototypes/chat-combat/inline-payload-manifest.json
+          git add prototypes/chat-combat/current-chat-battle.html prototypes/chat-combat/desktop-battle.html prototypes/chat-combat/entrypoint.json prototypes/chat-combat/current-manifest.json prototypes/chat-combat/current-chat-battle.gzip.b64 prototypes/chat-combat/inline-payload-manifest.json
           if ! git diff --cached --quiet; then
             git commit -m 'chore(chat-combat): sync self-contained battle data from canon [skip ci]'
             git -c pull.rebase=true pull --rebase origin main

@@ -1,14 +1,5 @@
-name: Deploy Havengard Combat UI
+name: Archive - deploy legacy v16 combat UI manually
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'state/**'
-      - 'migrations/character-*'
-      - 'prototypes/combat/app/**'
-      - 'prototypes/combat/character-capability-registry-g1m8-v1.json'
-      - 'prototypes/combat/inventory-interactions-g1m8-v1.json'
-      - '.github/workflows/deploy-combat-ui.yml'
   workflow_dispatch:
 permissions:
   contents: read

@@ -324,6 +324,22 @@ def build(root: Path, scenario_path: Path | None = None, output_path: Path | Non
                 'bundle_size_bytes': len(result.encode('utf-8'))}
     manifest_path = output.parent / ('story-manifest.json' if scene else 'current-manifest.json')
     manifest_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    if not scene:
+        # A standalone document opens in the spacious file preview next to chat.
+        desktop_css = '''html,body{margin:0;background:#111a18}body{padding:12px;min-width:1000px}
+        #hv12{max-width:1920px;margin:auto}#hv12 .layout{grid-template-columns:minmax(0,1.6fr) minmax(380px,1fr)}
+        #hv12 .layout>section{position:sticky;top:12px;align-self:start}
+        #hv12 aside{position:sticky;top:12px;max-height:calc(100vh - 140px);overflow:auto;align-self:start}
+        #hv12 .boardrow{max-width:calc((100vh - 300px)*1.375 + 24px)}
+        #hv12 #endturn{position:sticky;bottom:-12px;background:#1c2826;padding:8px 0;z-index:8}
+        '''
+        desktop = '<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Хейвенгард — тактический бой</title></head><body>' + result + '<style>' + desktop_css + '</style></body></html>'
+        (output.parent/'desktop-battle.html').write_text(desktop,encoding='utf-8')
+        entry_path = output.parent/'entrypoint.json'
+        if entry_path.exists():
+            entry = json.loads(entry_path.read_text(encoding='utf-8'))
+            entry.update(current_ui_path='prototypes/chat-combat/desktop-battle.html',chat_embed_path='prototypes/chat-combat/current-chat-battle.html',verified_source_revision=state['state_revision'],mode='standalone desktop HTML file preview',desktop_only=True)
+            entry_path.write_text(json.dumps(entry,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     return metadata
 
 
