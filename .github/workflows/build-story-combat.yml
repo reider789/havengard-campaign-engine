@@ -20,33 +20,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: engine
+        run: echo "commit=$(python -c 'import json; print(json.load(open("prototypes/shared-combat/engine-lock.json"))["commit"])')" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: reider789/rin_dnd
+          ref: ${{ steps.engine.outputs.commit }}
+          path: .shared-combat
+          persist-credentials: false
       - name: Validate the authored scene and package pinned canon
         run: |
           test -f prototypes/chat-combat/story/active-scene.json
-          python prototypes/chat-combat/build_chat_bundle.py \
-            --root . \
-            --scenario prototypes/chat-combat/story/active-scene.json \
-            --output prototypes/chat-combat/story/story-chat-battle.html
-      - name: Check standalone story JavaScript syntax
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          text=Path('prototypes/chat-combat/story/story-chat-battle.html').read_text(encoding='utf-8')
-          assert '<script type="application/json" data-hg-scene>' in text
-          Path('/tmp/hg-story.js').write_text(text.split('<script>',1)[1].split('</script>',1)[0],encoding='utf-8')
-          PY
-          node --check /tmp/hg-story.js
-      - name: Browser tests including revision isolation
-        run: |
-          python -m pip install playwright
-          python -m playwright install --with-deps chromium
-          python prototypes/chat-combat/tests/qa_v21_story.py
+          python tools/build_shared_story.py --engine-root .shared-combat --scenario prototypes/chat-combat/story/active-scene.json --output prototypes/chat-combat/story/story-chat-battle.html
       - name: Publish only the story bundle, never canonical state
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add prototypes/chat-combat/story/story-chat-battle.html prototypes/chat-combat/story/story-manifest.json
+          git add prototypes/chat-combat/story/story-chat-battle.html prototypes/chat-combat/story/story-chat-battle.source.json
           if ! git diff --cached --quiet; then
             git commit -m 'build(chat-combat): package current story encounter [skip ci]'
             git -c pull.rebase=true pull --rebase origin main

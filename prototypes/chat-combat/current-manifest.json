@@ -1,49 +1,10 @@
 {
-  "schema_version": 2,
-  "engine": "engine-v29.html",
-  "bundle": "current-chat-battle.html",
-  "source_revision": 29,
-  "hero_count": 4,
-  "usage": "Self-contained ChatGPT panel; GitHub is the canonical source, not the combat save.",
-  "canonical": false,
-  "mode": "training",
-  "architecture": {
-    "version": "v29",
-    "bundled_modules": [
-      "dice.js",
-      "journal.js",
-      "conditions.js",
-      "battlefield.js",
-      "state_port.js",
-      "dom_renderer.js",
-      "persistence.js",
-      "spell_resolver.js",
-      "reaction_resolver.js",
-      "visual_fx.js",
-      "narrative_handoff.js",
-      "knockout_2024.js"
-    ],
-    "offline": true,
-    "theme": "heroes-inspired",
-    "visual_fx": "css-transforms",
-    "quality_modes": [
-      "off",
-      "standard",
-      "rich"
-    ],
-    "narrative_handoff": "player_click_to_chat",
-    "nonlethal": "2024 melee knockout at 1 HP"
-  },
-  "battle_id": null,
-  "chronicle_anchor": null,
-  "visual_skin": {
-    "engine_module": "visual_skin.js",
-    "offline_art_pack_schema": "havengard-combat-art-v1",
-    "expected_assets": 24,
-    "embedded": false,
-    "auto_cached_cdn": true,
-    "asset_requests_on_cache_miss": 1
-  },
-  "bundle_sha256": "52bbc64939a48697814f37d8a07d09439d01730ac052ce1b5a220581d177275b",
-  "bundle_size_bytes": 360209
+  "schema_version": 3,
+  "engine_version": "30.5.0",
+  "source_revision": 31,
+  "source_state_sha256": "8d975dfe472b6d916fd37c7aafad8d64cf8f33b5e6a74fab72d6fe835ff16cf9",
+  "canonical_migration_complete": true,
+  "sha256": "007a5b89382de5b49dcf90026763d23f7d4efd2c8d40f2aab34c029643db972c",
+  "html_bytes": 1089979,
+  "art_bytes": 520196
 }

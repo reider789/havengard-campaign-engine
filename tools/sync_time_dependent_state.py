@@ -38,20 +38,22 @@ def synchronize(state: dict[str, Any]) -> bool:
     starts labor, or applies gameplay penalties. It only derives counters/stages from
     already-canonical time and an already-played confirmation when one exists.
     """
+    from sync_combat_effects import synchronize as synchronize_combat_effects
+    combat_changed = synchronize_combat_effects(state)
     world = state.get("world", {})
     timekeeping = world.get("timekeeping")
     if not isinstance(timekeeping, dict):
-        return False
+        return combat_changed
 
     daphne = state.get("characters", {}).get("daphne")
     if not isinstance(daphne, dict):
-        return False
+        return combat_changed
     health = daphne.get("health")
     if not isinstance(health, dict):
-        return False
+        return combat_changed
     pregnancy = health.get("pregnancy")
     if not isinstance(pregnancy, dict):
-        return False
+        return combat_changed
 
     elapsed_days = _require_nonnegative_int(
         timekeeping.get("elapsed_full_days_from_anchor", 0),
@@ -66,7 +68,7 @@ def synchronize(state: dict[str, Any]) -> bool:
 
     confirmation = pregnancy.get("confirmation", "pending")
     if pregnancy.get("status") in {"resolved", "ended", "disproven"}:
-        return changed
+        return changed or combat_changed
     if confirmation != "confirmed":
         # Suspicion is not a diagnosis. Do not derive a gestational age until a
         # played confirmation supplies an estimated age at that moment.
@@ -74,7 +76,7 @@ def synchronize(state: dict[str, Any]) -> bool:
         if pregnancy.get("stage_current") != expected_stage:
             pregnancy["stage_current"] = expected_stage
             changed = True
-        return changed
+        return changed or combat_changed
 
     confirmation_elapsed = _require_nonnegative_int(
         pregnancy.get("confirmation_elapsed_day_from_first_signs"),
@@ -130,7 +132,7 @@ def synchronize(state: dict[str, Any]) -> bool:
         daphne["time_summary"] = state_label
         changed = True
 
-    return changed
+    return changed or combat_changed
 
 
 def main() -> int:
