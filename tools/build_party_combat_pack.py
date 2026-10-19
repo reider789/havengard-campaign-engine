@@ -68,6 +68,30 @@ def build(state,capabilities):
             remaining=x['expires_at']-clock
             if remaining>0:continuity['effects'].append({**x,'until':remaining})
     live={x['id'] for x in continuity['effects']}
+    # Spatial magic stays on its original field. Restore that field verbatim;
+    # moving it to another scene requires an explicit new placement/ending.
+    scenes=[c.get('combat_continuity',{}).get('scene') for c in state['characters'].values()]
+    scenes=[s for s in scenes if s]
+    spatial=any(c.get('combat_continuity',{}).get('objects') or c.get('combat_continuity',{}).get('zones') for c in state['characters'].values())
+    arena=pack['encounters']['party-training']
+    if scenes and spatial:
+        scene=scenes[0]
+        if any(s!=scene for s in scenes):raise ValueError('Продолжение содержит разные поля боя')
+        continuity['scene']=scene
+        arena.update({k:scene[k] for k in ('width','height')})
+        arena['scene_id']=scene['id']
+        arena['walls']=[chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])) for p in scene['walls']]
+        arena['rubble']=[chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])) for p in scene['rubble']]
+        arena['cover']={chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])):v for p,v in scene['cover'].items()}
+        for uid,p in scene['positions'].items():
+            if uid in arena['heroes']:arena['heroes'][uid]['cell']=chr(65+p['x'])+str(1+p['y'])
+        taken={chr(65+p['x'])+str(1+p['y']) for p in scene['positions'].values()}|set(arena['walls'])
+        for enemy in arena['enemies']:
+            cell=enemy['cell']
+            if cell in taken or ord(cell[0])-65>=arena['width'] or int(cell[1:])>arena['height']:
+                cell=next(chr(65+x)+str(y+1) for y in range(arena['height']) for x in range(arena['width']) if chr(65+x)+str(y+1) not in taken)
+                enemy['cell']=cell
+            taken.add(cell)
     occupied={v['cell'] for v in pack['encounters']['party-training']['heroes'].values()}
     for key in characters:
         saved=state['characters'][key].get('combat_continuity',{})
@@ -81,7 +105,8 @@ def build(state,capabilities):
             continuity['statuses'][uid]=[{**z,**({'until':z['expires_at']-clock} if 'expires_at' in z else {})} for z in u.get('persistent_statuses',[]) if 'expires_at' not in z or z['expires_at']>clock]
             if u.get('persistent_life'):continuity['life'][uid]=u['persistent_life']
             profiles[uid]=profile
-            free=next(chr(65+x)+str(y+1) for y in range(10) for x in range(14) if chr(65+x)+str(y+1) not in occupied and chr(65+x)+str(y+1) not in pack['encounters']['party-training']['walls'])
+            position=continuity.get('scene',{}).get('positions',{}).get(uid)
+            free=(chr(65+position['x'])+str(1+position['y'])) if position else next(chr(65+x)+str(y+1) for y in range(arena['height']) for x in range(arena['width']) if chr(65+x)+str(y+1) not in occupied and chr(65+x)+str(y+1) not in arena['walls'] and chr(65+x)+str(y+1) not in {v['cell'] for v in arena['enemies']})
             occupied.add(free);pack['encounters']['party-training']['heroes'][uid]=dict(profile=uid,cell=free,controlled=True)
     pack['campaign_clock']=clock
     pack['continuity']=continuity
