@@ -1,10 +1,10 @@
 {
   "schema_version": 3,
-  "engine_version": "30.5.3",
+  "engine_version": "30.6.0",
   "source_revision": 31,
   "source_state_sha256": "8d975dfe472b6d916fd37c7aafad8d64cf8f33b5e6a74fab72d6fe835ff16cf9",
   "canonical_migration_complete": true,
-  "sha256": "b840baee887f3c0ffef0532a185e69ca99b62cf66255e7b5fb8e17afb146d93c",
-  "html_bytes": 1192690,
+  "sha256": "10237041d46e5985c8f7ea35639126c822e0b4c5cc4acc44eba81296b939bbf5",
+  "html_bytes": 1225770,
   "art_bytes": 520196
 }
