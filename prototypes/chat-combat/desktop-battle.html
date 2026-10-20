@@ -401,15 +401,18 @@ button:focus-visible, select:focus-visible { outline: 2px solid #ecd1a0; outline
             <p id="storage-usage"></p>
             <button data-op="archive-export">Выгрузить архив</button>
             <button data-op="export-current-new">
-              Скачать текущий, удалить его из браузера и начать новый
+              Скачать текущий бой перед очисткой
+            </button>
+            <button data-op="current-new-confirm" id="current-new-confirm" disabled>
+              Файл сохранён: удалить текущую копию и начать новый бой
             </button>
             <label
-              >Удаление старого боя после выгрузки<select
+              >Очистка после сохранения файла архива<select
                 id="archive-session"
               ></select
             ></label>
             <button data-op="archive-delete" id="archive-delete" disabled>
-              Удалить выбранный старый бой
+              Файл сохранён: удалить выбранный старый бой
             </button>
             <label
               >Бой из загруженного архива<select id="archive-imported"></select
@@ -553,7 +556,7 @@ if(typeof module!=="undefined")module.exports={CombatBattlefield};
 // The only registration point for supported data-level mechanics. No code from packs is executed.
 class CombatCapabilities {
   static API = 1;
-  static ENGINE = "30.5.2";
+  static ENGINE = "30.5.3";
   static STATUSES = new Set([
     "prone",
     "unconscious",
@@ -1988,7 +1991,7 @@ class CombatMartialFeatures {
     return (u.features.maneuvers || []).filter(
       (m) =>
         ["trip", "push", "goad", "maneuvering"].includes(m) &&
-        (!["trip", "push"].includes(m) || (target.size ?? 2) <= 3) &&
+        (!["trip", "push"].includes(m) || e.size(t.target) <= 3) &&
         (m !== "maneuvering" ||
           e.s.order.some(
             (k) =>
@@ -2066,6 +2069,49 @@ class CombatMartialFeatures {
       e.enqueue(frame);
     } else return false;
     return true;
+  }
+  static restoreLegacyHits(e) {
+    const source = e.s.engineVersion.split('.').map(Number);
+    if (source[1] > 5 || (source[1] === 5 && source[2] >= 2)) return false;
+    let resume = false;
+    for (const hit of [...e.s.queue]) {
+      if (hit.kind !== "weaponHitEffects") continue;
+      const f = hit.frame, strike = f.strikeId;
+      const p = e.s.pending;
+      const damage = strike && p?.damage?.strikeId === strike ? p.damage :
+        e.s.queue.find(t => strike && t.kind === "damage" && t.strikeId === strike);
+      let raw = (f.baseDamage || 0) + Math.max(0, f.result?.total);
+      if (f.maneuverAdded) {
+        const die = e.s.events.findLast(x => x.type === "roll" && x.actor === hit.actor &&
+          typeof x.text === "string" && x.text.includes("Кость превосходства — урон"));
+        raw += die?.total ?? NaN;
+      }
+      const untouched = damage && !damage.components && !damage.mitigated &&
+        Number.isFinite(raw) && !damage.uncannyResolved && !damage.deflectResolved &&
+        !e.s.events.some(x => x.type === "damage" && x.strikeId === strike);
+      if (untouched && (!p || (p.damage === damage && ["deflect","uncannyDodge"].includes(p.kind)))) {
+        const next = {kind:"weaponDamage",actor:hit.actor,target:hit.target,
+          frame:f,amount:raw};
+        e.s.queue = e.s.queue.filter(t => t !== hit);
+        if (p?.damage === damage) {
+          e.s.pending = null;
+          e.enqueue(next);
+          resume = true;
+        } else e.s.queue[e.s.queue.indexOf(damage)] = next;
+      } else {
+        // A historical base hit or a partially resolved defense cannot be
+        // replayed. Finish only its still-unresolved old rider continuation.
+        hit.frame = {...f,legacyRiders:true};
+      }
+    }
+    const visit = t => {
+      if (!t || typeof t !== "object") return;
+      if (t.kind === "attackRoll" && !t.spec?.dynamicWeaponBase &&
+          !["reaction","haste"].includes(t.mode)) t.weaponPrepared = true;
+      for (const value of Object.values(t)) if (value && typeof value === "object") visit(value);
+    };
+    visit(e.s.queue);visit(e.s.pending);
+    return resume;
   }
   static weaponRoll(e, t) {
     if (
@@ -2359,7 +2405,7 @@ class CombatMartialFeatures {
             expiresOnSourceStart: t.actor,
             stackBySource: true,
           });
-        if (mastery === "push" && (target.size ?? 2) <= 3)
+        if (mastery === "push" && e.size(t.target) <= 3)
           this.push(e, t.actor, t.target, 10);
         if (mastery === "slow" && damage > 0) {
           e.status(t.target, "slow", {
@@ -2868,20 +2914,33 @@ class CombatMagic {
     });
     return x;
   }
-  static remove(e, ids) {
+  static remove(e, ids, options = {}) {
     if (!ids.length) return;
     const speeds = Object.fromEntries(e.s.order.map((id) => [id, e.speed(id)]));
-    this.removeState(e.s, ids);
+    this.removeState(e.s, ids, options);
     for (const id of e.s.order) e.adjustMovementForSpeed(id, speeds[id]);
   }
-  static removeState(s, ids) {
-    for (const x of s.effects || [])
-      if (ids.includes(x.id)) {
-        if (x.kind === "aid")
+  static removeState(s, ids, { keepAid = false } = {}) {
+    const removed = (s.effects || []).filter(x => ids.includes(x.id));
+    // Remove first: a collapse can recursively end concentration without
+    // subtracting this same Aid twice.
+    s.effects = (s.effects || []).filter(x => !ids.includes(x.id));
+    const collapsed = new Set();
+    for (const x of removed) {
+        if (x.kind === "aid" && !keepAid)
           for (const id of x.targets) {
             const u = s.units[id];
+            const before = u.hp;
             u.max -= x.amount;
-            u.hp = Math.min(u.hp, u.max);
+            u.hp = Math.max(0, Math.min(u.hp - x.amount, u.max));
+            if (before > 0 && u.hp === 0) {
+              u.stable = false;
+              u.reaction = 0;
+              if (!u.deathSaves) u.dead = true;
+              for (const kind of ["unconscious","prone"])
+                if (!u.statuses.some(z => z.kind === kind)) u.statuses.push({kind});
+              collapsed.add(id);
+            }
           }
         if (x.kind === "heroism")
           for (const id of x.targets)
@@ -2894,7 +2953,13 @@ class CombatMagic {
       }
     for (const u of Object.values(s.units))
       u.statuses = u.statuses.filter((x) => !ids.includes(x.effect));
-    s.effects = (s.effects || []).filter((x) => !ids.includes(x.id));
+    const concentration = s.effects.filter(x => x.concentration && collapsed.has(x.owner));
+    if (concentration.length) this.removeState(s, concentration.map(x => x.id));
+    if (collapsed.size) {
+      s.zones = s.zones.filter(z => !z.concentration || !collapsed.has(z.owner));
+      for (const u of Object.values(s.units)) u.statuses = u.statuses.filter(z =>
+        z.kind !== "grappled" || !collapsed.has(z.source));
+    }
   }
   static expireState(s, at) {
     const expired = s.effects.filter((x) => x.until <= at);
@@ -3201,7 +3266,7 @@ class CombatMagic {
       e.require(
         v.team === u.team &&
           e.distance(u, v) <= 5 &&
-          v.size <= u.size &&
+          e.size(c.passenger) <= e.size(id) &&
           !e.incapacitated(c.passenger) &&
           p &&
           e.inside(p) &&
@@ -4250,10 +4315,11 @@ class CombatMagic {
         for (const id of targets) {
           const existing = this.effects(e, id, "aid")[0];
           if (existing && existing.amount >= amount) continue;
-          if (existing) this.remove(e, [existing.id]);
+          if (existing) this.remove(e, [existing.id], {keepAid:true});
           const v = e.unit(id);
-          v.max += amount;
-          e.heal(id, amount);
+          const increase = amount - (existing?.amount || 0);
+          v.max += increase;
+          e.heal(id, increase);
           this.add(e, f, "aid", [id], 28800, { amount });
         }
         break;
@@ -4576,7 +4642,7 @@ class CombatMagic {
       if (mode === "crush")
         e.require(o.grappled === c.target, "Рука должна удерживать эту цель");
       if (["push", "grasp"].includes(mode))
-        e.require(v.size <= 4, "Цель Огромного размера или меньше");
+        e.require(e.size(c.target) <= 4, "Цель Огромного размера или меньше");
     }
   }
   static restorationOptions(e, id) {
@@ -4918,22 +4984,21 @@ class CombatMagic {
         e.require(false, "Изгнание: движение, действие или бонусное действие");
       u.abjureChoice = kind;
     }
-    if (c.kind === "move" && e.has(c.actor, "frightened")) {
-      const sources = [
-        ...this.effects(e, c.actor, "abjure").map((x) => x.owner),
-        ...u.statuses
-          .filter((x) => x.kind === "frightened")
-          .map((x) => x.source),
-      ].filter(Boolean);
-      for (const src of sources.filter((id) => e.s.units[id]))
-        if (e.canSee(c.actor, src))
-          e.require(
-            c.path.every(
-              (p) => e.distance(p, e.unit(src)) >= e.distance(u, e.unit(src)),
-            ),
-            "Нельзя приближаться к источнику страха",
-          );
+    if (c.kind === "move" && e.has(c.actor,"frightened")) {
+      e.require(Array.isArray(c.path),"Задай маршрут движения");
+      let from = u;
+      e.require(c.path.every(p => {
+        const allowed = this.canApproach(e,c.actor,from,p);
+        from=p;return allowed;
+      }), "Нельзя приближаться к источнику страха");
     }
+  }
+  static canApproach(e,id,from,to) {
+    if (!e.has(id,"frightened")) return true;
+    const sources = [...this.effects(e,id,"abjure").map(x=>x.owner),
+      ...e.unit(id).statuses.filter(z=>z.kind==='frightened').map(z=>z.source)];
+    return sources.filter(src=>e.s.units[src]).every(src=>
+      e.distance(to,e.unit(src))>=e.distance(from,e.unit(src)));
   }
   static moved(e, id) {
     for (const z of e.s.zones)
@@ -4959,22 +5024,15 @@ class CombatMagic {
   }
   static mitigate(e, t, amount) {
     if (t.finalTransfer) return amount;
-    if (
-      t.damageType === "fire" &&
-      this.effects(e, t.target, "fireResistance").length &&
-      !e.unit(t.target).resistances.includes("fire")
-    )
-      amount = Math.floor(amount / 2);
-    if (
+    const resistant = e.unit(t.target).resistances?.includes(t.damageType) ||
+      e.has(t.target, "petrified") ||
+      (t.damageType === "fire" && this.effects(e, t.target, "fireResistance").length) ||
       this.effects(e, t.target, "wardingBond").some(
         (x) =>
           e.active(x.owner) &&
           e.distance(e.unit(x.owner), e.unit(t.target)) <= 60,
-      ) &&
-      !e.unit(t.target).resistances.includes(t.damageType)
-    )
-      amount = Math.floor(amount / 2);
-    return amount;
+      );
+    return resistant ? Math.floor(amount / 2) : amount;
   }
   static split(e, t, amount) {
     if (t.finalTransfer || t.leafResolved || amount <= 0) return false;
@@ -5134,7 +5192,10 @@ class CombatAdvancedFeatures {
           spec,
           mode: "haste",
         });
-      } else if (c.action === "dash") u.move += e.speed(id);
+      } else if (c.action === "dash") {
+        u.move += e.speed(id);
+        u.dashCount = (u.dashCount || 0) + 1;
+      }
       else if (c.action === "disengage") u.disengaged = true;
       else {
         u.action++;
@@ -5218,7 +5279,7 @@ class CombatAdvancedFeatures {
       );
       u.bonus--;
       u.counters.leaf_charges.current--;
-      u.move = Math.min(e.speed(id), u.move + 10);
+      if (e.speed(id) > 0) e.adjustMovementBudget(id, 10);
       u.disengaged = true;
       e.emit(
         "item",
@@ -5358,7 +5419,7 @@ class CombatAdvancedFeatures {
         });
         u.hasteAction = 1;
       } else if (kind === "growthPotion")
-        M.add(e, frame, "enlarge", [id], 3600, { concentration: false });
+        M.add(e, frame, "enlarge", [id], 600, { concentration: false });
       else if (kind === "giantStrength")
         M.add(e, frame, "giantStrength", [id], 3600, { concentration: false });
       else if (kind === "climbingPotion")
@@ -5540,7 +5601,7 @@ class CombatAdvancedFeatures {
       if (c.choice === "cunning") {
         const opts = ["skip", "withdraw"];
         if (u.features.poisonerKit) opts.push("poison");
-        if (e.unit(t.target).size <= 3) opts.push("trip");
+        if (e.size(t.target) <= 3) opts.push("trip");
         if (t.hiddenBefore && u.features.stealthAttack) opts.push("stealth");
         M.choice(e, p.actor, "cunning", opts, { attack: t });
       }
@@ -5649,7 +5710,11 @@ class CombatAdvancedFeatures {
       e.s.spellFrames[sf.id] = sf;
       jobs.push(M.task(t.actor, "window", { frame: sf.id }));
     }
-    if (f.forge)
+    if (f.legacyRiders && f.forge)
+      jobs.push({kind:"roll",actor:t.actor,label:"Кузнечный резонанс",
+        count:f.critical ? 2 : 1,sides:8,bonus:0,
+        next:this.job(t.actor,"forgeRoll",{target:t.target,mode:f.forge})});
+    else if (f.forge)
       jobs.push(
         e.saveTask(
           t.target,
@@ -5714,6 +5779,13 @@ class CombatAdvancedFeatures {
           }),
         ),
       );
+    }
+    if (f.legacyRiders && ["melee","ranged"].includes(f.spec.kind)) {
+      for (const [effect,label,type] of [["crusaderMantle","Мантия крестоносца","radiant"],
+          ["enlarge","Рост",f.spec.damageType]])
+        if (M.effects(e,t.actor,effect).length)
+          jobs.push({kind:"roll",actor:t.actor,label,count:f.critical ? 2 : 1,sides:4,bonus:0,
+            next:this.job(t.actor,"poisonRoll",{target:t.target,damageType:type})});
     }
     e.enqueue(...jobs);
   }
@@ -6248,7 +6320,17 @@ class CombatContinuity {
         );
         if (z.effect !== undefined)
           this.require(
-            effects.has(z.effect) && effects.get(z.effect).targets.includes(id),
+            effects.has(z.effect) && (
+              effects.get(z.effect).targets.includes(id) ||
+              (z.kind === "restrained" && z.magic === true &&
+                effects.get(z.effect).kind === "web" &&
+                z.source === effects.get(z.effect).owner &&
+                z.dc === effects.get(z.effect).dc &&
+                z.until === effects.get(z.effect).until &&
+                (c.zones || []).some(zone => zone.effect === z.effect &&
+                  zone.kind === "web" && zone.owner === z.source &&
+                  zone.until === z.until))
+            ),
             "Нет эффекта состояния",
           );
       }
@@ -6356,6 +6438,9 @@ class CombatRulesEngine {
     this.state = structuredClone(state);
     RulesMagic.init(this.state);
     this.revision = 0;
+    const resume = RulesMartial.restoreLegacyHits(this);
+    this.state.engineVersion = CombatRulesEngine.VERSION;
+    if (resume) this.run();
   }
   static validate(s) {
     if (!s || s.version !== 30 || s.rulesVersion !== this.RULES)
@@ -6530,6 +6615,7 @@ class CombatRulesEngine {
       "deflectResult",
       "redirectRollResult",
       "attackCompleted",
+      "moveCompleted",
       "checkResult",
       "emptyAttackResult",
       "redirectDamage",
@@ -6575,6 +6661,8 @@ class CombatRulesEngine {
           damage: ["actor", "target", "amount"],
           weaponDamage: ["actor", "target", "frame", "amount"],
           moveStep: ["actor", "path", "provoked"],
+          moveCompleted: ["actor"],
+          attackCompleted: ["actor", "target"],
         }[t.kind] || [];
       require(fields.every((k) => t[k] != null));
       if (t.amount != null) require(Number.isFinite(t.amount) && t.amount >= 0);
@@ -6737,10 +6825,20 @@ class CombatRulesEngine {
   }
   has(id, kind) {
     return (
+      !this.conditionImmune(id, kind) &&
       (this.unit(id).statuses.some((z) => z.kind === kind) ||
         RulesMagic.has(this, id, kind)) &&
       !RulesDefenses.suppresses(this, id, kind)
     );
+  }
+  conditionImmune(id, kind) {
+    const u = this.unit(id);
+    return Boolean(u.conditionImmunities?.includes(kind) ||
+      (kind === "poisoned" && u.statuses.some(z => z.kind === "petrified")));
+  }
+  size(id) {
+    return Math.min(5, (this.unit(id).size ?? 2) +
+      (RulesMagic.effects(this, id, "enlarge").length ? 1 : 0));
   }
   incapacitated(id) {
     return (
@@ -6781,8 +6879,8 @@ class CombatRulesEngine {
     return (
       a.team === b.team ||
       this.incapacitated(other) ||
-      b.size === 0 ||
-      Math.abs((a.size ?? 2) - (b.size ?? 2)) >= 2
+      this.size(other) === 0 ||
+      Math.abs(this.size(id) - this.size(other)) >= 2
     );
   }
   inside(p) {
@@ -7122,7 +7220,6 @@ class CombatRulesEngine {
       u.darkMoveWindow = false;
       this.enqueue(
         { kind: "attackRoll", actor: id, target: c.target, spec, mode },
-        { kind: "attackCompleted", actor: id, target: c.target },
       );
       return;
     }
@@ -7379,7 +7476,9 @@ class CombatRulesEngine {
           this.wallLOS(u, t),
         "Цель недоступна",
       );
-      this.require((t.size || 2) <= (u.size || 2) + 1, "Цель слишком велика");
+      this.require(this.size(c.target) <= this.size(id) + 1, "Цель слишком велика");
+      this.require(!this.conditionImmune(c.target, c.kind === "grapple" ? "grappled" : c.push ? "" : "prone"),
+        "Цель невосприимчива к этому состоянию");
       if (u.attacksLeft > 0) u.attacksLeft--;
       else {
         this.spendAction(id);
@@ -7812,6 +7911,7 @@ class CombatRulesEngine {
       this.has(target, "restrained") ||
       this.has(target, "stunned") ||
       this.has(target, "paralyzed") ||
+      this.has(target, "petrified") ||
       this.has(target, "unconscious")
     )
       advantage.push("состояние цели");
@@ -7882,7 +7982,7 @@ class CombatRulesEngine {
     const u = this.unit(id),
       auto =
         ["STR", "DEX"].includes(stat) &&
-        ["paralyzed", "stunned", "unconscious"].some((k) => this.has(id, k));
+        ["paralyzed", "stunned", "unconscious", "petrified"].some((k) => this.has(id, k));
     const adv =
         RulesMagic.saveAdv(this, id, stat, next) ||
         (stat === "DEX" &&
@@ -7921,6 +8021,7 @@ class CombatRulesEngine {
       "paralyzed",
       "unconscious",
       "stunned",
+      "petrified",
     ].some((k) => this.has(id, k))
       ? 0
       : RulesMagic.speed(
@@ -7950,7 +8051,7 @@ class CombatRulesEngine {
       creatureDifficult =
         other &&
         this.unit(other).team !== this.unit(id).team &&
-        this.unit(other).size !== 0 &&
+        this.size(other) !== 0 &&
         !this.unit(other).hidden &&
         this.canSee(id, other);
     return (
@@ -7964,6 +8065,7 @@ class CombatRulesEngine {
     );
   }
   status(id, kind, extra = {}) {
+    if (this.conditionImmune(id, kind)) return false;
     const u = this.unit(id),
       previous = this.speed(id);
     u.statuses = u.statuses.filter(
@@ -8262,6 +8364,14 @@ class CombatRulesEngine {
     }
     if (t.kind === "attackRoll") {
       if (!this.active(t.actor) || !this.active(t.target)) return;
+      if (!t.completionQueued) {
+        // Every attack path, including spells and reactions, has one trigger
+        // continuation. The flag survives Shield/Protection/reload retries.
+        t = {...t, completionQueued:true};
+        if (!s.queue.some(next => next.kind === "attackCompleted" &&
+            next.actor === t.actor && next.target === t.target && !next.considered))
+          this.enqueue({kind:"attackCompleted",actor:t.actor,target:t.target});
+      }
       if (!t.weaponPrepared) {
         const legacy =
           ["30.5.1", "30.5.0"].includes(s.engineVersion) &&
@@ -8551,15 +8661,11 @@ class CombatRulesEngine {
       if (!t.mitigated && !t.finalTransfer) {
         const components = this.damageParts(t).map((p) => {
           let n = target.immunities?.includes(p.damageType) ? 0 : p.amount;
-          if (target.resistances?.includes(p.damageType)) n = Math.floor(n / 2);
+          n = RulesMagic.mitigate(this, {...t,damageType:p.damageType}, n);
           if (target.vulnerabilities?.includes(p.damageType)) n *= 2;
           return {
             ...p,
-            amount: RulesMagic.mitigate(
-              this,
-              { ...t, damageType: p.damageType },
-              n,
-            ),
+            amount: n,
           };
         });
         amount = components.reduce((n, p) => n + p.amount, 0);
@@ -8666,18 +8772,19 @@ class CombatRulesEngine {
       );
       return;
     }
-    if (t.kind === "attackCompleted") {
+    if (t.kind === "attackCompleted" || t.kind === "moveCompleted") {
       for (const id of s.order) {
         const a = this.unit(id);
         if (
           !t.considered?.includes(id) &&
           a.team !== u.team &&
           this.active(t.actor) &&
-          a.ready?.trigger === "attackAlly" &&
+          a.ready?.trigger === (t.kind === "moveCompleted" ? "approach" : "attackAlly") &&
           a.reaction > 0 &&
           RulesMagic.canReact(this, id) &&
           this.active(id) &&
-          this.unit(t.target).team === a.team
+          !this.incapacitated(id) &&
+          (t.kind === "moveCompleted" || this.unit(t.target).team === a.team)
         ) {
           try {
             this.validateAttack(id, t.actor, a.ready.spec);
@@ -8747,6 +8854,13 @@ class CombatRulesEngine {
       }
       const p = t.path[0],
         occupant = this.occupied(p.x, p.y, t.actor);
+      if (this.distance(u,p) !== 5 ||
+          (!t.forced && !RulesMagic.canApproach(this,t.actor,u,p))) {
+        this.markSharedSpace(t.actor);
+        this.emit("movementBlocked",t.actor,
+          "Маршрут изменился после реакции: выбери путь заново.");
+        return;
+      }
       if (
         occupant &&
         (t.forced || !this.canPass(t.actor, occupant) || t.path.length === 1)
@@ -8816,7 +8930,6 @@ class CombatRulesEngine {
               spec,
               mode: "reaction",
             },
-            { kind: "attackCompleted", actor: enemy, target: t.actor },
             t,
           );
           return;
@@ -8845,44 +8958,9 @@ class CombatRulesEngine {
           " фт).",
         { from, to: p, cost },
       );
-      this.enqueue({ ...t, path: t.path.slice(1), provoked: [] });
+      this.enqueue({kind:"moveCompleted",actor:t.actor},
+        { ...t, path: t.path.slice(1), provoked: [] });
       RulesMagic.moved(this, t.actor);
-      for (const id of s.order) {
-        const a = this.unit(id);
-        if (
-          a.team !== u.team &&
-          a.ready?.trigger === "approach" &&
-          a.reaction > 0 &&
-          RulesMagic.canReact(this, id) &&
-          this.active(id)
-        ) {
-          try {
-            this.validateAttack(id, t.actor, a.ready.spec);
-            const spec = a.ready.spec;
-            if (a.controlled) {
-              this.decision("ready", id, {
-                attack: {
-                  kind: "attackRoll",
-                  actor: id,
-                  target: t.actor,
-                  spec,
-                  mode: "reaction",
-                },
-              });
-              return;
-            }
-            a.ready = null;
-            a.reaction--;
-            this.enqueue({
-              kind: "attackRoll",
-              actor: id,
-              target: t.actor,
-              spec,
-              mode: "reaction",
-            });
-          } catch {}
-        }
-      }
       return;
     }
     if (t.kind === "hideResult") {
@@ -10602,7 +10680,7 @@ class CombatSessionStore {
     return result;
   }
   isBattle(key) {
-    return !key.endsWith(":previous") && !key.endsWith("-unreadable");
+    return !key.endsWith(":previous");
   }
   stats(current) {
     const entries = this.entries(),
@@ -10693,6 +10771,7 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
     removeItem: (k) => localStorage.removeItem(k),
   });
   let exportedArchive = new Map();
+  let currentExport = null;
   let importedArchive = [];
   const battleKey = (s) =>
     "dnd-combat-session:" +
@@ -10914,16 +10993,22 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
       CombatCampaignAdapter.create(nextRuntime, scene, seed()),
     );
     next.initialize();
+    if (engine && battleKey(next.s) === KEY)
+      throw Error("Этот сюжетный бой уже открыт. Для нового боя загрузи новый сценарий или начни учебный бой");
     let released;
     if (exportCurrent && engine) {
+      if (!currentExport || currentExport.key !== KEY ||
+          currentExport.engine !== engine || currentExport.revision !== engine.revision ||
+          currentExport.raw !== readLocal(KEY))
+        throw Error("Сначала скачай актуальное сохранение и проверь файл на диске");
       sessionStore.allowSwitch(battleKey(next.s), KEY);
-      const value = sessionValue();
-      download(
-        runtime.campaign_id + "-battle-" + engine.s.meta.battleId + ".json",
-        value,
-      );
       released = KEY;
-      // This separate control explicitly exports and removes this local copy.
+      // Download completion is acknowledged by a separate cleanup control.
+      // Keep the old battle if a replacement cannot be safely written.
+      sessionStore.write(battleKey(next.s), JSON.stringify({
+        ...next.export({clone:false}),
+        ...(nextRuntime.content_pack ? {contentPack:nextRuntime.content_pack} : {}),
+      }));
       sessionStore.remove(KEY, null);
       const index = JSON.parse(readLocal(INDEX_SLOT) || "{}");
       delete index[KEY];
@@ -10939,6 +11024,7 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
     if (runtime.content_pack)
       defaultScene = CombatContentPack.encounter(runtime);
     engine = next;
+    currentExport = null;
     preserveSlot(KEY);
     drafts.clear();
     draftScope = "";
@@ -12592,6 +12678,7 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
         archived
           .map(([key, raw]) => {
             let name = key;
+            if (key.endsWith("-unreadable")) name = "Повреждённая копия сохранения";
             try {
               const s = JSON.parse(raw).session;
               name = s.meta.name + " · " + s.meta.battleId;
@@ -12605,6 +12692,9 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
       $("archive-delete").disabled =
         !chosenArchive ||
         exportedArchive.get(chosenArchive) !== readLocal(chosenArchive);
+      $("current-new-confirm").disabled = !currentExport ||
+        currentExport.key !== KEY || currentExport.engine !== engine ||
+        currentExport.revision !== engine.revision || currentExport.raw !== readLocal(KEY);
     } catch {
       recovery.innerHTML = '<option value="">Хранилище недоступно</option>';
     }
@@ -12787,7 +12877,7 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
     }
     if (op === "new") {
       try {
-        newBattle(defaultScene);
+        newBattle({...defaultScene,kind:"training"});
       } catch (e) {
         notice = e.message;
         error = true;
@@ -12797,12 +12887,22 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
     }
     if (op === "export-current-new") {
       try {
-        newBattle(defaultScene, runtime, true);
+        save();
+        download(runtime.campaign_id + "-battle-" + engine.s.meta.battleId + ".json", sessionValue());
+        currentExport = {key:KEY,engine,revision:engine.revision,raw:readLocal(KEY)};
+        notice = "Скачивание запрошено. Бой остаётся в браузере. После проверки файла можно отдельно удалить эту копию и начать новый бой.";
+        error = false;
+        render();
       } catch (e) {
         notice = e.message;
         error = true;
         render();
       }
+      return;
+    }
+    if (op === "current-new-confirm") {
+      try { newBattle({...defaultScene,kind:"training"}, runtime, true); }
+      catch (e) { notice=e.message;error=true;render(); }
       return;
     }
     if (op === "save") {
@@ -12814,16 +12914,16 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
         const entries = sessionStore.archive(KEY);
         const archive = {
           kind: "dnd-combat-archive",
-          version: 1,
-          sessions: entries.map(([key, raw]) => ({
-            key,
-            value: JSON.parse(raw),
-          })),
+          version: 2,
+          sessions: entries.map(([key, raw]) => {
+            try { JSON.parse(raw); return {key,raw}; }
+            catch { return {key,raw,unreadable:true}; }
+          }),
         };
         download("combat-archive.json", archive);
         exportedArchive = new Map(entries);
         notice =
-          "Архив выгружен. Теперь можно удалить выбранные старые бои; текущий бой защищён.";
+          "Скачивание архива запрошено. Проверь файл на диске перед удалением старых боёв. Повреждённые записи включены в исходном виде.";
         render();
       } catch (e) {
         notice = e.message;
@@ -13010,17 +13110,21 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
         const value = JSON.parse(await e.target.files[0].text());
         if (value.kind === "dnd-combat-archive") {
           if (
-            value.version !== 1 ||
+            ![1,2].includes(value.version) ||
             !Array.isArray(value.sessions) ||
             !value.sessions.length
           )
             throw Error("Пустой или повреждённый архив");
+          importedArchive = [];
+          let damaged = 0;
           for (const entry of value.sessions) {
-            if (entry.value?.contentPack)
-              CombatContentPack.compile(entry.value.contentPack);
-            new CombatRulesEngine(entry.value?.session);
+            try {
+              const saved = typeof entry.raw === "string" ? JSON.parse(entry.raw) : entry.value;
+              if (saved?.contentPack) CombatContentPack.compile(saved.contentPack);
+              new CombatRulesEngine(saved?.session);
+              importedArchive.push({...entry,value:saved});
+            } catch { damaged++; }
           }
-          importedArchive = value.sessions;
           $("archive-imported").innerHTML = importedArchive
             .map(
               (x, i) =>
@@ -13035,9 +13139,9 @@ if (typeof module !== "undefined") module.exports = { CombatSessionStore };
                 "</option>",
             )
             .join("");
-          $("archive-restore").disabled = false;
+          $("archive-restore").disabled = !importedArchive.length;
           notice =
-            "Архив проверен. Выбери нужный бой в «Бои и настройки» и нажми «Восстановить из архива».";
+            "Проверено боёв: " + importedArchive.length + ". Повреждённых или несовместимых записей: " + damaged + ". Они сохранены в исходном файле архива.";
           render();
         } else load(value);
       }

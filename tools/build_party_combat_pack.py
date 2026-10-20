@@ -70,13 +70,22 @@ def build(state,capabilities):
     live={x['id'] for x in continuity['effects']}
     # Spatial magic stays on its original field. Restore that field verbatim;
     # moving it to another scene requires an explicit new placement/ending.
-    scenes=[c.get('combat_continuity',{}).get('scene') for c in state['characters'].values()]
-    scenes=[s for s in scenes if s]
-    spatial=any(c.get('combat_continuity',{}).get('objects') or c.get('combat_continuity',{}).get('zones') for c in state['characters'].values())
+    spatial_owners=[c.get('combat_continuity',{}) for c in state['characters'].values()
+                    if any(o['id'] in live and o.get('hp',0)>0 for o in c.get('combat_continuity',{}).get('objects',[]))
+                    or any(z.get('effect') in live and z.get('expires_at',0)>clock for z in c.get('combat_continuity',{}).get('zones',[]))]
+    scenes=[c.get('scene') for c in spatial_owners if c.get('scene')]
+    spatial=bool(spatial_owners)
     arena=pack['encounters']['party-training']
     if scenes and spatial:
-        scene=scenes[0]
-        if any(s!=scene for s in scenes):raise ValueError('Продолжение содержит разные поля боя')
+        spatial_owners.sort(key=lambda c:c.get('recorded_at',0))
+        scenes=[c['scene'] for c in spatial_owners if c.get('scene')]
+        scene=scenes[-1]
+        geometry=('id','width','height','walls','rubble','cover')
+        if any(any(s[k]!=scene[k] for k in geometry) for s in scenes):raise ValueError('Продолжение содержит разные поля боя')
+        positions={uid:p for s in scenes for uid,p in s['positions'].items()}
+        summon_ids={u['id'] for key in characters for u in state['characters'][key].get('combat_continuity',{}).get('summons',[]) if u.get('hp',0)>0}
+        # Absent heroes' old, empty scenes are history, not live spatial magic.
+        scene={**scene,'positions':{uid:p for uid,p in positions.items() if uid in characters or uid in summon_ids}}
         continuity['scene']=scene
         arena.update({k:scene[k] for k in ('width','height')})
         arena['scene_id']=scene['id']
@@ -86,6 +95,15 @@ def build(state,capabilities):
         for uid,p in scene['positions'].items():
             if uid in arena['heroes']:arena['heroes'][uid]['cell']=chr(65+p['x'])+str(1+p['y'])
         taken={chr(65+p['x'])+str(1+p['y']) for p in scene['positions'].values()}|set(arena['walls'])
+        # Heroes absent from the preceding fight need a free entry position;
+        # their default training cell can collide with the restored field.
+        for uid,hero in arena['heroes'].items():
+            if uid in scene['positions']:continue
+            cell=hero['cell']
+            if cell in taken or ord(cell[0])-65>=arena['width'] or int(cell[1:])>arena['height']:
+                cell=next(chr(65+x)+str(y+1) for y in range(arena['height']) for x in range(arena['width']) if chr(65+x)+str(y+1) not in taken)
+                hero['cell']=cell
+            taken.add(cell)
         for enemy in arena['enemies']:
             cell=enemy['cell']
             if cell in taken or ord(cell[0])-65>=arena['width'] or int(cell[1:])>arena['height']:
@@ -96,7 +114,7 @@ def build(state,capabilities):
     for key in characters:
         saved=state['characters'][key].get('combat_continuity',{})
         continuity['objects'] += [o for o in saved.get('objects',[]) if o['id'] in live and o.get('hp',0)>0]
-        continuity['zones'] += [{**z,'until':z['expires_at']-clock} for z in saved.get('zones',[]) if z.get('expires_at',0)>clock]
+        continuity['zones'] += [{**z,'until':z['expires_at']-clock} for z in saved.get('zones',[]) if z.get('effect') in live and z.get('expires_at',0)>clock]
         for u in saved.get('summons',[]):
             if u.get('hp',0)<=0:continue
             uid=u['id'];profile=dict(name=u['name'],hp=u['max'],initialHP=u['hp'],ac=u['ac'],speed=u['speed'],size=u['size'],scores={k:10+2*v for k,v in u['stats'].items()},saves=u['saves'],proficiency=u['proficiency'],features=u['features'],attacks=u['attacks'],summoner=key,summonLevel=u['summonLevel'],summonDC=u['summonDC'],creatureType=u['creatureType'],powerAvailable=u['powerAvailable'])
