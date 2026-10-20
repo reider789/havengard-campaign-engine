@@ -464,7 +464,7 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any], event: dict | Non
             raise CampaignError(f"неизвестный персонаж {cid}")
         if modern and op["field"] in {"knowledge", "resources", "time_summary"}:
             raise CampaignError("Для ресурсов использовать ресурсные операции; знания и сводка времени производны")
-        state["characters"][cid][op["field"]] = op.get("value")
+        state["characters"][cid][op["field"]] = copy.deepcopy(op.get("value"))
     elif t == "set_character_resource":
         cid = op["id"]
         if cid not in state["characters"]:
@@ -476,7 +476,7 @@ def apply_operation(state: dict[str, Any], op: dict[str, Any], event: dict | Non
             new_caps = {k: v.get("max") if isinstance(v, dict) else None for k, v in value.items()} if key == "spell_slots" else value.get("max")
             if old_caps != new_caps and not op.get("capacity_reason"):
                 raise CampaignError("Изменение максимума требует capacity_reason с основанием")
-        state["characters"][cid].setdefault("resources", {})[key] = value
+        state["characters"][cid].setdefault("resources", {})[key] = copy.deepcopy(value)
         if key == "arrows":
             sync_ammunition_catalog(state, cid, key)
     elif t == "remove_character_item":

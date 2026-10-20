@@ -66,7 +66,7 @@ assert.equal(e.unit('yar').dead,life.dead);assert.equal(e.unit('yar').stable,lif
   dict(id='hero-steed',kind='heroism',owner='lyutobor',targets=['lyutobor-steed'],expires_at=clock+6)],
   'summons':[dict(id='lyutobor-steed',hp=29,max=30,persistent_temp=4,persistent_temp_source='hero-steed',persistent_statuses=[dict(kind='poisoned',expires_at=clock+6)])]}
  synchronize(c);assert not synchronize(c);c['world']['timekeeping']['elapsed_seconds_from_anchor']+=6;assert synchronize(c)
- mount=c['characters']['lyutobor']['combat_continuity']['summons'][0];assert (mount['hp'],mount['max'],mount['persistent_temp'],mount['persistent_statuses'])==(25,25,0,[])
+ mount=c['characters']['lyutobor']['combat_continuity']['summons'][0];assert (mount['hp'],mount['max'],mount['persistent_temp'],mount['persistent_statuses'])==(24,25,0,[])
  # B01-B03: final-clock normalization and the actual next field are validated before commit.
  for mode in ('goad','cast-aid','imported-aid','heroism','large-field'):
   source_state=copy.deepcopy(state)
@@ -95,5 +95,25 @@ assert.equal(e.unit('yar').dead,life.dead);assert.equal(e.unit('yar').stable,lif
    except ValueError as error:assert 'Следующий бой не запускается' in str(error)
    else:raise AssertionError('Unlaunchable next battle accepted')
    assert source_state==before
+ # C02-C03: native zonal statuses and partial parties restore through the
+ # actual transaction, rebuild, validation and initialized next battle.
+ def audit_scene(source_state,mode):
+  return json.loads(subprocess.check_output(['node',str(ROOT/'tools/test_shared_audit_3053.js'),str(engine),mode],input=json.dumps(build(source_state,cap)),text=True))
+ first=audit_scene(copy.deepcopy(state),'first')
+ previous=build_result(state,prepare(first,state,engine))
+ for mode,source_state in [('partial',previous),('web',state)]:
+  r=audit_scene(copy.deepcopy(source_state),mode)
+  updated=build_result(source_state,prepare(r,source_state,engine))
+  restored=build(updated,cap)
+  subprocess.run(['node',str(ROOT/'tools/test_shared_audit_3053.js'),str(engine),'check-'+mode],input=json.dumps(restored),text=True,check=True)
+  assert build_result(updated,prepare(r,updated,engine))==updated
+  if mode=='partial':
+   bad=copy.deepcopy(updated)
+   other=copy.deepcopy(bad['characters']['daphne']['combat_continuity'])
+   other['scene']['id']='actual-different-live-field'
+   bad['characters']['lyutobor']['combat_continuity']=other
+   try:build(bad,cap)
+   except ValueError as error:assert 'разные поля боя' in str(error)
+   else:raise AssertionError('Conflicting live spatial fields accepted')
  assert (ROOT/'state/_campaign-state.json').read_bytes()==original
- print('FULL PARTY HANDOFF OK: three completed story copies, serialized decisions, canonical bounds, exact replay, conflicting replay rejection, expiry; live canon unchanged')
+ print('FULL PARTY HANDOFF OK: three full fights, partial-party field, native Web restraint, exact replay, expiry and initialized next battle; live canon unchanged')
