@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "engine": "shared dnd combat",
-  "version": "30.7.0",
+  "version": "30.7.1",
   "current_ui_path": "prototypes/chat-combat/desktop-battle.html",
   "chat_embed_path": "prototypes/chat-combat/current-chat-battle.html",
   "content_pack": "prototypes/shared-combat/party-pack.json",
@@ -35,7 +35,7 @@
       "web/combat_app.js"
     ],
     "source_repository": "reider789/rin_dnd",
-    "source_commit": "d9bca0dbce90e62e6949e655d61fcd5a9fe19efa",
+    "source_commit": "a2f1480b11358679f43071eacba84e99b77efc54",
     "offline": true
   }
 }
