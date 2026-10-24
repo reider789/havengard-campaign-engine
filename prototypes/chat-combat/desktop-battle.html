@@ -475,6 +475,10 @@ button:focus-visible, select:focus-visible { outline: 2px solid #ecd1a0; outline
 
 .magic-form{display:grid;gap:8px}.magic-form label{display:grid;gap:4px}.magic-form select[multiple]{min-height:58px}.inline-field{display:flex;gap:6px}.inline-field input{width:75px}.spell-zone{box-shadow:inset 0 0 12px #7ba8ae88}.magic-object:after{content:"✋";position:absolute;right:3px;top:2px;font-size:24px;color:#a9dfff;filter:drop-shadow(0 0 4px #2978c9)}.item-counters{font-size:12px;line-height:1.7}#magic-reason{font-size:12px;color:var(--muted,#c8bda4)}#magic details p{font-size:12px;line-height:1.45}#magic small{display:block}
 
+.event-details { margin-top: .4rem; color: var(--muted, #abb4c4); font-size: .9em; }
+.event-details summary { cursor: pointer; }
+.event-details ul { margin: .4rem 0; padding-left: 1.4rem; }
+
     </style>
   </head>
   <body>
@@ -589,7 +593,8 @@ button:focus-visible, select:focus-visible { outline: 2px solid #ecd1a0; outline
         <div class="journal-title">
           <h2>Журнал боя</h2>
           <button data-op="journal">Показать весь журнал</button
-          ><button data-op="journal-export">Скачать журнал</button>
+          ><button data-op="journal-export">Скачать текст</button>
+          <button data-op="journal-json">Скачать JSON</button>
         </div>
         <div id="journal"></div>
       </section>
@@ -608,10 +613,10 @@ button:focus-visible, select:focus-visible { outline: 2px solid #ecd1a0; outline
 // Among equal-cost paths prefer fewer opportunity attacks, fewer turns,
 // then cells nearer the direct line. This avoids arbitrary zigzags.
 class CombatBattlefield {
-  constructor({walls,rubble,key,occupant,actor,webDifficult,movementRisk=null,stepCost=null,canStop=null,width=11,height=8}){
+  constructor({walls,rubble,key,occupant,actor,webDifficult,movementRisk=null,stepCost=null,canStop=null,transition=null,width=11,height=8}){
     Object.assign(this,{_walls:walls,_rubble:rubble,_key:key,_occupant:occupant,
       _actor:actor,_webDifficult:webDifficult,_movementRisk:movementRisk,
-      _stepCost:stepCost,_canStop:canStop,_width:width,_height:height});
+      _stepCost:stepCost,_canStop:canStop,_transition:transition,_width:width,_height:height});
   }
   inBounds(x,y){return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&y>=0&&x<this._width&&y<this._height;}
   isWall(x,y){return this._walls.has(this._key(x,y));}
@@ -647,10 +652,12 @@ class CombatBattlefield {
       }
       for(let d=0;d<directions.length;d++){
         const [mx,my]=directions[d],x=node.x+mx,y=node.y+my;
+        const transition=this._transition?.(node,{x,y},x===goal.x&&y===goal.y);
+        if(transition&&!transition.allowed)continue;
         if(this.isBlocked(x,y))continue;
         // PHB 2024 grid: a diagonal cannot cross a terrain corner.
         if(mx!==0&&my!==0&&(this.isWall(node.x+mx,node.y)||this.isWall(node.x,node.y+my)))continue;
-        const step=this.stepCost({x,y});
+        const step=transition?transition.cost:this.stepCost({x,y});
         const exposure=typeof this._movementRisk==='function'?
           Math.max(0,Number(this._movementRisk(node,{x,y}))||0):0;
         const cross=(x-src.x)*dyTarget-(y-src.y)*dxTarget;
@@ -673,7 +680,7 @@ if(typeof module!=="undefined")module.exports={CombatBattlefield};
 // The only registration point for supported data-level mechanics. No code from packs is executed.
 class CombatCapabilities {
   static API = 1;
-  static ENGINE = "30.6.0";
+  static ENGINE = "30.7.0";
   static STATUSES = new Set([
     "prone",
     "unconscious",
@@ -698,7 +705,6 @@ class CombatCapabilities {
     "slow",
     "goaded",
     "charmed",
-    "exhaustion",
     "noReactions",
     "burning",
     "rooted",
@@ -810,6 +816,11 @@ class CombatCapabilities {
   }
   static require(ok, message) {
     if (!ok) throw Error(message);
+  }
+  static validateStatus(kind) {
+    this.require(kind !== "exhaustion",
+      "Истощение пока не поддерживается: требуется разбор состояния ведущим; исходные данные сохранены");
+    this.require(this.STATUSES.has(kind), "Неизвестное состояние участника: " + kind);
   }
   static features(features = {}) {
     for (const key of ["secondWind", "tacticalMind", "indomitable"])
@@ -976,6 +987,7 @@ class CombatCapabilities {
         "spellcasting",
         "magicItems",
         "advancedClasses",
+        "healing",
       ],
       counters: [...this.COUNTERS],
       conditions: ["poisoned", "prone", "frost"],
@@ -986,10 +998,205 @@ if (typeof module !== "undefined") module.exports = { CombatCapabilities };
 
 
 "use strict";
+const ActivityCapabilities = typeof module !== "undefined"
+  ? require("./capabilities").CombatCapabilities : CombatCapabilities;
+
+// A bounded D&D catalogue. No formulas, scripts, hooks or new rule types in packs.
+class CombatActivities {
+  static SPELLS = {
+    fireBolt: {"name": "Огненный снаряд", "level": 0, "cost": "action", "range": 120, "target": "attack", "school": "evocation"},
+    rayFrost: {"name": "Луч холода", "level": 0, "cost": "action", "range": 60, "target": "attack", "school": "evocation"},
+    mindSliver: {"name": "Расщепление разума", "level": 0, "cost": "action", "range": 60, "target": "enemy", "school": "enchantment"},
+    mageHand: {"name": "Магическая рука", "level": 0, "cost": "action", "range": 30, "target": "point", "school": "conjuration"},
+    prestidigitation: {"name": "Фокусы", "level": 0, "cost": "action", "range": 10, "target": "point", "school": "transmutation"},
+    mageArmor: {"name": "Доспехи мага", "level": 1, "cost": "action", "range": 5, "target": "ally", "school": "abjuration"},
+    magicMissile: {"name": "Волшебная стрела", "level": 1, "cost": "action", "range": 120, "target": "enemies", "school": "evocation"},
+    thunderwave: {"name": "Громовая волна", "level": 1, "cost": "action", "range": 0, "target": "direction", "school": "evocation"},
+    burningHands: {"name": "Огненные ладони", "level": 1, "cost": "action", "range": 0, "target": "direction", "school": "evocation"},
+    fogCloud: {"name": "Туманное облако", "level": 1, "cost": "action", "range": 120, "target": "point", "school": "conjuration", "concentrationSeconds": 3600},
+    shield: {"name": "Щит", "level": 1, "cost": "reaction", "range": 0, "target": "self", "school": "abjuration"},
+    scorchingRay: {"name": "Палящий луч", "level": 2, "cost": "action", "range": 120, "target": "enemies", "school": "evocation"},
+    mistyStep: {"name": "Туманный шаг", "level": 2, "cost": "bonus", "range": 30, "target": "point", "school": "conjuration"},
+    web: {"name": "Паутина", "level": 2, "cost": "action", "range": 60, "target": "point", "school": "conjuration", "concentrationSeconds": 3600},
+    fireball: {"name": "Огненный шар", "level": 3, "cost": "action", "range": 150, "target": "point", "school": "evocation"},
+    slow: {"name": "Замедление", "level": 3, "cost": "action", "range": 120, "target": "enemies", "school": "transmutation", "concentrationSeconds": 60},
+    counterspell: {"name": "Контрзаклинание", "level": 3, "cost": "reaction", "range": 60, "target": "enemy", "school": "abjuration"},
+    dispelMagic: {"name": "Рассеивание магии", "level": 3, "cost": "action", "range": 120, "target": "any", "school": "abjuration"},
+    fly: {"name": "Полёт", "level": 3, "cost": "action", "range": 5, "target": "allies", "school": "transmutation", "concentrationSeconds": 600},
+    dimensionDoor: {"name": "Дверь в измерение", "level": 4, "cost": "action", "range": 500, "target": "point", "school": "conjuration"},
+    greaterInvisibility: {"name": "Высшая невидимость", "level": 4, "cost": "action", "range": 5, "target": "ally", "school": "illusion", "concentrationSeconds": 60},
+    coneCold: {"name": "Конус холода", "level": 5, "cost": "action", "range": 0, "target": "direction", "school": "evocation"},
+    seeming: {"name": "Кажущаяся внешность", "level": 5, "cost": "action", "range": 30, "target": "allies", "school": "illusion"},
+    holdMonster: {"name": "Удержание чудовища", "level": 5, "cost": "action", "range": 90, "target": "enemies", "school": "enchantment", "concentrationSeconds": 60},
+    bigbyHand: {"name": "Рука Бигби", "level": 5, "cost": "action", "range": 120, "target": "point", "school": "evocation", "concentrationSeconds": 60},
+    bless: {"name": "Благословение", "level": 1, "cost": "action", "range": 30, "target": "allies", "school": "enchantment", "concentrationSeconds": 60},
+    cureWounds: {"name": "Лечение ран", "level": 1, "cost": "action", "range": 5, "target": "ally", "school": "abjuration"},
+    heroism: {"name": "Героизм", "level": 1, "cost": "action", "range": 5, "target": "allies", "school": "enchantment", "concentrationSeconds": 60},
+    command: {"name": "Приказ: Стой", "level": 1, "cost": "action", "range": 60, "target": "enemies", "school": "enchantment"},
+    compelledDuel: {"name": "Вынужденная дуэль", "level": 1, "cost": "bonus", "range": 30, "target": "enemy", "school": "enchantment", "concentrationSeconds": 60},
+    protectionEvil: {"name": "Защита от зла и добра", "level": 1, "cost": "action", "range": 5, "target": "ally", "school": "abjuration", "concentrationSeconds": 600},
+    shieldFaith: {"name": "Щит веры", "level": 1, "cost": "bonus", "range": 60, "target": "ally", "school": "abjuration", "concentrationSeconds": 600},
+    aid: {"name": "Помощь", "level": 2, "cost": "action", "range": 30, "target": "allies", "school": "abjuration"},
+    lesserRestoration: {"name": "Малое восстановление", "level": 2, "cost": "bonus", "range": 5, "target": "ally", "school": "abjuration"},
+    zoneTruth: {"name": "Зона истины", "level": 2, "cost": "action", "range": 60, "target": "point", "school": "enchantment"},
+    wardingBond: {"name": "Защитная связь", "level": 2, "cost": "action", "range": 5, "target": "ally", "school": "abjuration"},
+    beaconHope: {"name": "Маяк надежды", "level": 3, "cost": "action", "range": 30, "target": "allies", "school": "abjuration", "concentrationSeconds": 60},
+    crusaderMantle: {"name": "Мантия крестоносца", "level": 3, "cost": "action", "range": 0, "target": "self", "school": "evocation", "concentrationSeconds": 60},
+    auraVitality: {"name": "Аура жизненной силы", "level": 3, "cost": "action", "range": 0, "target": "self", "school": "abjuration", "concentrationSeconds": 60},
+    divineSmite: {"name": "Божественная кара", "level": 1, "cost": "bonus", "range": 0, "target": "enemy", "school": "evocation"},
+    findSteed: {"name": "Верный скакун", "level": 2, "cost": "action", "range": 30, "target": "point", "school": "conjuration"},
+    stormSphere: {"name": "Сфера бури · наручи", "level": 4, "cost": "action", "range": 150, "target": "point", "school": "evocation", "concentrationSeconds": 60},
+    drainingWave: {"name": "Истощающая волна · фокус", "level": 0, "cost": "action", "range": 0, "target": "direction", "school": "necromancy"},
+  };
+  static HEALING = {
+    cureWounds: {handler: "healing", version: 1, dicePerLevel: 2, sides: 8, castingBonus: true},
+    healingPotion: {handler: "healing", version: 1, count: 2, sides: 4, flat: 2},
+  };
+  static spell(id) {
+    const definition = this.SPELLS[id];
+    return definition ? structuredClone({id, ...definition, automation: "supportedCombatSubset",
+      handler: this.HEALING[id] ? "healing" : "spellSpecific", handlerVersion: 1}) : null;
+  }
+  static legacySpellTuples() {
+    return Object.fromEntries(Object.entries(this.SPELLS).map(([id,d]) =>
+      [id, [d.name,d.level,d.cost,d.range,d.target,d.school,...(d.concentrationSeconds ? [d.concentrationSeconds] : [])]]));
+  }
+  static healing(id, {level = 1, ability = 0, count, flat} = {}) {
+    const d = this.HEALING[id];
+    if (!d) return null;
+    return {count: count ?? (d.dicePerLevel ? d.dicePerLevel * level : d.count),
+      sides: d.sides, bonus: flat ?? (d.castingBonus ? ability : d.flat || 0)};
+  }
+  static validate(definition) {
+    const C = ActivityCapabilities, d = definition;
+    C.require(d && typeof d === "object" && !Array.isArray(d), "Неверное описание действия");
+    const allowed = ["handler","version","name","cost","target","range","dice","resource","reference"];
+    C.require(Object.keys(d).every(k => allowed.includes(k)), "Неизвестное поле действия");
+    C.require(d.handler === "healing" && d.version === 1, "Неизвестный обработчик действия");
+    C.require(typeof d.name === "string" && d.name.trim() && d.name.length <= 120, "Нужно имя действия");
+    C.require(["action","bonus"].includes(d.cost) && ["self","ally"].includes(d.target), "Неверная активация действия");
+    C.require(Number.isInteger(d.range) && d.range >= 0 && d.range <= 60 &&
+      (d.target !== "self" || d.range === 0), "Неверная дальность действия");
+    C.require(d.dice && Object.keys(d.dice).every(k => ["count","sides","flat"].includes(k)) &&
+      Number.isInteger(d.dice.count) && d.dice.count >= 1 && d.dice.count <= 12 &&
+      [4,6,8,10,12].includes(d.dice.sides) && Number.isInteger(d.dice.flat) &&
+      d.dice.flat >= 0 && d.dice.flat <= 30, "Неверные кости лечения");
+    C.require(d.resource && Object.keys(d.resource).every(k => ["counter","amount"].includes(k)) &&
+      C.COUNTERS.includes(d.resource.counter) && Number.isInteger(d.resource.amount) &&
+      d.resource.amount >= 1 && d.resource.amount <= 100, "Действию нужен известный расходуемый ресурс");
+    C.require(typeof d.reference === "string" && d.reference.trim() && d.reference.length <= 500,
+      "Укажи правило или согласованное описание действия");
+    return true;
+  }
+  static validateUnit(unit) {
+    const entries = Object.entries(unit.activities || {});
+    ActivityCapabilities.require(entries.length <= 50, "Слишком много действий");
+    for (const [id,d] of entries) {
+      ActivityCapabilities.require(/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,99}$/.test(id) &&
+        !["__proto__","prototype","constructor"].includes(id), "Неверный ID действия");
+      this.validate(d);
+      ActivityCapabilities.require(unit.counters?.[d.resource.counter], "Нет ресурса действия: " + id);
+    }
+  }
+  static catalogue(unit) {
+    return Object.entries(unit.activities || {}).map(([id,d]) => ({id, ...structuredClone(d)}));
+  }
+  static command(e, c, u) {
+    if (c.kind !== "activity") return false;
+    const d = u.activities?.[c.activity];
+    e.require(d, "Неизвестное действие персонажа");
+    this.validate(d);
+    const target = d.target === "self" ? c.actor : c.target;
+    e.require(target && e.s.units[target], "Выбери союзника");
+    const v = e.unit(target), resource = u.counters?.[d.resource.counter];
+    e.require(v.team === u.team && !v.dead && e.distance(u,v) <= d.range && e.canSee(c.actor,target),
+      "Нужен живой союзник в пределах дальности и видимости");
+    e.require(resource?.current >= d.resource.amount, "Недостаточно ресурса действия");
+    if (d.cost === "bonus") { e.require(u.bonus > 0, "Нет бонусного действия"); u.bonus--; }
+    else e.spendAction(c.actor);
+    resource.current -= d.resource.amount;
+    e.emit("activity", c.actor, u.name + ": " + d.name + ".", {
+      activity: c.activity, target, reference: d.reference,
+      costs: [{resource: d.resource.counter, amount: d.resource.amount}],
+    });
+    e.enqueue({kind: "roll", actor: c.actor, label: d.name,
+      count: d.dice.count, sides: d.dice.sides, bonus: d.dice.flat,
+      next: {kind: "healingResult", actor: c.actor, target,
+        maxHealing: d.dice.count * d.dice.sides + d.dice.flat}});
+    return true;
+  }
+}
+if (typeof module !== "undefined") module.exports = {CombatActivities};
+
+
+"use strict";
+// Presentation-only diagnostics. Formatting never runs rules or rolls dice.
+class CombatJournal {
+  static DAMAGE_TYPES = {bludgeoning:"дробящий",piercing:"колющий",slashing:"рубящий",
+    acid:"кислота",cold:"холод",fire:"огонь",force:"силовой",lightning:"электричество",
+    necrotic:"некротический",poison:"яд",psychic:"психический",radiant:"излучение",thunder:"звук"};
+  static details(event) {
+    const out = [], sign = n => (n >= 0 ? "+" : "") + n;
+    const m = event.modifiers;
+    if (m?.advantage?.length) out.push("Источники преимущества: " + m.advantage.join("; "));
+    if (m?.disadvantage?.length) out.push("Источники помехи: " + m.disadvantage.join("; "));
+    if (m?.advantage?.length && m?.disadvantage?.length)
+      out.push("Преимущество и помеха отменяют друг друга независимо от числа источников.");
+    if (event.type === "roll") {
+      if (event.sides === 20 && Number.isFinite(event.kept)) out.push("Выбранный результат кости: " + event.kept);
+      else if (Number.isFinite(event.total)) out.push("Сумма костей с учётом минимальных значений: " + (event.total - (event.bonus || 0)));
+      if (Number.isFinite(event.dc)) out.push("Сложность: " + event.dc);
+      if (event.minimum && event.kept > event.rawKept)
+        out.push("Минимальный результат по способности: " + event.minimum);
+    }
+    for (const b of event.bonusParts || []) out.push(b.label + ": " + sign(b.amount) +
+      (b.rolls?.length ? " (кости: " + b.rolls.join(", ") + ")" : ""));
+    if (event.type === "attack") {
+      if (Number.isFinite(event.targetAC)) out.push("Итоговый КД цели: " + event.targetAC);
+      if (event.acBonus) out.push("Защитная реакция к КД этой атаки: " + sign(event.acBonus));
+    }
+    for (const stage of event.breakdown || []) {
+      const type = stage.damageType ? " · " + (this.DAMAGE_TYPES[stage.damageType] || stage.damageType) : "";
+      out.push(stage.label + type + ": " + stage.before + " → " + stage.after);
+    }
+    if (event.type === "damage") {
+      if (event.temp) out.push("Поглощено временными ПЗ: " + event.temp);
+      if (Number.isFinite(event.lost)) out.push("Остаток урона после временных ПЗ: " + event.lost);
+      if (Number.isFinite(event.hpLost)) out.push("Фактически потеряно ПЗ: " + event.hpLost);
+    }
+    if (event.type === "concentration" && Number.isFinite(event.damage))
+      out.push("Полученный урон: " + event.damage + "; СЛ концентрации: " + event.dc);
+    if (event.trace?.actionId) {
+      const number = id => String(id).replace(/^action-/, "");
+      out.push("Действие №" + number(event.trace.actionId) +
+        (event.trace.parentActionId ? " · связано с действием №" + number(event.trace.parentActionId) : ""));
+    }
+    return out;
+  }
+  static text(events) {
+    return events.map(e => "Раунд " + e.round + ". " + e.text +
+      this.details(e).map(line => "\n  " + line).join("")).join("\n\n");
+  }
+  static validateTrace(trace) {
+    if (trace === undefined) return;
+    const id = value => typeof value === "string" && /^action-[1-9][0-9]{0,12}$/.test(value);
+    if (!trace || !id(trace.actionId) || !id(trace.rootActionId) ||
+        (trace.parentActionId !== null && !id(trace.parentActionId)) ||
+        typeof trace.command !== "string" || trace.command.length > 100 ||
+        typeof trace.actor !== "string" || trace.actor.length > 120)
+      throw Error("Повреждена связь событий действия");
+  }
+}
+if (typeof module !== "undefined") module.exports = {CombatJournal};
+
+
+"use strict";
 const ContentCapabilities =
   typeof module !== "undefined"
     ? require("./capabilities").CombatCapabilities
     : CombatCapabilities;
+const ContentActivities = typeof module !== "undefined"
+  ? require("./activities").CombatActivities : CombatActivities;
 class CombatContentPack {
   static compile(input) {
     const C = ContentCapabilities,
@@ -1074,7 +1281,8 @@ class CombatContentPack {
         );
         const { attacks, ...effect } = ability;
         C.effect(effect);
-      } else
+      } else if (ability.handler === "healing") ContentActivities.validate(ability);
+      else
         throw Error(
           "Недостающий обработчик способности: " +
             key +
@@ -1167,6 +1375,8 @@ class CombatContentPack {
             );
             p.features[feature] = structuredClone(value);
           }
+        } else if (ability.handler === "healing") {
+          (p.activities ??= {})[abilityId] = structuredClone(ability);
         } else {
           const { attacks, ...effect } = ability;
           for (const attackId of attacks) {
@@ -1547,6 +1757,8 @@ class CombatClassFeatures {
         ...roll,
         kind: "roll",
         bonus: (roll.bonus || 0) + u.features.fighterLevel,
+        bonusParts: [...(roll.bonusParts || [{rule:"base",label:"Основной модификатор",amount:roll.bonus || 0}]),
+          {rule:"feature.indomitable",label:"Несгибаемость",amount:u.features.fighterLevel}],
         label: "Несгибаемость: " + roll.label,
       });
     } else {
@@ -1597,7 +1809,7 @@ class CombatClassFeatures {
       if (c.choice === "yes") {
         e.require(u.reaction > 0, "Реакция потрачена");
         u.reaction--;
-        Object.assign(damage, e.halfDamage(damage));
+        Object.assign(damage, e.halfDamage(damage, "defense.uncannyDodge", "Невероятное уклонение"));
       }
       e.enqueue(damage);
     } else return false;
@@ -1659,7 +1871,9 @@ class CombatClassFeatures {
           t.result.total,
         dc = roll.dc ?? roll.next.dc;
       if (total >= dc) this.spend(e, t.actor, "second_wind");
-      e.finishRoll({ ...roll, bonus: (roll.bonus || 0) + t.result.total });
+      e.finishRoll({ ...roll, bonus: (roll.bonus || 0) + t.result.total,
+        bonusParts: [...(roll.bonusParts || [{rule:"base",label:"Основной модификатор",amount:roll.bonus || 0}]),
+          {rule:"feature.tacticalMind",label:"Тактический разум",amount:t.result.total,rolls:t.result.rolls}] });
     } else return false;
     return true;
   }
@@ -1683,7 +1897,7 @@ class CombatClassFeatures {
       else {
         u.reaction--;
         e.enqueue({
-          ...e.halfDamage(t),
+          ...e.halfDamage(t, "defense.uncannyDodge", "Невероятное уклонение"),
           uncannyResolved: true,
         });
       }
@@ -2358,6 +2572,9 @@ class CombatMartialFeatures {
         result: {
           ...t.attack.result,
           total: t.attack.result.total + t.result.total,
+          bonusParts: [...(t.attack.result.bonusParts || [{rule:"base",label:"Основной модификатор",
+            amount:t.attack.result.total-t.attack.result.kept}]),
+            {rule:"maneuver.precision",label:"Точная атака",amount:t.result.total,rolls:t.result.rolls}],
         },
       });
     } else if (t.kind === "weaponDamageRoll") this.weaponRoll(e, t);
@@ -2615,144 +2832,11 @@ if (typeof module !== "undefined") module.exports = { CombatMartialFeatures };
 
 "use strict";
 // Declarative spell data and serialized continuations. Campaign packs contain no executable code.
+const MagicActivities = typeof module !== "undefined"
+  ? require("./activities").CombatActivities : CombatActivities;
 class CombatMagic {
-  static SPELLS = {
-    fireBolt: ["Огненный снаряд", 0, "action", 120, "attack", "evocation"],
-    rayFrost: ["Луч холода", 0, "action", 60, "attack", "evocation"],
-    mindSliver: ["Расщепление разума", 0, "action", 60, "enemy", "enchantment"],
-    mageHand: ["Магическая рука", 0, "action", 30, "point", "conjuration"],
-    prestidigitation: ["Фокусы", 0, "action", 10, "point", "transmutation"],
-    mageArmor: ["Доспехи мага", 1, "action", 5, "ally", "abjuration"],
-    magicMissile: [
-      "Волшебная стрела",
-      1,
-      "action",
-      120,
-      "enemies",
-      "evocation",
-    ],
-    thunderwave: ["Громовая волна", 1, "action", 0, "direction", "evocation"],
-    burningHands: ["Огненные ладони", 1, "action", 0, "direction", "evocation"],
-    fogCloud: [
-      "Туманное облако",
-      1,
-      "action",
-      120,
-      "point",
-      "conjuration",
-      3600,
-    ],
-    shield: ["Щит", 1, "reaction", 0, "self", "abjuration"],
-    scorchingRay: ["Палящий луч", 2, "action", 120, "enemies", "evocation"],
-    mistyStep: ["Туманный шаг", 2, "bonus", 30, "point", "conjuration"],
-    web: ["Паутина", 2, "action", 60, "point", "conjuration", 3600],
-    fireball: ["Огненный шар", 3, "action", 150, "point", "evocation"],
-    slow: ["Замедление", 3, "action", 120, "enemies", "transmutation", 60],
-    counterspell: ["Контрзаклинание", 3, "reaction", 60, "enemy", "abjuration"],
-    dispelMagic: ["Рассеивание магии", 3, "action", 120, "any", "abjuration"],
-    fly: ["Полёт", 3, "action", 5, "allies", "transmutation", 600],
-    dimensionDoor: [
-      "Дверь в измерение",
-      4,
-      "action",
-      500,
-      "point",
-      "conjuration",
-    ],
-    greaterInvisibility: [
-      "Высшая невидимость",
-      4,
-      "action",
-      5,
-      "ally",
-      "illusion",
-      60,
-    ],
-    coneCold: ["Конус холода", 5, "action", 0, "direction", "evocation"],
-    seeming: ["Кажущаяся внешность", 5, "action", 30, "allies", "illusion"],
-    holdMonster: [
-      "Удержание чудовища",
-      5,
-      "action",
-      90,
-      "enemies",
-      "enchantment",
-      60,
-    ],
-    bigbyHand: ["Рука Бигби", 5, "action", 120, "point", "evocation", 60],
-    bless: ["Благословение", 1, "action", 30, "allies", "enchantment", 60],
-    cureWounds: ["Лечение ран", 1, "action", 5, "ally", "abjuration"],
-    heroism: ["Героизм", 1, "action", 5, "allies", "enchantment", 60],
-    command: ["Приказ: Стой", 1, "action", 60, "enemies", "enchantment"],
-    compelledDuel: [
-      "Вынужденная дуэль",
-      1,
-      "bonus",
-      30,
-      "enemy",
-      "enchantment",
-      60,
-    ],
-    protectionEvil: [
-      "Защита от зла и добра",
-      1,
-      "action",
-      5,
-      "ally",
-      "abjuration",
-      600,
-    ],
-    shieldFaith: ["Щит веры", 1, "bonus", 60, "ally", "abjuration", 600],
-    aid: ["Помощь", 2, "action", 30, "allies", "abjuration"],
-    lesserRestoration: [
-      "Малое восстановление",
-      2,
-      "bonus",
-      5,
-      "ally",
-      "abjuration",
-    ],
-    zoneTruth: ["Зона истины", 2, "action", 60, "point", "enchantment"],
-    wardingBond: ["Защитная связь", 2, "action", 5, "ally", "abjuration"],
-    beaconHope: ["Маяк надежды", 3, "action", 30, "allies", "abjuration", 60],
-    crusaderMantle: [
-      "Мантия крестоносца",
-      3,
-      "action",
-      0,
-      "self",
-      "evocation",
-      60,
-    ],
-    auraVitality: [
-      "Аура жизненной силы",
-      3,
-      "action",
-      0,
-      "self",
-      "abjuration",
-      60,
-    ],
-    divineSmite: ["Божественная кара", 1, "bonus", 0, "enemy", "evocation"],
-    findSteed: ["Верный скакун", 2, "action", 30, "point", "conjuration"],
-    stormSphere: [
-      "Сфера бури · наручи",
-      4,
-      "action",
-      150,
-      "point",
-      "evocation",
-      60,
-    ],
-    drainingWave: [
-      "Истощающая волна · фокус",
-      0,
-      "action",
-      0,
-      "direction",
-      "necromancy",
-    ],
-  };
+  static SPELLS = MagicActivities.legacySpellTuples();
+
   static OPS = new Set([
     "window",
     "resolve",
@@ -2828,11 +2912,7 @@ class CombatMagic {
         ...(u.equipment?.vaeltirFocus ? ["drainingWave"] : []),
       ]),
     ].map((id) => ({
-      id,
-      name: this.SPELLS[id][0],
-      level: this.SPELLS[id][1],
-      cost: this.SPELLS[id][2],
-      target: this.SPELLS[id][4],
+      ...MagicActivities.spell(id),
     }));
   }
   static validateCasting(c) {
@@ -3167,12 +3247,16 @@ class CombatMagic {
   static rollBonus(e, t) {
     let n = 0;
     const id = t.actor;
-    if ((t.save || t.attackRoll) && this.effects(e, id, "bless").length)
-      n += e.roll(4);
+    const parts = [];
+    if ((t.save || t.attackRoll) && this.effects(e, id, "bless").length) {
+      const roll = e.roll(4); n += roll;
+      parts.push({rule:"spell.bless",label:"Благословение",amount:roll,rolls:[roll]});
+    }
     if (t.save && !t.deathSave) {
       const u = e.unit(id);
       if (u.mindSliver) {
-        n -= e.roll(4);
+        const roll = e.roll(4); n -= roll;
+        parts.push({rule:"spell.mindSliver",label:"Расщепление разума",amount:-roll,rolls:[roll]});
         delete u.mindSliver;
       }
     }
@@ -3180,8 +3264,11 @@ class CombatMagic {
       t.check &&
       t.stat === "STR" &&
       this.effects(e, id, "giantStrength").length
-    )
-      n += Math.max(0, 5 - e.unit(id).stats.STR);
+    ) {
+      const amount = Math.max(0, 5 - e.unit(id).stats.STR); n += amount;
+      parts.push({rule:"item.giantStrength",label:"Сила великана",amount});
+    }
+    t.magicModifiers = parts;
     if (n)
       e.emit(
         "magicRollBonus",
@@ -3257,9 +3344,9 @@ class CombatMagic {
   }
   static validate(e, c, u) {
     e.require(c.spell !== "divineSmite", "Кара применяется после попадания");
-    const def = this.SPELLS[c.spell];
+    const def = MagicActivities.spell(c.spell);
     e.require(def, "Неизвестное заклинание");
-    const [name, base, cost, range, shape] = def,
+    const {name, level: base, cost, range, target: shape} = def,
       id = c.actor,
       targets = c.spell === "dispelMagic" ? [] : this.targets(e, c),
       dispelTarget =
@@ -3451,7 +3538,7 @@ class CombatMagic {
     if (c.sculpt?.length) {
       e.require(
         u.features.sculptSpells &&
-          def[5] === "evocation" &&
+          def.school === "evocation" &&
           c.sculpt.length <= 1 + level &&
           new Set(c.sculpt).size === c.sculpt.length,
         "Скульптура заклинаний недоступна",
@@ -3522,6 +3609,7 @@ class CombatMagic {
     this.init(e.s);
     if (c.kind === "cast") {
       const f = this.validate(e, c, u);
+      if (e.trace) f.trace = structuredClone(e.trace);
       this.pay(e, f, this.SPELLS[f.spell][2]);
       if (this.SPELLS[f.spell][6]) e.endConcentration(c.actor);
       e.s.spellFrames[f.id] = f;
@@ -3641,9 +3729,10 @@ class CombatMagic {
       const adv = e.has(c.actor, "aim") || e.has(c.actor, "invisible"),
         ranged = !["melee", "meleeSpell"].includes(spec.kind),
         disadv =
-          ["restrained", "poisoned", "prone", "frightened", "blinded"].some(
+          ["restrained", "prone", "blinded"].some(
             (k) => e.has(c.actor, k),
           ) ||
+          e.conditionD20Modifiers(c.actor, "attack").disadvantage.length > 0 ||
           e.has(c.actor, "sap") ||
           (ranged &&
             !(u.features.sharpshooter && spec.kind === "ranged") &&
@@ -3834,12 +3923,15 @@ class CombatMagic {
           targetFrame: f.id,
           offered: [],
           cancelled: false,
+          trace: e.trace?.command === "decide" && e.trace.actor === p.actor
+            ? structuredClone(e.trace) : e.newTrace("counterspell", p.actor, e.trace),
         };
         this.pay(e, child, "reaction");
         e.s.spellFrames[child.id] = child;
         e.emit("cast", p.actor, u.name + ": Контрзаклинание.", {
           spell: "counterspell",
           targetFrame: f.id,
+          trace: child.trace,
         });
         e.enqueue(this.task(p.actor, "window", { frame: child.id }));
       }
@@ -3854,6 +3946,7 @@ class CombatMagic {
           offered: [],
           cancelled: false,
           after: p.next,
+          ...(e.trace ? {trace: structuredClone(e.trace)} : {}),
         };
         if (u.counters.shield_magic_initiate?.current > 0) {
           u.counters.shield_magic_initiate.current--;
@@ -4063,7 +4156,7 @@ class CombatMagic {
       );
       e.enqueue(
         {
-          ...e.reduceDamage(t.damage, transferred),
+          ...e.reduceDamage(t.damage, transferred, null, "item.rootLeaf", "Кольца Корня и Листа"),
           leafResolved: true,
           mitigated: true,
         },
@@ -4254,6 +4347,12 @@ class CombatMagic {
         );
       return;
     }
+    const healing = MagicActivities.healing(f.spell, {level: lv, ability: u.stats[u.casting?.ability] || 0});
+    if (healing) {
+      this.healing(e, f.actor, t, healing.count, healing.sides, healing.bonus,
+        MagicActivities.spell(f.spell).name);
+      return;
+    }
     switch (f.spell) {
       case "findSteed":
         this.finishSteed(e, f);
@@ -4386,17 +4485,6 @@ class CombatMagic {
         e.enqueue(...jobs);
         break;
       }
-      case "cureWounds":
-        this.healing(
-          e,
-          f.actor,
-          t,
-          2 * lv,
-          8,
-          u.stats[u.casting.ability],
-          this.SPELLS[f.spell][0],
-        );
-        break;
       case "mageArmor":
         this.remove(
           e,
@@ -4669,7 +4757,8 @@ class CombatMagic {
       e.unit(t.target).conditionImmunities.includes("paralyzed")
     )
       return;
-    let amount = t.amount ?? t.result?.total ?? 0;
+    const initial = t.amount ?? t.result?.total ?? 0;
+    let amount = initial;
     if (t.halfMiss) amount = Math.floor(amount / 2);
     else if (t.type) {
       if (
@@ -4688,6 +4777,11 @@ class CombatMagic {
         target: t.target,
         amount,
         damageType: t.type,
+        breakdown: [{rule: t.halfMiss ? "spell.potentCantrip" : "save.damage",
+          label: t.halfMiss ? "Мощный заговор при промахе" :
+            (t.stat === "DEX" && t.half && e.unit(t.target).features.evasion && !e.incapacitated(t.target))
+              ? "Увёртливость" : passed ? "Успешный спасбросок" : "Урон после спасброска",
+          before:initial,after:amount}],
       };
       if (
         passed &&
@@ -5061,6 +5155,7 @@ class CombatMagic {
       "ready",
       "helpAttack",
       "healPotion",
+      "activity",
       "stabilize",
       "layOnHands",
       "secondWind",
@@ -5072,7 +5167,7 @@ class CombatMagic {
       "hasteAction",
     ];
     let kind =
-      c.kind === "move"
+      c.kind === "activity" ? u.activities?.[c.activity]?.cost : c.kind === "move"
         ? "move"
         : c.kind === "cast"
           ? this.SPELLS[c.spell]?.[2]
@@ -5128,17 +5223,18 @@ class CombatMagic {
       e.require(Array.isArray(c.path),"Задай маршрут движения");
       let from = u;
       e.require(c.path.every(p => {
-        const allowed = this.canApproach(e,c.actor,from,p);
+        const allowed = this.canApproach(e,c.actor,from,p,{observed:true});
         from=p;return allowed;
       }), "Нельзя приближаться к источнику страха");
     }
   }
-  static canApproach(e,id,from,to) {
+  static canApproach(e,id,from,to,{observed=false}={}) {
     if (!e.has(id,"frightened")) return true;
-    const sources = [...this.effects(e,id,"abjure").map(x=>x.owner),
-      ...e.unit(id).statuses.filter(z=>z.kind==='frightened').map(z=>z.source)];
-    return sources.filter(src=>e.s.units[src]).every(src=>
-      e.distance(to,e.unit(src))>=e.distance(from,e.unit(src)));
+    return e.fearSources(id).every(src => {
+      const visible = !e.unit(src).hidden && e.canSee(id,src);
+      const position = observed && !visible ? e.s.memory?.[id]?.[src] : e.unit(src);
+      return !position || e.distance(to,position)>=e.distance(from,position);
+    });
   }
   static moved(e, id) {
     for (const z of e.s.zones)
@@ -5239,6 +5335,7 @@ class CombatMagic {
         offered: [],
         cancelled: false,
         after,
+        ...(e.trace ? {trace: structuredClone(e.trace)} : {}),
       };
     if (u.counters.shield_magic_initiate?.current > 0) {
       u.counters.shield_magic_initiate.current--;
@@ -6569,6 +6666,10 @@ const RulesContinuity =
   typeof module !== "undefined"
     ? require("./continuity").CombatContinuity
     : CombatContinuity;
+const RulesActivities = typeof module !== "undefined"
+  ? require("./activities").CombatActivities : CombatActivities;
+const RulesJournal = typeof module !== "undefined"
+  ? require("./combat_journal").CombatJournal : CombatJournal;
 class CombatRulesEngine {
   static VERSION = RulesCapabilities.ENGINE;
   static RULES = RulesCapabilities.RULES;
@@ -6585,6 +6686,8 @@ class CombatRulesEngine {
   static validate(s) {
     if (!s || s.version !== 30 || s.rulesVersion !== this.RULES)
       throw Error("Несовместимая версия боя");
+    if (s.actionSerial !== undefined && (!Number.isSafeInteger(s.actionSerial) ||
+        s.actionSerial < 0 || s.actionSerial >= 1e13)) throw Error("Повреждён счётчик действий");
     const version = String(s.engineVersion || "")
         .split(".")
         .map(Number),
@@ -6705,6 +6808,7 @@ class CombatRulesEngine {
           throw Error("Неверная атака: " + id);
       RulesCapabilities.features(u.features);
       RulesClassFeatures.validateUnit(u);
+      RulesActivities.validateUnit(u);
       RulesMagic.validateCasting(u.casting);
       for (const [key, value] of Object.entries(u.counters || {})) {
         RulesCapabilities.require(
@@ -6721,9 +6825,7 @@ class CombatRulesEngine {
         RulesCapabilities.counter(value);
       }
       for (const attack of u.attacks) RulesCapabilities.attack(attack);
-      const statuses = RulesCapabilities.STATUSES;
-      if (u.statuses.some((z) => !z || !statuses.has(z.kind)))
-        throw Error("Неизвестное состояние участника: " + id);
+      for (const z of u.statuses) RulesCapabilities.validateStatus(z?.kind);
     }
     RulesMagic.validateState(s);
     this.validateContinuations(s);
@@ -6784,6 +6886,7 @@ class CombatRulesEngine {
     kinds.add("magicTask");
     kinds.add("advancedTask");
     const visit = (t, depth = 0) => {
+      RulesJournal.validateTrace(t?.trace);
       require(t &&
         depth < 80 &&
         kinds.has(t.kind), "Неизвестный или повреждённый шаг боя");
@@ -6892,9 +6995,12 @@ class CombatRulesEngine {
           visit(t[k], depth + 1);
     };
     s.queue.forEach((t) => visit(t));
-    for (const f of Object.values(s.spellFrames || {}))
+    for (const f of Object.values(s.spellFrames || {})) {
+      RulesJournal.validateTrace(f.trace);
       if (f.hitContinue) visit(f.hitContinue);
+    }
     const p = s.pending;
+    RulesJournal.validateTrace(p?.trace);
     if (!p) return;
     const required = {
       magicChoice: ["choice", "options"],
@@ -6995,6 +7101,29 @@ class CombatRulesEngine {
   active(id) {
     const u = this.unit(id);
     return !u.dead && !u.fled && u.hp > 0 && !this.has(id, "unconscious");
+  }
+  fearSources(id) {
+    return [...new Set([
+      ...RulesMagic.effects(this, id, "abjure").map(x => x.owner),
+      ...this.unit(id).statuses.filter(z => z.kind === "frightened").map(z => z.source),
+    ])].filter(source => this.s.units[source]);
+  }
+  conditionD20Modifiers(id, kind, from = null) {
+    const advantage = [], disadvantage = [], sources = [];
+    if (!["attack", "check"].includes(kind)) return {advantage, disadvantage, sources};
+    if (this.has(id, "poisoned")) {
+      disadvantage.push("Отравление");
+      sources.push({rule: "condition.poisoned", source: id, mode: -1, label: "Отравление"});
+    }
+    if (this.has(id, "frightened")) {
+      for (const source of this.fearSources(id)) {
+        if (!this.canSee(id, source, from)) continue;
+        const label = "Страх: " + this.name(source) + " в поле зрения";
+        disadvantage.push(label);
+        sources.push({rule: "condition.frightened", source, mode: -1, label});
+      }
+    }
+    return {advantage, disadvantage, sources};
   }
   enemies(id) {
     const u = this.unit(id);
@@ -7137,6 +7266,7 @@ class CombatRulesEngine {
       type,
       actor,
       text,
+      ...(this.trace ? {trace: structuredClone(this.trace), phase: this.tracePhase || "command"} : {}),
       ...Object.fromEntries(
         Object.entries(structuredClone(data)).filter(
           ([, value]) => value !== undefined,
@@ -7169,13 +7299,20 @@ class CombatRulesEngine {
     return n;
   }
   enqueue(...tasks) {
-    this.s.queue.unshift(...tasks);
+    this.s.queue.unshift(...tasks.map(task => {
+      const frame = typeof task.frame === "string" ? this.s.spellFrames?.[task.frame] : task.frame;
+      const trace = task.trace || frame?.trace ||
+        (task.kind === "attackRoll" && task.mode === "reaction" && this.trace?.actor !== task.actor
+          ? this.newTrace("reaction",task.actor,this.trace) : this.trace);
+      return trace && !task.trace ? {...task, trace: structuredClone(trace)} : task;
+    }));
   }
   decision(kind, actor, data) {
     this.s.pending = {
       id: "decision-" + ++this.s.sequence,
       kind,
       actor,
+      ...(this.trace ? {trace: structuredClone(this.trace)} : {}),
       ...data,
     };
   }
@@ -7191,10 +7328,22 @@ class CombatRulesEngine {
       length = events.length,
       revision = this.revision;
     const before = structuredClone({ ...this.s, events: [] });
+    const previousTrace = this.trace, previousPhase = this.tracePhase;
     try {
       if (!command || typeof command.kind !== "string")
         throw Error("Неверная команда");
-      if (command.kind === "decide") this.resolveDecision(command);
+      const parent = command.kind === "decide" ? this.s.pending?.trace : null;
+      this.trace = this.newTrace(command.kind,
+        command.kind === "decide" ? this.s.pending?.actor || this.actorId : command.actor || this.actorId, parent);
+      this.tracePhase = command.kind;
+      if (command.kind === "decide") {
+        const p = this.s.pending;
+        if (p) this.emit("decision", p.actor, this.name(p.actor) + ": " +
+          ({yes:"использовать",no:"отказаться",skip:"пропустить",accept:"принять бросок",
+            heroic:"героическое вдохновение",luck:"удача",spare:"оглушить",lethal:"обычный урон"}[command.choice] || "выбор сделан") + ".",
+          {decisionId:p.id, window:p.choice || p.kind, choice:command.choice});
+        this.resolveDecision(command);
+      }
       else if (command.kind === "endConcentration") {
         const id = command.actor || this.actorId;
         this.require(
@@ -7221,7 +7370,16 @@ class CombatRulesEngine {
       this.state = before;
       this.revision = revision;
       throw error;
+    } finally {
+      this.trace = previousTrace;
+      this.tracePhase = previousPhase;
     }
+  }
+  newTrace(command, actor, parent = null) {
+    this.s.actionSerial = (this.s.actionSerial || 0) + 1;
+    const actionId = "action-" + this.s.actionSerial;
+    return {actionId, rootActionId: parent?.rootActionId || actionId,
+      parentActionId: parent?.actionId || null, command, actor};
   }
   command(c, u) {
     const id = c.actor;
@@ -7243,6 +7401,7 @@ class CombatRulesEngine {
     }
     RulesMagic.beforeCommand(this, c, u);
     if (
+      RulesActivities.command(this, c, u) ||
       RulesMagic.command(this, c, u) ||
       RulesAdvanced.command(this, c, u) ||
       RulesClassFeatures.command(this, c, u) ||
@@ -7726,20 +7885,18 @@ class CombatRulesEngine {
       );
       u.bonus--;
       u.items[item]--;
+      const healing = RulesActivities.healing("healingPotion", u.itemHealing?.[item] || {});
       this.enqueue({
         kind: "roll",
         actor: id,
         label: "Лечебное зелье",
-        count: u.itemHealing?.[item]?.count || 2,
-        sides: 4,
-        bonus: u.itemHealing?.[item]?.flat || 2,
+        ...healing,
         next: {
           kind: "healingResult",
           actor: id,
           target: id,
           maxHealing:
-            (u.itemHealing?.[item]?.count || 2) * 4 +
-            (u.itemHealing?.[item]?.flat || 2),
+            healing.count * healing.sides + healing.bonus,
         },
       });
       return;
@@ -7819,25 +7976,9 @@ class CombatRulesEngine {
     let from = u,
       cost = 0;
     for (const [index, p] of path.entries()) {
-      const occupant = this.occupied(p.x, p.y, id),
-        known =
-          occupant &&
-          (this.unit(occupant).team === u.team ||
-            (!this.unit(occupant).hidden && this.canSee(id, occupant)));
-      this.require(
-        this.inside(p) &&
-          !this.wall(p) &&
-          (!known || (this.canPass(id, occupant) && index < path.length - 1)) &&
-          this.distance(from, p) === 5,
-        "Маршрут перекрыт",
-      );
-      if (from.x !== p.x && from.y !== p.y)
-        this.require(
-          !this.wall({ x: from.x, y: p.y }) &&
-            !this.wall({ x: p.x, y: from.y }),
-          "Закрытый угол",
-        );
-      cost += this.stepCost(id, p);
+      const step = this.movementStep(id, from, p, {stop: index === path.length - 1});
+      this.require(step.allowed, step.reason);
+      cost += step.cost;
       from = p;
     }
     this.require(
@@ -7845,6 +7986,26 @@ class CombatRulesEngine {
       "Недостаточно передвижения",
     );
     return cost;
+  }
+  movementStep(id, from, to, {stop = false, knowledge = "observed", forced = false} = {}) {
+    const fail = reason => ({allowed: false, canStop: false, cost: 0, reason});
+    if (!to || !this.inside(to) || this.wall(to) || this.distance(from, to) !== 5)
+      return fail("Маршрут перекрыт");
+    if (from.x !== to.x && from.y !== to.y &&
+        (this.wall({x: from.x, y: to.y}) || this.wall({x: to.x, y: from.y})))
+      return fail("Закрытый угол");
+    if (!forced && !RulesMagic.canApproach(this, id, from, to, {observed: knowledge === "observed"}))
+      return fail("Нельзя приближаться к источнику страха");
+    const occupant = this.occupied(to.x, to.y, id);
+    const known = occupant && (knowledge === "actual" ||
+      this.unit(occupant).team === this.unit(id).team ||
+      (!this.unit(occupant).hidden && this.canSee(id, occupant)));
+    if (known && (stop || forced || !this.canPass(id, occupant)))
+      return fail("Маршрут перекрыт");
+    if (knowledge === "observed" && !forced && (this.unit(id).blockedCells || []).some(p =>
+      p.x === to.x && p.y === to.y && p.turn === this.s.turnSerial))
+      return fail("Маршрут перекрыт");
+    return {allowed: true, canStop: !known, cost: this.stepCost(id, to), reason: ""};
   }
   require(value, message) {
     if (!value) throw Error(message);
@@ -8066,6 +8227,7 @@ class CombatRulesEngine {
           a !== id &&
           this.unit(a).team === u.team &&
           this.active(a) &&
+          !this.incapacitated(a) &&
           this.distance(this.unit(a), t) <= 5,
       )
     )
@@ -8080,11 +8242,13 @@ class CombatRulesEngine {
     )
       advantage.push("Помощь союзника");
     if (
-      ["restrained", "poisoned", "prone", "frightened"].some((k) =>
+      ["restrained", "prone"].some((k) =>
         this.has(id, k),
       )
     )
       disadvantage.push("состояние атакующего");
+    const conditions = this.conditionD20Modifiers(id, "attack", from);
+    disadvantage.push(...conditions.disadvantage);
     if (
       this.has(target, "dodge") &&
       this.speed(target) > 0 &&
@@ -8116,6 +8280,7 @@ class CombatRulesEngine {
       disadvantage,
       adv: advantage.length > 0,
       disadv: disadvantage.length > 0,
+      sources: conditions.sources,
     };
   }
   saveTask(id, stat, dc, next, context = {}) {
@@ -8130,17 +8295,24 @@ class CombatRulesEngine {
           this.speed(id) > 0 &&
           !this.incapacitated(id)),
       disadv = stat === "DEX" && this.has(id, "restrained");
+    const bonusParts = [
+      {rule:"save.base",label:"Спасбросок " + stat,amount:u.saves?.[stat] ?? u.stats?.[stat] ?? 0},
+      {rule:"save.aura",label:"Защитные ауры",amount:RulesDefenses.saveBonus(this,id)},
+      {rule:"save.magic",label:"Магические эффекты",amount:RulesMagic.saveBonus(this,id,stat)},
+      {rule:"save.cover",label:"Укрытие",amount:stat === "DEX" && context.origin ? this.cover(context.origin,id) : 0},
+    ].filter((part,index) => index === 0 || part.amount);
     return {
       kind: "roll",
       actor: id,
       label: "Спасбросок " + stat,
       count: 1,
       sides: 20,
-      bonus:
-        (u.saves?.[stat] ?? u.stats?.[stat] ?? 0) +
-        RulesDefenses.saveBonus(this, id) +
-        RulesMagic.saveBonus(this, id, stat) +
-        (stat === "DEX" && context.origin ? this.cover(context.origin, id) : 0),
+      bonus: bonusParts.reduce((total,part) => total + part.amount,0),
+      bonusParts,
+      modifiers: {advantage: [
+        ...(RulesMagic.saveAdv(this,id,stat,next) ? ["Магический эффект"] : []),
+        ...(stat === "DEX" && this.has(id,"dodge") && this.speed(id)>0 && !this.incapacitated(id) ? ["Уклонение"] : []),
+      ], disadvantage: disadv ? ["Опутан"] : []},
       mode: adv === disadv ? 0 : adv ? 1 : -1,
       autoFail: auto,
       save: true,
@@ -8205,6 +8377,7 @@ class CombatRulesEngine {
     );
   }
   status(id, kind, extra = {}) {
+    RulesCapabilities.validateStatus(kind);
     if (this.conditionImmune(id, kind)) return false;
     const u = this.unit(id),
       previous = this.speed(id);
@@ -8248,11 +8421,15 @@ class CombatRulesEngine {
   }
   run() {
     let n = 0;
+    const previousTrace = this.trace, previousPhase = this.tracePhase;
     this.running = true;
     try {
       while (!this.s.pending && this.s.queue.length) {
         if (++n > 2000) throw Error("Слишком длинная последовательность");
-        this.task(this.s.queue.shift());
+        const task = this.s.queue.shift();
+        this.trace = task.trace || previousTrace;
+        this.tracePhase = task.op || task.kind;
+        this.task(task);
         RulesMagic.maintain(this);
         RulesDefenses.refresh(this);
 
@@ -8265,6 +8442,8 @@ class CombatRulesEngine {
       }
     } finally {
       this.running = false;
+      this.trace = previousTrace;
+      this.tracePhase = previousPhase;
     }
     this.checkEnd();
   }
@@ -8460,10 +8639,23 @@ class CombatRulesEngine {
       return;
     }
     if (t.kind === "roll") {
+      if (t.sides === 20 && t.check && !t.conditionsApplied) {
+        const modifiers = this.conditionD20Modifiers(t.actor, "check");
+        if (t.mode > 0) modifiers.advantage.unshift("Условия проверки");
+        if (t.mode < 0) modifiers.disadvantage.unshift("Условия проверки");
+        const adv = t.mode > 0 || modifiers.advantage.length > 0;
+        const disadv = t.mode < 0 || modifiers.disadvantage.length > 0;
+        t = {...t, mode: adv === disadv ? 0 : adv ? 1 : -1,
+          conditionsApplied: true, modifiers};
+      }
       if (!t.magicBonusDone) {
+        const baseBonus = t.bonus || 0;
+        const added = RulesMagic.rollBonus(this, t);
         t = {
           ...t,
-          bonus: (t.bonus || 0) + RulesMagic.rollBonus(this, t),
+          bonus: baseBonus + added,
+          bonusParts: [...(t.bonusParts || [{rule:"base",label:"Основной модификатор",amount:baseBonus}]),
+            ...(t.magicModifiers || [])],
           magicBonusDone: true,
         };
       }
@@ -8545,7 +8737,7 @@ class CombatRulesEngine {
             this.unit(h.helper).team === u.team
           ),
       );
-      if (t.luckDefense) m.disadv = true;
+      if (t.luckDefense) { m.disadv = true; m.disadvantage.push("Удача цели"); }
       const mode = m.adv === m.disadv ? 0 : m.adv ? 1 : -1;
       this.removeStatus(t.actor, "aim");
       this.removeStatus(t.actor, "sap");
@@ -8563,6 +8755,7 @@ class CombatRulesEngine {
         mode,
         bonus: t.spec.bonus,
         attackRoll: true,
+        modifiers: m,
         next: { ...t, kind: "attackResult", modifiers: m },
       });
       return;
@@ -8609,7 +8802,7 @@ class CombatRulesEngine {
           "; " +
           t.result.rolls.join(", ") +
           " +" +
-          t.spec.bonus +
+          (t.result.total - t.result.kept) +
           " = " +
           t.result.total +
           " против КД " +
@@ -8624,6 +8817,10 @@ class CombatRulesEngine {
             : ""),
         {
           target: t.target,
+          modifiers: m,
+          targetAC: this.ac(t.target, origin, t.spec) + (t.acBonus || 0),
+          acBonus: t.acBonus || 0,
+          bonusParts: t.result.bonusParts,
           hit,
           critical,
           attackKind: t.spec.kind,
@@ -8635,7 +8832,6 @@ class CombatRulesEngine {
           origin: { x: origin.x, y: origin.y },
           point: { x: this.unit(t.target).x, y: this.unit(t.target).y },
           rolls: t.result.rolls,
-          modifiers: m,
         },
       );
       if (!hit) {
@@ -8757,6 +8953,9 @@ class CombatRulesEngine {
     }
     if (t.kind === "damage") {
       if (t.amount <= 0) return;
+      if (!t.breakdown) t = {...t, breakdown: [{rule:"damage.initial",label:"Урон до защит",
+        before:t.amount,after:t.amount}]};
+      else t = {...t, breakdown: structuredClone(t.breakdown)};
       const target = this.unit(t.target),
         physicalTypes = ["bludgeoning", "piercing", "slashing"],
         physical = this.damageParts(t).some((p) =>
@@ -8795,6 +8994,7 @@ class CombatRulesEngine {
             t,
             target.features.heavyArmorReduction,
             physicalTypes,
+            "defense.heavyArmor", "Тяжёлый доспех",
           ),
           armorReduced: true,
         };
@@ -8809,8 +9009,16 @@ class CombatRulesEngine {
       if (!t.mitigated && !t.finalTransfer) {
         const components = this.damageParts(t).map((p) => {
           let n = target.immunities?.includes(p.damageType) ? 0 : p.amount;
-          n = RulesMagic.mitigate(this, {...t,damageType:p.damageType}, n);
-          if (target.vulnerabilities?.includes(p.damageType)) n *= 2;
+          if (n !== p.amount) t.breakdown.push({rule:"damage.immunity",label:"Иммунитет",
+            damageType:p.damageType,before:p.amount,after:n});
+          const reduced = RulesMagic.mitigate(this, {...t,damageType:p.damageType}, n);
+          if (reduced !== n) t.breakdown.push({rule:"damage.resistance",label:"Сопротивление",
+            damageType:p.damageType,before:n,after:reduced});
+          n = reduced;
+          if (target.vulnerabilities?.includes(p.damageType)) {
+            t.breakdown.push({rule:"damage.vulnerability",label:"Уязвимость",
+              damageType:p.damageType,before:n,after:n*2}); n *= 2;
+          }
           return {
             ...p,
             amount: n,
@@ -8862,7 +9070,9 @@ class CombatRulesEngine {
         {
           amount,
           lost,
+          hpLost: before - target.hp,
           temp,
+          breakdown: t.breakdown,
           damageType: t.damageType,
           ...(t.components ? { components: t.components } : {}),
           source: t.actor,
@@ -8883,7 +9093,7 @@ class CombatRulesEngine {
             t.target,
             "CON",
             Math.min(30, Math.max(10, Math.floor(amount / 2))),
-            { kind: "concentrationResult", actor: t.target },
+            { kind: "concentrationResult", actor: t.target, damage: amount },
           ),
         );
       this.checkEnd();
@@ -8899,6 +9109,7 @@ class CombatRulesEngine {
           " против СЛ " +
           t.result.dc +
           (t.result.success ? " (успех)." : " (провал)."),
+        {damage: t.damage, dc: t.result.dc, total: t.result.total, success: t.result.success},
       );
       if (!t.result.success) this.endConcentration(t.actor);
       return;
@@ -9005,8 +9216,13 @@ class CombatRulesEngine {
       }
       const p = t.path[0],
         occupant = this.occupied(p.x, p.y, t.actor);
-      if (this.distance(u,p) !== 5 ||
-          (!t.forced && !RulesMagic.canApproach(this,t.actor,u,p))) {
+      const step = this.movementStep(t.actor, u, p,
+        {stop: t.path.length === 1, knowledge: "actual", forced: Boolean(t.forced)});
+      if (!step.allowed && !occupant) {
+        if (!t.forced) {
+          u.blockedCells ??= [];
+          u.blockedCells.push({...p,turn:s.turnSerial});
+        }
         this.markSharedSpace(t.actor);
         this.emit("movementBlocked",t.actor,
           "Маршрут изменился после реакции: выбери путь заново.");
@@ -9014,7 +9230,7 @@ class CombatRulesEngine {
       }
       if (
         occupant &&
-        (t.forced || !this.canPass(t.actor, occupant) || t.path.length === 1)
+        !step.allowed
       ) {
         u.blockedCells ??= [];
         u.blockedCells.push({ ...p, turn: s.turnSerial });
@@ -9027,9 +9243,9 @@ class CombatRulesEngine {
         return;
       }
       if (
-        this.wall(p) ||
+        !step.allowed ||
         (!t.forced && this.speed(t.actor) === 0) ||
-        (t.freeBudget ?? u.move) < this.stepCost(t.actor, p)
+        (t.freeBudget ?? u.move) < step.cost
       ) {
         this.markSharedSpace(t.actor);
         return;
@@ -9265,6 +9481,8 @@ class CombatRulesEngine {
           : t.rolls.reduce((a, b) => a + Math.max(b, t.minimumDie || 0), 0)) +
         (t.bonus || 0),
       success = !t.autoFail && total >= t.dc;
+    const modifiers = t.modifiers ? structuredClone(t.modifiers) : undefined;
+    if (modifiers && t.luckyUsed) modifiers.advantage.push("Удача");
     this.emit(
       "roll",
       t.actor,
@@ -9285,6 +9503,10 @@ class CombatRulesEngine {
         bonus: t.bonus || 0,
         total,
         mode: t.mode || 0,
+        kept, rawKept, minimum: t.minimum || 0,
+        ...(Number.isFinite(t.dc) ? {dc: t.dc} : {}),
+        modifiers,
+        bonusParts: t.bonusParts,
       },
     );
     this.enqueue({
@@ -9293,6 +9515,7 @@ class CombatRulesEngine {
         rolls: t.rolls,
         kept,
         total,
+        bonusParts: t.bonusParts,
         dc: t.dc,
         success,
         lucky: Boolean(t.luckyUsed),
@@ -9322,7 +9545,7 @@ class CombatRulesEngine {
       grouped.set(p.damageType, (grouped.get(p.damageType) || 0) + p.amount);
     return [...grouped].map(([damageType, amount]) => ({ damageType, amount }));
   }
-  reduceDamage(t, reduction, types = null) {
+  reduceDamage(t, reduction, types = null, rule = "damage.reduction", label = "Снижение урона") {
     const components = this.damageParts(t).map((p) => {
       const n =
         types && !types.includes(p.damageType)
@@ -9335,9 +9558,11 @@ class CombatRulesEngine {
       ...t,
       components,
       amount: components.reduce((n, p) => n + p.amount, 0),
+      breakdown: [...(t.breakdown || []), {rule,label,before:t.amount,
+        after:components.reduce((n,p) => n+p.amount,0)}],
     };
   }
-  halfDamage(t) {
+  halfDamage(t, rule = "damage.half", label = "Половина урона") {
     let total = 0,
       allocated = 0;
     const components = this.damageParts(t).map((p) => {
@@ -9346,7 +9571,8 @@ class CombatRulesEngine {
       allocated += amount;
       return { ...p, amount };
     });
-    return { ...t, components, amount: allocated };
+    return { ...t, components, amount: allocated,
+      breakdown: [...(t.breakdown || []), {rule,label,before:t.amount,after:allocated}] };
   }
   deflect(t, use) {
     const u = this.unit(t.target);
@@ -9385,7 +9611,7 @@ class CombatRulesEngine {
     );
     if (amount)
       this.enqueue({
-        ...this.reduceDamage(t, reduction),
+        ...this.reduceDamage(t, reduction, null, "monk.deflectAttacks", "Отражение атак"),
         deflectResolved: true,
       });
     else if (u.focus > 0) {
@@ -9783,27 +10009,10 @@ class CombatTacticalAI {
         [-1, 1],
         [-1, -1],
       ]) {
-        const q = { x: p.x + dx, y: p.y + dy },
-          occupant = e.occupied(q.x, q.y, id),
-          knownOccupant =
-            occupant &&
-            (e.unit(occupant).team === u.team ||
-              (!e.unit(occupant).hidden && e.canSee(id, occupant)));
-        if (
-          e.wall(q) ||
-          (knownOccupant && !e.canPass(id, occupant)) ||
-          (u.blockedCells || []).some(
-            (v) => v.x === q.x && v.y === q.y && v.turn === e.s.turnSerial,
-          )
-        )
-          continue;
-        if (
-          dx &&
-          dy &&
-          (e.wall({ x: p.x, y: q.y }) || e.wall({ x: q.x, y: p.y }))
-        )
-          continue;
-        const cost = p.cost + e.stepCost(id, q),
+        const q = { x: p.x + dx, y: p.y + dy };
+        const step = e.movementStep(id,p,q);
+        if (!step.allowed) continue;
+        const cost = p.cost + step.cost,
           key = q.x + "," + q.y;
         if (cost > budget || (best.get(key) ?? Infinity) <= cost) continue;
         best.set(key, cost);
@@ -9852,6 +10061,7 @@ class CombatTacticalAI {
             ally !== id &&
             e.unit(ally).team === u.team &&
             e.active(ally) &&
+            !e.incapacitated(ally) &&
             e.distance(e.unit(ally), target) <= 5,
         )) ||
       e.s.help?.some(
@@ -9862,9 +10072,11 @@ class CombatTacticalAI {
       );
     const disadv =
       !e.canSee(id, target.id, from) ||
-      ["restrained", "poisoned", "prone", "frightened"].some((k) =>
+      ["restrained", "poisoned", "prone"].some((k) =>
         e.has(id, k),
       ) ||
+      (e.has(id,"frightened") && e.fearSources(id).some(source =>
+        known.some(t => t.id === source && t.visible) && e.canSee(id,source,from))) ||
       e.has(target.id, "dodge") ||
       (e.has(target.id, "prone") && distance > 5) ||
       u.statuses.some((z) => z.kind === "grappled" && z.source !== target.id) ||
@@ -9938,6 +10150,14 @@ class CombatTacticalAI {
       : done;
   }
   choose(id) {
+    const command = this.plan(id), e = this.engine;
+    if (command.kind === "endTurn" || e.availableAction(command).enabled) return command;
+    // One bounded fallback. Execution still reports unexpected errors instead of
+    // retrying indefinitely; unavailable known actions never stop the UI timer.
+    const dodge = {kind: "dodge", actor: id};
+    return e.availableAction(dodge).enabled ? dodge : {kind: "endTurn", actor: id};
+  }
+  plan(id) {
     const e = this.engine,
       s = e.s,
       u = e.unit(id),
@@ -10304,6 +10524,7 @@ class CombatCampaignAdapter {
       skills: { ...skills, ...p.skills },
       proficiency: p.proficiency || 0,
       features: p.features || {},
+      ...(p.activities ? {activities: p.activities} : {}),
       senses: p.senses || {},
       casting: p.casting || null,
       equipment: p.equipment || {},
@@ -12471,6 +12692,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
       id = engine.actorId,
       u = engine.unit(id);
     const base = { actor: id, target: selected, weapon };
+    if (op === "activity") return {...base, kind: "activity", activity: b.dataset.activity};
     if (op === "attackObject")
       return { ...base, kind: op, object: $("combat-object")?.value };
     if (op === "endConcentration")
@@ -13091,6 +13313,13 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
     if (classButtons)
       panels.abilities +=
         '<h3>Способности</h3><div class="choices">' + classButtons + "</div>";
+    const activities = CombatActivities.catalogue(u);
+    if (activities.length) panels.abilities += '<h3>Действия персонажа</h3><div class="choices">' +
+      activities.map(a => button("activity", esc(a.name) + "<small>" +
+        (a.cost === "bonus" ? "Бонусное действие" : "Действие") + " · " +
+        a.dice.count + "к" + a.dice.sides + "+" + a.dice.flat + " ПЗ · " +
+        (a.target === "self" ? "на себя" : a.range + " фт") + "</small>", !play,
+        'data-activity="' + esc(a.id) + '"')).join("") + "</div>";
     if (f.greatWeaponMaster)
       panels.abilities += button(
         "hew",
@@ -13214,6 +13443,8 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
           e.round +
           "</small>" +
           esc(e.text) +
+          (CombatJournal.details(e).length ? '<details class="event-details"><summary>Подробности</summary><ul>' +
+            CombatJournal.details(e).map(line => '<li>' + esc(line) + '</li>').join('') + '</ul></details>' : '') +
           "</div>",
       )
       .join("");
@@ -13422,6 +13653,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
               : null;
           },
           actor: () => movingUnit,
+          transition: (from, to, stop) => engine.movementStep(movingId, from, to, {stop}),
           webDifficult: () => false,
           stepCost: (p) => engine.stepCost(movingId, p),
           canStop: (p) => {
@@ -13619,8 +13851,15 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
     if (op === "journal-export") {
       download(
         runtime.campaign_id + "-combat-journal.txt",
-        engine.s.events.map((e) => e.text).join("\n"),
+        CombatJournal.text(engine.s.events),
       );
+      return;
+    }
+    if (op === "journal-json") {
+      download(runtime.campaign_id + "-combat-journal.json", {
+        format: "dnd-combat-journal", version: 1, engineVersion: engine.s.engineVersion,
+        battleId: engine.s.meta.battleId, events: engine.s.events,
+      });
       return;
     }
     if (op === "cancel-route") {
