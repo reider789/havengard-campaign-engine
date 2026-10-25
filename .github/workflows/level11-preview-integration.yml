@@ -28,11 +28,11 @@ jobs:
         with:
           node-version: '22'
       - name: Read exact reviewed shared kernel
-        run: echo 'Shared engine preview commit e3ed74ff2ebd2c5e3a51f9f7b6844067031f8dd9'
+        run: echo 'Shared engine preview commit 7a4bb4caad08bfba693d354d232d176f6a91f293'
       - uses: actions/checkout@v4
         with:
           repository: reider789/rin_dnd
-          ref: e3ed74ff2ebd2c5e3a51f9f7b6844067031f8dd9
+          ref: 7a4bb4caad08bfba693d354d232d176f6a91f293
           path: .shared-combat
           persist-credentials: false
       - name: Verify level 11 profiles and prepare deterministic pin
@@ -59,7 +59,7 @@ jobs:
           lockfile=base/'prototypes/shared-combat/engine-lock.json'
           lock=json.loads(lockfile.read_text())
           assert lock['repository']=='reider789/rin_dnd'
-          lock['commit']='e3ed74ff2ebd2c5e3a51f9f7b6844067031f8dd9'
+          lock['commit']='7a4bb4caad08bfba693d354d232d176f6a91f293'
           lock['engine_version']=cap['engine']
           lock['files']={name:hashlib.sha256((engine/name).read_bytes()).hexdigest()
                          for name in lock['files']}
