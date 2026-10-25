@@ -1,6 +1,6 @@
 # Scene Knowledge
 
-> state_revision: 31
+> state_revision: 32
 > graph_revision: 6
 > Этот файл отвечает на вопрос: кто из участников текущей сцены что знает по релевантным сюжетным веткам.
 

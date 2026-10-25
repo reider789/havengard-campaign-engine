@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
-  "reviewed_engine": "30.5.0",
+  "reviewed_engine": "30.7.1",
   "characters": {
     "yar": {
-      "sheet_mechanics_sha256": "454b48265902b75bbac55360bff7be9e1d08fef659e8a0e4ce272640534c8cb4",
+      "sheet_mechanics_sha256": "ec1ba0dcfe3efc70fb60ca021a4e9d974901fddb34ba33512483336cee7e0fc9",
       "required_features": {
-        "fighterLevel": 10,
+        "fighterLevel": 11,
         "secondWind": true,
         "actionSurge": true,
         "tacticalMind": true,
         "tacticalShift": true,
         "indomitable": true,
         "knowEnemy": true,
-        "extraAttack": 2,
+        "extraAttack": 3,
         "greatWeaponFighting": true,
         "greatWeaponMaster": 4,
         "savageAttacker": true,
@@ -51,7 +51,7 @@
       ]
     },
     "daphne": {
-      "sheet_mechanics_sha256": "85be6e17b9563ccf022f2a18c829af1b58edb8148e362a8735504ad4804e3e1d",
+      "sheet_mechanics_sha256": "4d63f2dab53bed20fed7889450ed11b6959d4d4ab6aac9b08e0e246aeb4249e8",
       "required_features": {
         "sculptSpells": true,
         "potentCantrip": true,
@@ -75,7 +75,8 @@
         "coneCold",
         "seeming",
         "holdMonster",
-        "bigbyHand"
+        "bigbyHand",
+        "chainLightning"
       ],
       "required_cantrips": [
         "fireBolt",
@@ -93,7 +94,7 @@
       ]
     },
     "lyutobor": {
-      "sheet_mechanics_sha256": "1993a4762dcaf89754c445c660a2e72d445e3c031147d7c1cf8c82ae659c9211",
+      "sheet_mechanics_sha256": "30c7e8ce3cf0c5dd93cbd329bfa533364d8a6fc2e90ec68754a4468222b3c712",
       "required_features": {
         "extraAttack": 2,
         "masteries": [
@@ -113,7 +114,8 @@
         "sacredWeapon": true,
         "abjureFoes": true,
         "shieldMaster": true,
-        "divineSmite": true
+        "divineSmite": true,
+        "radiantStrikes": true
       },
       "required_prepared": [
         "bless",
@@ -132,7 +134,8 @@
         "crusaderMantle",
         "auraVitality",
         "divineSmite",
-        "findSteed"
+        "findSteed",
+        "revivify"
       ],
       "required_cantrips": [],
       "required_attacks": [
@@ -145,9 +148,9 @@
       ]
     },
     "rada": {
-      "sheet_mechanics_sha256": "9f1b89de3dab36e96b0e5f1df00ca55410bf2f2b41637730cb748e5dc9f8f74a",
+      "sheet_mechanics_sha256": "34198aa4fc07d40dfc89e88cb8752d9ac44c0491df48ae1c4b49d7a8ee93d8e7",
       "required_features": {
-        "sneakDice": 5,
+        "sneakDice": 6,
         "cunningAction": true,
         "steadyAim": true,
         "uncannyDodge": true,
@@ -165,7 +168,8 @@
         "climbSpeed": 30,
         "poisonerKit": true,
         "silentShadow": true,
-        "alert": true
+        "alert": true,
+        "improvedCunningStrike": true
       },
       "required_prepared": [],
       "required_cantrips": [],

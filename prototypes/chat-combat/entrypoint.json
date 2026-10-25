@@ -6,8 +6,8 @@
   "chat_embed_path": "prototypes/chat-combat/current-chat-battle.html",
   "content_pack": "prototypes/shared-combat/party-pack.json",
   "engine_lock": "prototypes/shared-combat/engine-lock.json",
-  "verified_source_revision": 31,
-  "source_state_sha256": "8d975dfe472b6d916fd37c7aafad8d64cf8f33b5e6a74fab72d6fe835ff16cf9",
+  "verified_source_revision": 32,
+  "source_state_sha256": "7f5e156c1c0086a0c183de58f50808b9d4a94bf3f990e761022800a0fef6f71c",
   "desktop_only": true,
   "noncanonical": true,
   "mode": "standalone desktop HTML file preview",
@@ -35,7 +35,7 @@
       "web/combat_app.js"
     ],
     "source_repository": "reider789/rin_dnd",
-    "source_commit": "a2f1480b11358679f43071eacba84e99b77efc54",
+    "source_commit": "32c1ae6852622cf0b4770c995b75a7a39b7a1aca",
     "offline": true
   }
 }
