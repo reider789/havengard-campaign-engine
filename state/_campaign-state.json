@@ -755,7 +755,48 @@
         "source_priority": "При конфликте актуальные ресурсы и сыгранные события Campaign Engine важнее старых справочных карточек.",
         "source_snapshot": "migrations/character-g1m8-daphne-source-2026-10-10.json",
         "speed": "30 фт",
-        "xp": "85 000 / 100 000 (сюжетная веха; прежние 64 750 XP)"
+        "xp": "85 000 / 100 000 (сюжетная веха; прежние 64 750 XP)",
+        "prepared_spell_ids": [
+          "mageArmor",
+          "magicMissile",
+          "thunderwave",
+          "fogCloud",
+          "scorchingRay",
+          "mistyStep",
+          "fireball",
+          "slow",
+          "counterspell",
+          "dimensionDoor",
+          "greaterInvisibility",
+          "coneCold",
+          "seeming",
+          "holdMonster",
+          "bigbyHand",
+          "chainLightning"
+        ],
+        "approved_preparation_after_rest": [
+          "mageArmor",
+          "magicMissile",
+          "fogCloud",
+          "mistyStep",
+          "fireball",
+          "slow",
+          "counterspell",
+          "dimensionDoor",
+          "greaterInvisibility",
+          "coneCold",
+          "seeming",
+          "holdMonster",
+          "bigbyHand",
+          "chainLightning",
+          "globeInvulnerability",
+          "tashasBubblingCauldron"
+        ],
+        "new_spellbook_ids": [
+          "chainLightning",
+          "globeInvulnerability",
+          "tashasBubblingCauldron"
+        ]
       },
       "features": [
         "Magic Initiate: Shield (always prepared)"
@@ -1534,7 +1575,30 @@
         "source_priority": "При конфликте актуальные ресурсы и сыгранные события Campaign Engine важнее старых справочных карточек.",
         "source_snapshot": "migrations/character-g1m8-lyutobor-source-2026-10-10.json",
         "speed": "30 фт",
-        "xp": "85 000 / 100 000 (сюжетная веха; прежние 64 750 XP)"
+        "xp": "85 000 / 100 000 (сюжетная веха; прежние 64 750 XP)",
+        "prepared_spell_ids": [
+          "bless",
+          "cureWounds",
+          "heroism",
+          "command",
+          "compelledDuel",
+          "protectionEvil",
+          "shieldFaith",
+          "aid",
+          "lesserRestoration",
+          "zoneTruth",
+          "wardingBond",
+          "beaconHope",
+          "dispelMagic",
+          "crusaderMantle",
+          "auraVitality",
+          "divineSmite",
+          "findSteed",
+          "revivify"
+        ],
+        "new_prepared_spell_ids": [
+          "revivify"
+        ]
       },
       "goal": "вернуться к жизни и делам Хейвенгарда",
       "inventory": [
