@@ -133,6 +133,8 @@ def build(state,capabilities):
         arena['walls']=[chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])) for p in scene['walls']]
         arena['rubble']=[chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])) for p in scene['rubble']]
         arena['cover']={chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])):v for p,v in scene['cover'].items()}
+        if scene.get('elevation'):
+            arena['elevation']={chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])):v for p,v in scene['elevation'].items()}
         for uid,p in scene['positions'].items():
             if uid in arena['heroes']:arena['heroes'][uid]['cell']=chr(65+p['x'])+str(1+p['y'])
         taken={chr(65+p['x'])+str(1+p['y']) for p in scene['positions'].values()}|set(arena['walls'])
