@@ -178,6 +178,33 @@ aside {
   background: #8d75555e;
   background-size: cover;
 }
+.tile.elevated {
+  background-color: #676f5655;
+  box-shadow: inset 0 0 0 2px #b5c18a6b, inset 0 -9px 0 #17251f50;
+}
+.exhaustion-indicator {
+  display: inline-block;
+  border: 1px solid #d1a873;
+  border-radius: 3px;
+  padding: 0 2px;
+  color: #ffe6b0;
+  background: #743a31f2;
+  font-weight: 700;
+  font-size: 10px;
+}
+.height-label {
+  position: absolute;
+  z-index: 3;
+  right: 2px;
+  top: 1px;
+  padding: 0 3px;
+  border-radius: 3px;
+  color: #fff1c7;
+  background: #28392edb;
+  font-size: 9px;
+  line-height: 1.3;
+  pointer-events: none;
+}
 .tile.dark {
   background: #080a27d9 !important;
 }
@@ -1352,11 +1379,12 @@ class CombatContentPack {
           "conditionImmunities",
           "tactics",
           "tokenKey",
-          "size", "casting", "equipment", "reference", "summoner", "summonLevel", "summonDC", "creatureType", "powerAvailable", "initialHP",
+          "size", "casting", "equipment", "exhaustion", "reference", "summoner", "summonLevel", "summonDC", "creatureType", "powerAvailable", "initialHP",
         ],
         key,
       );
       C.require(p.initialHP===undefined||(Number.isInteger(p.initialHP)&&p.initialHP>=0&&p.initialHP<=p.hp),"Неверные текущие ПЗ профиля");
+      C.require(p.exhaustion===undefined||(Number.isInteger(p.exhaustion)&&p.exhaustion>=0&&p.exhaustion<=5),"Неверное истощение профиля");
       p.features ??= {};
       C.require(
         p.size === undefined ||
@@ -6570,6 +6598,7 @@ class CombatContinuity {
             "objects",
             "zones",
             "cauldron_vials",
+            "exhaustion",
             "life",
             "scene",
           ].includes(k),
@@ -6581,11 +6610,15 @@ class CombatContinuity {
         c[key] === undefined || Array.isArray(c[key]),
         "Повреждён список продолжения: " + key,
       );
-    for (const key of ["temporary_hp", "temp_sources", "statuses", "life"])
+    for (const key of ["temporary_hp", "temp_sources", "statuses", "life", "exhaustion"])
       this.require(
         c[key] === undefined || this.object(c[key]),
         "Повреждена карта продолжения: " + key,
       );
+    for (const [id, level] of Object.entries(c.exhaustion || {}))
+      this.require(party.has(id) && this.integer(level, 0, 6) &&
+        (level < 6 || c.life?.[id]?.dead === true),
+        "Шестой уровень истощения требует подтверждённой смерти");
     const actors = new Set(party),
       summonIds = new Set();
     for (const u of c.units || []) {
@@ -6712,6 +6745,11 @@ class CombatContinuity {
                     .every((n, i) => Number(n) < (i ? s.height : s.width)),
               ),
           ) &&
+          (s.elevation === undefined || (this.object(s.elevation) &&
+            Object.entries(s.elevation).every(([k,v]) =>
+              /^\d+,\d+$/.test(k) &&
+              k.split(",").every((n,i) => Number(n) < (i ? s.height : s.width)) &&
+              this.integer(v,0,60) && v%5===0))) &&
           this.object(s.cover) &&
           Object.entries(s.cover).every(
             ([k, v]) =>
@@ -7088,6 +7126,12 @@ class CombatRulesEngine {
       s.terrain.height > 40
     )
       throw Error("Неверный размер поля");
+    if (s.terrain.elevation !== undefined &&
+        (!s.terrain.elevation || typeof s.terrain.elevation !== "object" || Array.isArray(s.terrain.elevation) ||
+         !Object.entries(s.terrain.elevation).every(([key,feet]) =>
+           /^\d+,\d+$/.test(key) && key.split(",").every((n,i) => Number(n) < (i ? s.terrain.height : s.terrain.width)) &&
+           Number.isInteger(feet) && feet>=0 && feet<=60 && feet%5===0)))
+      throw Error("Повреждена карта высот");
     s.events.forEach(event => RulesJournal.validateEvent(event));
     const cells = new Map(),
       movingActor =
@@ -7102,6 +7146,9 @@ class CombatRulesEngine {
             u.diedAtSeconds < 0 || u.diedAtSeconds > s.elapsed))
         throw Error("Неверное время смерти");
       RulesContinuity.validateLife(RulesContinuity.life(u), u.hp);
+      if (u.exhaustion !== undefined && (!Number.isInteger(u.exhaustion) || u.exhaustion < 0 || u.exhaustion > 6 ||
+          (u.exhaustion === 6 && (!u.dead || u.hp !== 0))))
+        throw Error("Шестой уровень истощения означает смерть персонажа");
       if (u.blockedCells !== undefined && (!Array.isArray(u.blockedCells) ||
           !u.blockedCells.every(p => p && Number.isInteger(p.x) && Number.isInteger(p.y) &&
             p.x >= 0 && p.y >= 0 && p.x < s.terrain.width && p.y < s.terrain.height &&
@@ -7435,7 +7482,10 @@ class CombatRulesEngine {
     return u;
   }
   distance(a, b) {
-    return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) * 5;
+    const horizontal = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) * 5;
+    const vertical = Math.abs((this.s.terrain.elevation?.[a.x + "," + a.y] || 0) -
+      (this.s.terrain.elevation?.[b.x + "," + b.y] || 0));
+    return Math.max(horizontal, vertical);
   }
   has(id, kind) {
     return (
@@ -8245,6 +8295,10 @@ class CombatRulesEngine {
     }
     if (c.kind === "healPotion") {
       const item = c.item || "healing";
+      const recipient = c.target || id;
+      const patient = this.unit(recipient);
+      this.require(this.distance(u, patient) <= 5 && !patient.dead,
+        "Для передачи зелья нужна живая цель в пределах 5 футов");
       this.require(
         u.bonus > 0 &&
           u.itemTypes?.[item] === "healing" &&
@@ -8262,7 +8316,7 @@ class CombatRulesEngine {
         next: {
           kind: "healingResult",
           actor: id,
-          target: id,
+          target: recipient,
           maxHealing:
             healing.count * healing.sides + healing.bonus,
         },
@@ -8355,13 +8409,21 @@ class CombatRulesEngine {
     );
     return cost;
   }
+  elevationAt(point) {
+    return this.s.terrain.elevation?.[point.x + "," + point.y] || 0;
+  }
   movementStep(id, from, to, {stop = false, knowledge = "observed", forced = false} = {}) {
     const fail = reason => ({allowed: false, canStop: false, cost: 0, reason});
-    if (!to || !this.inside(to) || this.wall(to) || this.distance(from, to) !== 5)
+    const neighboring = to && Math.max(Math.abs(from.x - to.x), Math.abs(from.y - to.y)) === 1;
+    if (!to || !this.inside(to) || this.wall(to) || !neighboring)
       return fail("Маршрут перекрыт");
     if (from.x !== to.x && from.y !== to.y &&
         (this.wall({x: from.x, y: to.y}) || this.wall({x: to.x, y: from.y})))
       return fail("Закрытый угол");
+    const rise = this.elevationAt(to) - this.elevationAt(from);
+    // A sheer drop or climb above one grid tier requires a GM-authored route.
+    // Never silently teleport between elevations or infer aerial movement.
+    if (Math.abs(rise) > 5) return fail("Слишком высокий уступ: нужен отдельный маршрут или решение мастера");
     if (!forced && !RulesMagic.canApproach(this, id, from, to, {observed: knowledge === "observed"}))
       return fail("Нельзя приближаться к источнику страха");
     const occupant = this.occupied(to.x, to.y, id);
@@ -8374,7 +8436,8 @@ class CombatRulesEngine {
       p.x === to.x && p.y === to.y && p.turn === this.s.turnSerial &&
       p.context === this.movementKnowledge(id)))
       return fail("Маршрут перекрыт");
-    return {allowed: true, canStop: !known, cost: this.stepCost(id, to), reason: ""};
+    return {allowed: true, canStop: !known,
+      cost: this.stepCost(id, to) + (rise > 0 && !this.unit(id).features.climbSpeed ? 5 : 0), reason: ""};
   }
   movementKnowledge(id) {
     const u = this.unit(id);
@@ -8726,13 +8789,12 @@ class CombatRulesEngine {
       "petrified",
     ].some((k) => this.has(id, k))
       ? 0
-      : RulesMagic.speed(
-          this,
-          id,
-          Math.max(
-            0,
-            u.speed - (this.has(id, "frost") || this.has(id, "slow") ? 10 : 0),
-          ),
+      : Math.max(
+          0,
+          RulesMagic.speed(
+            this, id,
+            Math.max(0, u.speed - (this.has(id, "frost") || this.has(id, "slow") ? 10 : 0)),
+          ) - 5 * (u.exhaustion || 0),
         );
   }
   adjustMovementBudget(id, delta) {
@@ -9695,7 +9757,7 @@ class CombatRulesEngine {
         }
       }
       const from = { x: u.x, y: u.y },
-        cost = this.stepCost(t.actor, p);
+        cost = step.cost;
       if (t.freeBudget !== undefined) t.freeBudget -= cost;
       else u.move -= cost;
       if (!t.forced && this.actorId === t.actor)
@@ -9870,13 +9932,17 @@ class CombatRulesEngine {
           : Math.min(...t.rolls)
         : t.rolls[0];
     const kept = t.sides === 20 ? Math.max(rawKept, t.minimum || 0) : rawKept;
+    // The 2024 exhaustion penalty affects every D20 Test, never damage dice.
+    const exhaustionPenalty = t.sides === 20 ? -2 * (this.unit(t.actor).exhaustion || 0) : 0;
+    const rollBonus = (t.bonus || 0) + exhaustionPenalty;
     const total =
         (t.sides === 20
           ? kept
           : t.rolls.reduce((a, b) => a + Math.max(b, t.minimumDie || 0), 0)) +
-        (t.bonus || 0),
+        rollBonus,
       success = !t.autoFail && total >= t.dc;
     const modifiers = t.modifiers ? structuredClone(t.modifiers) : undefined;
+    const bonusParts = [...(t.bonusParts || []), ...(exhaustionPenalty ? [{rule:"condition.exhaustion", label:"Истощение", amount:exhaustionPenalty}] : [])];
     if (modifiers && t.luckyUsed) modifiers.advantage.push("Удача");
     this.emit(
       "roll",
@@ -9887,21 +9953,21 @@ class CombatRulesEngine {
         " [" +
         t.rolls.join(", ") +
         "] " +
-        (t.bonus >= 0 ? "+" : "") +
-        (t.bonus || 0) +
+        (rollBonus >= 0 ? "+" : "") +
+        rollBonus +
         " = " +
         total +
         ".",
       {
         rolls: t.rolls,
         sides: t.sides,
-        bonus: t.bonus || 0,
+        bonus: rollBonus,
         total,
         mode: t.mode || 0,
         kept, rawKept, minimum: t.minimum || 0,
         ...(Number.isFinite(t.dc) ? {dc: t.dc} : {}),
         modifiers,
-        bonusParts: t.bonusParts,
+        bonusParts,
       },
     );
     this.enqueue({
@@ -9910,7 +9976,7 @@ class CombatRulesEngine {
         rolls: t.rolls,
         kept,
         total,
-        bonusParts: t.bonusParts,
+        bonusParts,
         dc: t.dc,
         success,
         lucky: Boolean(t.luckyUsed),
@@ -10520,12 +10586,14 @@ class CombatTacticalAI {
         return u.action + (u.surgeAction || 0) > 0
           ? { kind: "search", actor: id }
           : done;
-      let spent = 0;
+      let spent = 0, previous = u;
       const path = [];
       for (const p of goal.path) {
-        spent += e.stepCost(id, p);
-        if (spent > u.move) break;
+        const step = e.movementStep(id, previous, p, {stop: false});
+        if (!step.allowed || spent + step.cost > u.move) break;
+        spent += step.cost;
         path.push(p);
+        previous = p;
       }
       while (path.length && !endpoints.has(path.at(-1).x + "," + path.at(-1).y))
         path.pop();
@@ -10589,6 +10657,22 @@ class CombatTacticalAI {
           reason: "освобождает общую клетку",
         };
     }
+    // Support behavior uses only allies in reach and actual carried supplies.
+    // Revive an unconscious ally before spending the action to Stabilize;
+    // only self-administer preventively when seriously injured.
+    if (u.bonus > 0) {
+      const healing = Object.keys(u.itemTypes || {}).find(
+        item => u.itemTypes[item] === "healing" && (u.items[item] || 0) > 0,
+      );
+      if (healing) {
+        const ally = s.order.find(k => k !== id && e.unit(k).team === u.team &&
+          !e.unit(k).dead && e.unit(k).hp === 0 &&
+          e.distance(u, e.unit(k)) <= 5);
+        const target = ally || (u.hp > 0 && u.hp <= Math.floor(u.max * 0.3) ? id : null);
+        if (target) return {kind:"healPotion",actor:id,item:healing,target,
+          reason:ally ? "помогает потерявшему сознание союзнику" : "использует лечебное зелье"};
+      }
+    }
     const dying = s.order.find(
       (k) =>
         e.unit(k).team === u.team &&
@@ -10597,6 +10681,12 @@ class CombatTacticalAI {
         !e.unit(k).stable &&
         e.canSee(id, k),
     );
+    if (dying && u.bonus > 0 && e.distance(u, e.unit(dying)) <= 5) {
+      const potion = Object.keys(u.itemTypes || {}).find(item =>
+        u.itemTypes[item] === "healing" && (u.items?.[item] || 0) > 0);
+      if (potion) return {kind:"healPotion",actor:id,target:dying,item:potion,
+        reason:"помогает раненому союзнику лечебным зельем"};
+    }
     if (dying && u.action + (u.surgeAction || 0) > 0) {
       if (e.distance(u, e.unit(dying)) <= 5)
         return { kind: "stabilize", actor: id, target: dying };
@@ -10908,6 +10998,7 @@ class CombatCampaignAdapter {
       max: r.hp?.max ?? p.hp ?? 11,
       ac: p.ac ?? 12,
       speed: p.speed ?? 30,
+      exhaustion: p.exhaustion ?? 0,
       size: p.size ?? 2,
       summoner: p.summoner || null,
       summonLevel: p.summonLevel || null,
@@ -11001,6 +11092,12 @@ class CombatCampaignAdapter {
       throw Error("Несовместимая версия правил снимка");
     const width = scene.width || 11,
       height = scene.height || 8,
+      elevation = Object.fromEntries(Object.entries(scene.elevation || {}).map(([cell, feet]) => {
+        const p = this.cell(cell);
+        if (p.x >= width || p.y >= height || !Number.isInteger(feet) || feet < 0 || feet > 60 || feet % 5)
+          throw Error("Некорректная высота клетки: " + cell);
+        return [p.x + "," + p.y, feet];
+      })),
       units = {},
       initiative = {},
       baseline = {},
@@ -11035,6 +11132,7 @@ class CombatCampaignAdapter {
         JSON.stringify([...previous.rubble].sort()) ===
           JSON.stringify(cells(scene.rubble)) &&
         sorted(previous.cover) === sorted(cover) &&
+        sorted(previous.elevation || {}) === sorted(elevation) &&
         (scene.scene_id || scene.id || scene.battle_id || scene.name) ===
           previous.id;
       if (!same)
@@ -11056,7 +11154,7 @@ class CombatCampaignAdapter {
         Math.floor((randomValue / 4294967296) * 20) +
         1 +
         u.stats.DEX +
-        (u.features.alert ? u.proficiency : 0)
+        (u.features.alert ? u.proficiency : 0) - 2 * (u.exhaustion || 0)
       );
     };
     for (const [id, r] of Object.entries(scene.heroes)) {
@@ -11091,6 +11189,7 @@ class CombatCampaignAdapter {
           .filter((v) => v.combat_available && v.consumable_type)
           .map((v) => [v.id, v.consumable_type]),
       );
+      units[id].exhaustion = continuity.exhaustion?.[id] ?? units[id].exhaustion;
       units[id].temp = continuity.temporary_hp?.[id] || 0;
       units[id].tempSource = continuity.temp_sources?.[id] || null;
       units[id].statuses = structuredClone(continuity.statuses?.[id] || []);
@@ -11215,6 +11314,7 @@ class CombatCampaignAdapter {
             return [p.x + "," + p.y, v];
           }),
         ),
+        ...(Object.keys(elevation).length ? {elevation} : {}),
       },
       units,
       order,
@@ -11354,6 +11454,9 @@ class CombatCampaignAdapter {
         ]),
       ),
       continuity: {
+        ...(retained.size && [...retained].some(id => (s.units[id].exhaustion || 0) > 0)
+          ? {exhaustion: Object.fromEntries([...retained].map(id => [id, s.units[id].exhaustion || 0]))}
+          : {}),
         cauldron_vials: (s.cauldronVials || []).filter(v =>
           retained.has(v.owner) && retained.has(v.holder)).map(v=>structuredClone(v)),
         scene: {
@@ -13201,7 +13304,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
         ...base,
         kind: op,
         target: b.dataset.target,
-        item: b.dataset.item,
+        item: b.dataset.item || b.dataset.potionItem,
       };
     if (op === "layOnHands" || op === "curePoison")
       return {
@@ -13373,6 +13476,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
           (o) => o.x === x && o.y === y,
         ),
         rough = s.terrain.rubble.includes(x + "," + y),
+        heightFeet = engine.elevationAt(p),
         dark = s.zones.some(
           (z) => z.kind === "darkness" && engine.zoneAt(p, z),
         );
@@ -13380,6 +13484,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
         "tile" +
         (wall ? " wall" : "") +
         (rough ? " rubble" : "") +
+        (heightFeet ? " elevated" : "") +
         (dark ? " dark" : "") +
         (s.zones.some(
           (z) =>
@@ -13402,6 +13507,8 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
       b.title = visible
         ? a.name + " · " + a.hp + "/" + a.max + " ПЗ"
         : engine.cell(p);
+      if (heightFeet) b.title += " · Высота местности +" + heightFeet + " фт";
+      if (visible && a.exhaustion) b.title += " · Истощение " + a.exhaustion + " (−" + (2*a.exhaustion) + " к испытаниям d20)";
       if (objects.length)
         b.title +=
           " · " +
@@ -13419,6 +13526,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
         '<span class="coord">' +
         engine.cell(p) +
         "</span>" +
+        (heightFeet ? '<span class="height-label">+' + heightFeet + ' фт</span>' : '') +
         (visible
           ? '<span class="token ' +
             (a.team === "enemies" ? "enemy " : "") +
@@ -13428,6 +13536,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
             asset(key) +
             "')\"><b>" +
             esc(a.name.split(" ")[0]) +
+            (a.exhaustion ? " <span class=\"exhaustion-indicator\" title=\"Истощение\">И" + a.exhaustion + "</span>" : "") +
             " " +
             a.hp +
             '</b><span class="hpbar"><i style="width:' +
@@ -13599,29 +13708,18 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
     const aid = [];
     for (const item of Object.keys(u.itemTypes || {})) {
       if (u.itemTypes[item] !== "healing") continue;
-      const availability = engine.availableAction({
-        kind: "healPotion",
-        actor: id,
-        item,
-      });
-      const label =
-        runtime.characters[id]?.inventory?.find((i) => i.id === item)?.name ||
-        "Лечебное зелье";
-      aid.push(
-        button(
-          "healPotion",
-          esc(label) +
-            " · " +
-            (u.items[item] || 0) +
-            "<small>Бонусное действие</small>",
+      const label = runtime.characters[id]?.inventory?.find((i) => i.id === item)?.name || "Лечебное зелье";
+      for (const recipient of s.order.filter(k => {
+        const patient = engine.unit(k);
+        return patient.team === u.team && !patient.dead && engine.distance(u, patient) <= 5;
+      })) {
+        const availability = engine.availableAction({kind: "healPotion", actor: id, item, target: recipient});
+        aid.push(button("healPotion", esc(label) + " → " + esc(engine.unit(recipient).name) +
+          " · " + (u.items[item] || 0) + "<small>Бонусное действие</small>",
           !play || !availability.enabled,
-          'data-item="' +
-            esc(item) +
-            '" title="' +
-            esc(availability.reason) +
-            '"',
-        ),
-      );
+          (recipient === id ? 'data-item="' : 'data-potion-item="') + esc(item) + '" data-target="' + esc(recipient) +
+          '" title="' + esc(availability.reason) + '"'));
+      }
     }
     for (const targetId of s.order.filter(
       (k) =>

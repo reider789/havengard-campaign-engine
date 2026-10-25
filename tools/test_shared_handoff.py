@@ -11,6 +11,22 @@ engine=Path(sys.argv[1]).resolve()
 with tempfile.TemporaryDirectory() as d:
  d=Path(d);original=(ROOT/'state/_campaign-state.json').read_bytes();state=json.loads(original)
  generate(engine,ROOT,d,check_lock=False)
+ # New NPC species is authored as data, not a Python branch in the adapter.
+ pack=json.loads((d/'prototypes/shared-combat/party-pack.json').read_text())
+ scenario=copy.deepcopy(pack['encounters']['party-training'])
+ scenario.update(kind='story',battle_id='synthetic-profile-compilation',
+     source_revision=pack['revision'],source_state_sha256=pack['source_state_sha256'],
+     elevation={'F4':5})
+ scenario['enemies']=[dict(id='custom_foe',profile='custom_foe',cell='J3')]
+ authored=d/'story-profile.json';authored.write_text(json.dumps(scenario))
+ additions=d/'additional-profiles.json'
+ additions.write_text(json.dumps({'profiles':{'custom_foe':{
+    **copy.deepcopy(pack['profiles']['raider']), 'name':'Новый противник (тест)'}}}))
+ output=d/'story-profile.html'
+ subprocess.run([sys.executable,str(ROOT/'tools/build_shared_story.py'),
+     '--engine-root',str(engine),'--scenario',str(authored),
+     '--profiles',str(additions),'--output',str(output)],check=True)
+ assert output.exists() and output.stat().st_size > 100000
  subprocess.run(['node',str(ROOT/'tools/test_shared_party.js'),str(engine),str(d/'prototypes/shared-combat/party-pack.json'),str(d/'reports')],check=True)
  for file in sorted((d/'reports').glob('result-*.json')):
   report=json.loads(file.read_text());tx=prepare(report,state,engine);new=build_result(state,tx);assert new['state_revision']==state['state_revision']+1

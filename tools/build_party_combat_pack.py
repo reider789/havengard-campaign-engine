@@ -5,13 +5,26 @@ Level-11 abilities that are not registered by the pinned shared core MUST fail
 pack validation, not silently disappear. See docs/LEVEL_11_SYNC_2026-10-25.md.
 """
 from pathlib import Path
-import argparse,hashlib,json,re
+import argparse,copy,hashlib,json,re
 BASE_RESOURCES={"hp","focus","luck","heroic","arrows","unusual_metabolism","spell_slots"}
 STATS=dict(zip(['СИЛ','ЛОВ','ТЕЛ','ИНТ','МДР','ХАР'],['STR','DEX','CON','INT','WIS','CHA']))
 def attack(id,name,bonus,count,die,flat,kind='melee',damageType='slashing',range=5,**kw):return dict(id=id,name=name,bonus=bonus,count=count,die=die,flat=flat,kind=kind,damageType=damageType,range=range,**kw)
 def build(state,capabilities):
     RESOURCES=BASE_RESOURCES|set(capabilities["counters"])
     cid=state['campaign']['id'];profiles={};characters={}
+    def component(catalog, spell, word, minimum):
+        # No inferred purchase: only a named, priced, explicitly present item
+        # in usable inventory authorizes expensive material spellcasting.
+        for iid, item in catalog.items():
+            if not isinstance(item.get('quantity'),int) or item['quantity']<1:continue
+            status=item.get('status','').lower()
+            if any(t in status for t in ('личный резерв','в переносной дыре','не при себе')):continue
+            if word not in item.get('name','').lower():continue
+            if item.get('component_for') not in (None,spell):continue
+            cost=item.get('value_gp')
+            if isinstance(cost,int) and not isinstance(cost,bool) and cost>=minimum:
+                return {'itemId':iid,'valueGp':cost}
+        return False
     spell_wizard=['mageArmor','magicMissile','thunderwave','fogCloud','scorchingRay','mistyStep','fireball','slow','counterspell','dimensionDoor','greaterInvisibility','coneCold','seeming','holdMonster','bigbyHand']
     spell_paladin=['bless','cureWounds','heroism','command','compelledDuel','protectionEvil','shieldFaith','aid','lesserRestoration','zoneTruth','wardingBond','beaconHope','dispelMagic','crusaderMantle','auraVitality','divineSmite','findSteed']
     for key in ['yar','daphne','lyutobor','rada']:
@@ -36,19 +49,19 @@ def build(state,capabilities):
         if key=='yar':
             p['saves']=dict(STR=10,DEX=2,CON=8,INT=0,WIS=2,CHA=0)
             p['skills']=dict(athletics=9,acrobatics=5,perception=5,insight=5,survival=5,intimidation=3)
-            p['features']=dict(fighterLevel=sh['level'],secondWind=True,actionSurge=True,tacticalMind=True,tacticalShift=True,indomitable=True,knowEnemy=True,extraAttack=3 if sh['level'] >= 11 else 2,greatWeaponFighting=True,greatWeaponMaster=4,savageAttacker=True,tacticalMaster=True,superiorityDie=10,maneuverDC=17,maneuvers=['precision','trip','push','goad','maneuvering','riposte','bait'],masteries=['graze','sap'],acReaction=3,heavyArmorReduction=4,heavyArmor=False)
+            p['features']=dict(fighterLevel=sh['level'],secondWind=True,actionSurge=True,tacticalMind=True,tacticalShift=True,indomitable=True,knowEnemy=True,extraAttack=3 if sh['level'] >= 11 else 2,greatWeaponFighting=True,greatWeaponMaster=4,savageAttacker=True,tacticalMaster=True,superiorityDie=10,maneuverDC=17,maneuvers=['precision','trip','push','goad','maneuvering','riposte','bait'],masteries=['graze','sap'],acReaction=3,heavyArmorReduction=4,heavyArmor=any(i.get('quantity',0)==1 and 'латы' in i.get('name','').lower() and 'экипирован' in i.get('status','').lower() for i in inv.values()))
             p['attacks']=[attack('accurateSword','Меч Меткого Удара',12,2,6,6,ability='STR',mastery='graze',heavy=True,twoHanded=True,inventoryId='yar-source-row-45'),attack('stormThrower','Грозовой метатель',8,2,8,2,'ranged','lightning',240,normalRange=90,ammoCounter='storm_thrower_ammo'),attack('forgeMaul','Молот Великой Кузни',9,2,6,5,damageType='bludgeoning',ability='STR',heavy=True,twoHanded=True,inventoryId='yar-source-row-52'),attack('flail','Цеп',9,1,8,5,damageType='bludgeoning',ability='STR',mastery='sap',inventoryId='yar-source-row-46')]
-            p['equipment'].update(rootPartner='daphne',forgeAttuned=False)
+            p['equipment'].update(rootPartner='daphne',forgeAttuned=any(i.get('quantity',0)==1 and 'Молот Великой Кузни' in i.get('name','') and 'настроен' in i.get('status','').lower() and 'не настроен' not in i.get('status','').lower() for i in inv.values()))
         elif key=='daphne':
             p['saveProficiencies']=['INT','WIS'];p['features']=dict(sculptSpells=True,potentCantrip=True,empoweredEvocation=True,shieldSpell=True,autoShield=True,alert=True)
             p['attacks']=[attack('staff','Посох',3,1,6,-1,damageType='bludgeoning',ability='STR')]
-            p['casting']=dict(ability='INT',attack=11,dc=19,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_wizard),cantrips=['fireBolt','rayFrost','mindSliver','mageHand','prestidigitation'],book=['burningHands','web','dispelMagic','fly','wallFire','polymorph','resilientSphere','wallForce',*sh.get('new_spellbook_ids',[])],components={'tashasBubblingCauldron':False},recoveryLevels=(sh['level']+1)//2)
+            p['casting']=dict(ability='INT',attack=11,dc=19,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_wizard),cantrips=['fireBolt','rayFrost','mindSliver','mageHand','prestidigitation'],book=['burningHands','web','dispelMagic','fly','wallFire','polymorph','resilientSphere','wallForce',*sh.get('new_spellbook_ids',[])],components={'tashasBubblingCauldron':component(inv,'tashasBubblingCauldron','позолоченный половник',500)},recoveryLevels=(sh['level']+1)//2)
             p['equipment'].update(stormBracers=True,vaeltirFocus=True,leafPartner='yar')
         elif key=='lyutobor':
             p['saves']=dict(STR=4,DEX=0,CON=2,INT=-1,WIS=5,CHA=6)
             p['features']=dict(extraAttack=2,radiantStrikes=sh['level'] >= 11,masteries=['sap'],auraProtection=2,auraRadius=10,auraDevotion=True,auraCourage=True,guardianSaveBonus=1,critNegation=True,protection=True,shieldEquipped=True,heavyArmor=True,heavyArmorReduction=4,layOnHands=True,sacredWeapon=True,abjureFoes=True,shieldMaster=True,divineSmite=True)
             p['attacks']=[attack('longsword','Длинный меч',8,1,8,4,ability='STR',mastery='sap',inventoryId='lyutobor-source-row-57')]
-            p['casting']=dict(ability='CHA',attack=6,dc=14,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_paladin),cantrips=[],components={'wardingBond':False,'protectionEvil':False,'revivify':False})
+            p['casting']=dict(ability='CHA',attack=6,dc=14,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_paladin),cantrips=[],components={'wardingBond':False,'protectionEvil':False,'revivify':component(inv,'revivify','алмаз',300)})
             p['equipment']['armor']=True
         else:
             p['saveProficiencies']=['DEX','INT'];p['skills']=dict(stealth=13,sleight=13,intimidation=10,perception=10,acrobatics=9,insight=6,investigation=4)
@@ -57,6 +70,22 @@ def build(state,capabilities):
             p['attacks']=[attack('leafBow','Лук Последнего Листа',11,1,6,7,'ranged','piercing',320,normalRange=80,ability='DEX',mastery='vex',sneakEligible=True,ammo='arrows',ammoInventoryId='rada-source-row-43',inventoryId='rada-source-row-42'),attack('scimitar','Скимитар',9,1,6,5,ability='DEX',light=True,mastery='nick',sneakEligible=True,inventoryId='rada-source-row-44'),attack('shortsword','Короткий меч',9,1,6,5,damageType='piercing',ability='DEX',light=True,sneakEligible=True,inventoryId='rada-source-row-45'),attack('dagger','Кинжал',9,1,4,5,damageType='piercing',ability='DEX',light=True,sneakEligible=True,inventoryId='rada-source-row-46')]
         p['tokenKey']='heroes.'+key
         profiles[key]=p;characters[key]=dict(name=c['name'],profile=key,resources=r,inventory=inventory)
+    # Additional canonical heroes no longer require another hard-coded class
+    # branch. They provide a reviewed, declarative SDK combat_profile.
+    for extra_id, extra in state['characters'].items():
+        if extra_id in ('yar','daphne','lyutobor','rada'):continue
+        if 'combat_profile' not in extra:continue
+        if not isinstance(extra['combat_profile'],dict):raise ValueError('Неверный боевой профиль: '+extra_id)
+        profiles[extra_id]=copy.deepcopy(extra['combat_profile'])
+        usable=[]
+        for iid,item in extra.get('inventory_catalog',{}).items():
+            count=item.get('quantity')
+            if not isinstance(count,int):continue
+            available=not any(t in item.get('status','').lower() for t in
+                ['личная собственность','личный резерв','в переносной дыре','не надеты'])
+            usable.append(dict(id=iid,name=item.get('name',iid),quantity=count,combat_available=available))
+        characters[extra_id]=dict(name=extra['name'],profile=extra_id,
+                                  resources=copy.deepcopy(extra['resources']),inventory=usable)
     profiles['raider']=dict(name='Налётчик',hp=42,ac=14,speed=30,scores=dict(STR=14,DEX=14,CON=12,INT=10,WIS=10,CHA=8),proficiency=2,features={},attacks=[attack('sword','Клинок',5,1,8,2)])
     pack=dict(kind='dnd-combat-pack',version=1,api=1,id=cid,revision=state['state_revision'],name='Хейвенгард · полная партия',rules_version='dnd-2024-2026-10',requires=['spellcasting','magicItems','advancedClasses'],abilities={},profiles=profiles,characters=characters,default_encounter='party-training',encounters={
       'party-training':dict(name='Хейвенгард · учебная встреча',kind='training',width=14,height=10,theme='forest',heroes={k:dict(cell=cell) for k,cell in zip(characters,['C4','B6','D5','C7'])},enemies=[dict(id='raider'+str(i+1),profile='raider',cell=cell) for i,cell in enumerate(['J3','K5','J7','L4','L8'])],walls=['G2','G3','G8','G9'],rubble=['G5','H5'],cover={'C4':5,'C7':5})},source_state_sha256=hashlib.sha256(json.dumps(state,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest(),notes=['Учебная встреча не является сыгранным событием. Все четыре героя управляются игроком. Текущий КД Яра 11: латы не надеты. Неподготовленные заклинания доступны в справочнике книги.'])
@@ -64,6 +93,8 @@ def build(state,capabilities):
     continuity={'effects':[],'temporary_hp':{},'temp_sources':{},'statuses':{},'objects':[],'zones':[],'life':{},'cauldron_vials':[]}
     for key in characters:
         saved=state['characters'][key].get('combat_continuity',{})
+        if saved.get('exhaustion',0):
+            continuity.setdefault('exhaustion',{})[key]=saved['exhaustion']
         continuity['temporary_hp'][key]=saved.get('temporary_hp',0)
         continuity['temp_sources'][key]=saved.get('temp_source')
         if saved.get('life'):continuity['life'][key]=saved['life']
@@ -102,6 +133,8 @@ def build(state,capabilities):
         arena['walls']=[chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])) for p in scene['walls']]
         arena['rubble']=[chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])) for p in scene['rubble']]
         arena['cover']={chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])):v for p,v in scene['cover'].items()}
+        if scene.get('elevation'):
+            arena['elevation']={chr(65+int(p.split(',')[0]))+str(1+int(p.split(',')[1])):v for p,v in scene['elevation'].items()}
         for uid,p in scene['positions'].items():
             if uid in arena['heroes']:arena['heroes'][uid]['cell']=chr(65+p['x'])+str(1+p['y'])
         taken={chr(65+p['x'])+str(1+p['y']) for p in scene['positions'].values()}|set(arena['walls'])
