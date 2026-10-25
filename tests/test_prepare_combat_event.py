@@ -62,13 +62,13 @@ guest_state["characters"]["guest"]=guest
 guest_pack=build(guest_state,sample_cap)
 assert "guest" in guest_pack["characters"] and "guest" in guest_pack["profiles"]
 
-try:
-    changes_to_transaction(state,{"event":request["event"],
-      "characters":{"yar":{"exhaustion":6}}})
-except ValueError:
-    pass
-else:
-    raise AssertionError("6 levels must require explicit death adjudication")
+fatal=changes_to_transaction(state,{"event":{"id":"STORY-TEST-FATAL-EXHAUSTION",
+       "summary":"Учебная смерть от шестого истощения","source":"Подтверждённое сюжетное решение"},
+    "characters":{"yar":{"exhaustion":6}}})
+fallen=build_result(state,fatal)["characters"]["yar"]
+assert fallen["resources"]["hp"]["current"]==0
+assert fallen["combat_continuity"]["exhaustion"]==6
+assert fallen["combat_continuity"]["life"]["dead"] is True
 try:
     changes_to_transaction(state,{"event":request["event"],
       "characters":{"daphne":{"item_quantity":{"invented-item":1}}}})
