@@ -26,6 +26,21 @@ with tempfile.TemporaryDirectory() as d:
  result=json.loads(report_file.read_text());updated=build_result(state,prepare(result,state,engine));assert build_result(updated,prepare(result,updated,engine))==updated
  cap=json.loads(subprocess.check_output(['node',str(engine/'sdk/cli.js'),'capabilities'],text=True));next_pack=d/'next-pack.json';next_pack.write_text(json.dumps(build(updated,cap),ensure_ascii=False))
  subprocess.run(['node',str(ROOT/'tools/test_shared_continuity.js'),str(engine),str(next_pack),'check'],check=True)
+ # Source-tagged cauldron vials must survive a true transactional handoff,
+ # remain with their holder, and never enter ordinary purchased inventory.
+ vial=dict(id='vial-9999',sourceSpellId='effect-9999',owner='daphne',
+           holder='yar',potionKind='healing')
+ potion_result=copy.deepcopy(result)
+ potion_result['continuity']['cauldron_vials']=[vial]
+ potion_tx=prepare(potion_result,state,engine)
+ potion_state=build_result(state,potion_tx)
+ assert potion_state['characters']['daphne']['combat_continuity']['cauldron_vials']==[vial]
+ assert potion_state['characters']['yar']['inventory_catalog']==state['characters']['yar']['inventory_catalog']
+ potion_pack=build(potion_state,cap)
+ assert potion_pack['continuity']['cauldron_vials']==[vial]
+ assert build_result(potion_state,prepare(potion_result,potion_state,engine))==potion_state
+ next_pack.write_text(json.dumps(potion_pack,ensure_ascii=False))
+ subprocess.run(['node',str(engine/'sdk/cli.js'),'validate',str(next_pack)],check=True,capture_output=True)
  # Life state must survive SDK export -> canonical transaction -> rebuilt pack -> turn.
  for life in [dict(dead=False,stable=True,deathSuccesses=0,deathFailures=0),
               dict(dead=True,stable=False,deathSuccesses=0,deathFailures=3),
