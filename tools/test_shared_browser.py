@@ -8,7 +8,8 @@ with sync_playwright() as p:
  page.goto((ROOT/'prototypes/chat-combat/desktop-battle.html').as_uri());page.wait_for_function(f'Boolean({API})');page.evaluate(f'{API}.stop()')
  # A controlled turn, with real UI target selection and no fabricated resource pools.
  page.evaluate(f'''{API}.set(s=>{{s.pending=null;s.queue=[];s.index=s.order.indexOf('daphne');s.turnSerial++;Object.assign(s.units.daphne,{{action:1,bonus:1,move:30}});s.random.tape=Array(30).fill(2);}})''')
- assert page.locator('#magic-spell').locator('option').count()==22
+ assert page.locator('#magic-spell').locator('option').count()==23
+ assert page.locator('#magic-spell option[value="chainLightning"]').count()==1
  page.locator('#magic-spell').select_option('fireball');assert page.locator('#magic-level').input_value()=='3'
  page.locator('[data-op="magicPoint"]').click();page.locator('[data-tile="9,4"]').click();assert page.locator('#magic-point').input_value()=='J5'
  page.locator('#magic-sculpt').select_option(['yar','lyutobor','rada']);before=page.evaluate(f'{API}.snapshot().units.daphne.slots[3].current');assert page.locator('[data-op="cast"]').is_enabled();page.locator('[data-op="cast"]').click();assert page.evaluate(f'{API}.snapshot().units.daphne.slots[3].current')==before-1
