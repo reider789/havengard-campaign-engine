@@ -146,6 +146,10 @@
       "origin": "legacy_history",
       "payload_sha256": null,
       "revision": 7
+    },
+    "HAVENGARD-LEVEL11-20261025": {
+      "revision": 32,
+      "payload_sha256": "5041dfcb1ffe9bbd76f937b52de4842b1226e9450006ae61ec72d5993a84cbcc"
     }
   },
   "beliefs": {
