@@ -61,12 +61,18 @@ def build(state,capabilities):
     pack=dict(kind='dnd-combat-pack',version=1,api=1,id=cid,revision=state['state_revision'],name='Хейвенгард · полная партия',rules_version='dnd-2024-2026-10',requires=['spellcasting','magicItems','advancedClasses'],abilities={},profiles=profiles,characters=characters,default_encounter='party-training',encounters={
       'party-training':dict(name='Хейвенгард · учебная встреча',kind='training',width=14,height=10,theme='forest',heroes={k:dict(cell=cell) for k,cell in zip(characters,['C4','B6','D5','C7'])},enemies=[dict(id='raider'+str(i+1),profile='raider',cell=cell) for i,cell in enumerate(['J3','K5','J7','L4','L8'])],walls=['G2','G3','G8','G9'],rubble=['G5','H5'],cover={'C4':5,'C7':5})},source_state_sha256=hashlib.sha256(json.dumps(state,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest(),notes=['Учебная встреча не является сыгранным событием. Все четыре героя управляются игроком. Текущий КД Яра 11: латы не надеты. Неподготовленные заклинания доступны в справочнике книги.'])
     clock=state.get('world',{}).get('timekeeping',{}).get('elapsed_seconds_from_anchor',0)
-    continuity={'effects':[],'temporary_hp':{},'temp_sources':{},'statuses':{},'objects':[],'zones':[],'life':{}}
+    continuity={'effects':[],'temporary_hp':{},'temp_sources':{},'statuses':{},'objects':[],'zones':[],'life':{},'cauldron_vials':[]}
     for key in characters:
         saved=state['characters'][key].get('combat_continuity',{})
         continuity['temporary_hp'][key]=saved.get('temporary_hp',0)
         continuity['temp_sources'][key]=saved.get('temp_source')
         if saved.get('life'):continuity['life'][key]=saved['life']
+        # These phials are distinct spell-created inventory, not ordinary loot.
+        # Preserve source, owner and current holder, without merging quantities.
+        for vial in saved.get('cauldron_vials',[]):
+            if vial.get('owner')!=key or vial.get('holder') not in characters:
+                raise ValueError('Некорректный владелец или держатель зелья котла')
+            continuity['cauldron_vials'].append(vial)
         continuity['statuses'][key]=[{**z,**({'until':z['expires_at']-clock} if 'expires_at' in z else {})} for z in saved.get('statuses',[]) if 'expires_at' not in z or z['expires_at']>clock]
         for x in saved.get('effects',[]):
             remaining=x['expires_at']-clock
