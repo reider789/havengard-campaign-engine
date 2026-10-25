@@ -1,0 +1,124 @@
+name: Story Prep Shared Combat Release Integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/story-prep-release-integration.yml'
+      - 'tools/build_party_combat_pack.py'
+      - 'tools/prepare_combat_event.py'
+      - 'tools/combat_materials.py'
+      - 'tools/build_shared_story.py'
+      - 'state/_campaign-state.json'
+      - 'prototypes/shared-combat/**'
+      - 'tests/test_prepare_combat_event.py'
+      - 'tools/test_shared_handoff.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: haven-storyprep-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  integration:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read exact reviewed shared kernel
+        run: echo 'Shared engine preview commit e9559194d684af98ac6d9a05f24196205488367e'
+      - uses: actions/checkout@v4
+        with:
+          repository: reider789/rin_dnd
+          ref: e9559194d684af98ac6d9a05f24196205488367e
+          path: .shared-combat
+          persist-credentials: false
+      - name: Verify narrative preparation and published kernel and prepare deterministic pin
+        run: |
+          python - <<'PY'
+          import json,hashlib,subprocess
+          from pathlib import Path
+          from tools.build_party_combat_pack import build
+          base=Path('.');engine=Path('.shared-combat')
+          state=json.loads((base/'state/_campaign-state.json').read_text())
+          assert state['state_revision']==32, 'Unexpected campaign revision; manual review required'
+          cap=json.loads(subprocess.check_output(['node',str(engine/'sdk/cli.js'),'capabilities'],text=True))
+          pack=build(state,cap)
+          expected={'yar':125,'daphne':68,'lyutobor':114,'rada':69}
+          for cid,hp in expected.items():
+              assert state['characters'][cid]['character_sheet']['level']==11
+              assert pack['characters'][cid]['resources']['hp']['max']==hp
+          assert pack['profiles']['yar']['features']['extraAttack']==3
+          assert pack['profiles']['lyutobor']['features']['radiantStrikes']
+          assert pack['profiles']['rada']['features']['improvedCunningStrike']
+          assert pack['profiles']['rada']['features']['sneakDice']==6
+          assert 'chainLightning' in pack['profiles']['daphne']['casting']['prepared']
+          assert 'revivify' in pack['profiles']['lyutobor']['casting']['prepared']
+          lockfile=base/'prototypes/shared-combat/engine-lock.json'
+          lock=json.loads(lockfile.read_text())
+          assert lock['repository']=='reider789/rin_dnd'
+          lock['commit']='e9559194d684af98ac6d9a05f24196205488367e'
+          lock['engine_version']=cap['engine']
+          lock['files']={name:hashlib.sha256((engine/name).read_bytes()).hexdigest()
+                         for name in lock['files']}
+          lockfile.write_text(json.dumps(lock,ensure_ascii=False,indent=2)+'\n')
+          path=base/'prototypes/shared-combat/reviewed-profiles.json'
+          review=json.loads(path.read_text())
+          review['reviewed_engine']=cap['engine']
+          for cid in expected:
+              sheet=state['characters'][cid]['character_sheet']['combat_reference']
+              review['characters'][cid]['sheet_mechanics_sha256']=hashlib.sha256(
+                  json.dumps(sheet,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+              review['characters'][cid]['required_prepared']=pack['profiles'][cid].get('casting',{}).get('prepared',[])
+          review['characters']['yar']['required_features'].update(fighterLevel=11,extraAttack=3)
+          review['characters']['rada']['required_features'].update(sneakDice=6,improvedCunningStrike=True)
+          review['characters']['lyutobor']['required_features']['radiantStrikes']=True
+          path.write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n')
+          PY
+      - name: Test story preparation on canonical copies
+        run: python tests/test_prepare_combat_event.py
+      - name: Compile full 11-level party and audit four profiles
+        run: python tools/build_shared_combat.py --engine-root .shared-combat
+      - name: Check shared combat code, lock and reviewed party
+        run: python tools/check_shared_combat.py --engine-root .shared-combat --require-ready
+      - name: Test combat handoff and canonical import on copies
+        run: python tools/test_shared_handoff.py .shared-combat
+      - name: Install Playwright and Chromium
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install chromium
+      - name: Test regenerated desktop battle in real browser
+        run: python tools/test_shared_browser.py
+      - name: Commit only verified integration artifacts to review branch
+        if: github.event_name == 'pull_request'
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # A new commit may have arrived while Playwright was running.
+          # Do not overwrite it with artifacts from a superseded check.
+          git fetch origin "$BRANCH"
+          if [ "$(git rev-parse FETCH_HEAD)" != "$(git rev-parse HEAD)" ]; then
+            echo "Branch head advanced; a fresh integration run owns these artifacts."
+            git restore -- prototypes/shared-combat/engine-lock.json prototypes/shared-combat/reviewed-profiles.json prototypes/shared-combat/party-pack.json prototypes/shared-combat/migration-audit.json prototypes/chat-combat/desktop-battle.html prototypes/chat-combat/current-chat-battle.html prototypes/chat-combat/entrypoint.json prototypes/chat-combat/current-manifest.json
+            exit 0
+          fi
+          git add -- prototypes/shared-combat/engine-lock.json prototypes/shared-combat/reviewed-profiles.json prototypes/shared-combat/party-pack.json prototypes/shared-combat/migration-audit.json prototypes/chat-combat/desktop-battle.html prototypes/chat-combat/current-chat-battle.html prototypes/chat-combat/entrypoint.json prototypes/chat-combat/current-manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'build: validated narrative-preparation desktop release candidate'
+            if ! git push origin "HEAD:refs/heads/$BRANCH"; then
+              echo "Branch advanced during upload; a new run must publish the artifacts."
+              git reset --hard HEAD~1
+            fi
+          fi
+      - name: Assert no uncommitted preview drift
+        run: git diff --exit-code -- prototypes/shared-combat/engine-lock.json prototypes/shared-combat/reviewed-profiles.json prototypes/shared-combat/party-pack.json prototypes/shared-combat/migration-audit.json prototypes/chat-combat/desktop-battle.html prototypes/chat-combat/current-chat-battle.html prototypes/chat-combat/entrypoint.json prototypes/chat-combat/current-manifest.json
