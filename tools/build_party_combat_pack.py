@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Canonical party adapter. Numbers come from the current sheet and resource snapshot."""
+"""Canonical party adapter. Levels and prepared spell IDs come from authoritative state.
+
+Level-11 abilities that are not registered by the pinned shared core MUST fail
+pack validation, not silently disappear. See docs/LEVEL_11_SYNC_2026-10-25.md.
+"""
 from pathlib import Path
 import argparse,hashlib,json,re
 BASE_RESOURCES={"hp","focus","luck","heroic","arrows","unusual_metabolism","spell_slots"}
@@ -32,24 +36,24 @@ def build(state,capabilities):
         if key=='yar':
             p['saves']=dict(STR=10,DEX=2,CON=8,INT=0,WIS=2,CHA=0)
             p['skills']=dict(athletics=9,acrobatics=5,perception=5,insight=5,survival=5,intimidation=3)
-            p['features']=dict(fighterLevel=10,secondWind=True,actionSurge=True,tacticalMind=True,tacticalShift=True,indomitable=True,knowEnemy=True,extraAttack=2,greatWeaponFighting=True,greatWeaponMaster=4,savageAttacker=True,tacticalMaster=True,superiorityDie=10,maneuverDC=17,maneuvers=['precision','trip','push','goad','maneuvering','riposte','bait'],masteries=['graze','sap'],acReaction=3,heavyArmorReduction=4,heavyArmor=False)
+            p['features']=dict(fighterLevel=sh['level'],secondWind=True,actionSurge=True,tacticalMind=True,tacticalShift=True,indomitable=True,knowEnemy=True,extraAttack=3 if sh['level'] >= 11 else 2,greatWeaponFighting=True,greatWeaponMaster=4,savageAttacker=True,tacticalMaster=True,superiorityDie=10,maneuverDC=17,maneuvers=['precision','trip','push','goad','maneuvering','riposte','bait'],masteries=['graze','sap'],acReaction=3,heavyArmorReduction=4,heavyArmor=False)
             p['attacks']=[attack('accurateSword','Меч Меткого Удара',12,2,6,6,ability='STR',mastery='graze',heavy=True,twoHanded=True,inventoryId='yar-source-row-45'),attack('stormThrower','Грозовой метатель',8,2,8,2,'ranged','lightning',240,normalRange=90,ammoCounter='storm_thrower_ammo'),attack('forgeMaul','Молот Великой Кузни',9,2,6,5,damageType='bludgeoning',ability='STR',heavy=True,twoHanded=True,inventoryId='yar-source-row-52'),attack('flail','Цеп',9,1,8,5,damageType='bludgeoning',ability='STR',mastery='sap',inventoryId='yar-source-row-46')]
             p['equipment'].update(rootPartner='daphne',forgeAttuned=False)
         elif key=='daphne':
             p['saveProficiencies']=['INT','WIS'];p['features']=dict(sculptSpells=True,potentCantrip=True,empoweredEvocation=True,shieldSpell=True,autoShield=True,alert=True)
             p['attacks']=[attack('staff','Посох',3,1,6,-1,damageType='bludgeoning',ability='STR')]
-            p['casting']=dict(ability='INT',attack=11,dc=19,level=10,prepared=spell_wizard,cantrips=['fireBolt','rayFrost','mindSliver','mageHand','prestidigitation'],book=['burningHands','web','dispelMagic','fly','wallFire','polymorph','resilientSphere','wallForce'],components={},recoveryLevels=5)
+            p['casting']=dict(ability='INT',attack=11,dc=19,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_wizard),cantrips=['fireBolt','rayFrost','mindSliver','mageHand','prestidigitation'],book=['burningHands','web','dispelMagic','fly','wallFire','polymorph','resilientSphere','wallForce',*sh.get('new_spellbook_ids',[])],components={'tashasBubblingCauldron':False},recoveryLevels=(sh['level']+1)//2)
             p['equipment'].update(stormBracers=True,vaeltirFocus=True,leafPartner='yar')
         elif key=='lyutobor':
             p['saves']=dict(STR=4,DEX=0,CON=2,INT=-1,WIS=5,CHA=6)
-            p['features']=dict(extraAttack=2,masteries=['sap'],auraProtection=2,auraRadius=10,auraDevotion=True,auraCourage=True,guardianSaveBonus=1,critNegation=True,protection=True,shieldEquipped=True,heavyArmor=True,heavyArmorReduction=4,layOnHands=True,sacredWeapon=True,abjureFoes=True,shieldMaster=True,divineSmite=True)
+            p['features']=dict(extraAttack=2,radiantStrikes=sh['level'] >= 11,masteries=['sap'],auraProtection=2,auraRadius=10,auraDevotion=True,auraCourage=True,guardianSaveBonus=1,critNegation=True,protection=True,shieldEquipped=True,heavyArmor=True,heavyArmorReduction=4,layOnHands=True,sacredWeapon=True,abjureFoes=True,shieldMaster=True,divineSmite=True)
             p['attacks']=[attack('longsword','Длинный меч',8,1,8,4,ability='STR',mastery='sap',inventoryId='lyutobor-source-row-57')]
-            p['casting']=dict(ability='CHA',attack=6,dc=14,level=10,prepared=spell_paladin,cantrips=[],components={'wardingBond':False,'protectionEvil':False})
+            p['casting']=dict(ability='CHA',attack=6,dc=14,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_paladin),cantrips=[],components={'wardingBond':False,'protectionEvil':False,'revivify':False})
             p['equipment']['armor']=True
         else:
             p['saveProficiencies']=['DEX','INT'];p['skills']=dict(stealth=13,sleight=13,intimidation=10,perception=10,acrobatics=9,insight=6,investigation=4)
             p['skillProficiencies']={k:['DEX' if k in ['stealth','sleight','acrobatics'] else 'CHA' if k=='intimidation' else 'INT' if k=='investigation' else 'WIS',1] for k in p['skills']}
-            p['features']=dict(sneakDice=5,cunningAction=True,steadyAim=True,uncannyDodge=True,evasion=True,reliableTalent=True,sharpshooter=True,masteries=['vex','nick'],cunningStrike=True,cunningDC=17,stealthAttack=True,thiefHands=True,climbSpeed=30,poisonerKit=True,silentShadow=True,alert=True)
+            p['features']=dict(sneakDice=6 if sh['level'] >= 11 else 5,improvedCunningStrike=sh['level'] >= 11,cunningAction=True,steadyAim=True,uncannyDodge=True,evasion=True,reliableTalent=True,sharpshooter=True,masteries=['vex','nick'],cunningStrike=True,cunningDC=17,stealthAttack=True,thiefHands=True,climbSpeed=30,poisonerKit=True,silentShadow=True,alert=True)
             p['attacks']=[attack('leafBow','Лук Последнего Листа',11,1,6,7,'ranged','piercing',320,normalRange=80,ability='DEX',mastery='vex',sneakEligible=True,ammo='arrows',ammoInventoryId='rada-source-row-43',inventoryId='rada-source-row-42'),attack('scimitar','Скимитар',9,1,6,5,ability='DEX',light=True,mastery='nick',sneakEligible=True,inventoryId='rada-source-row-44'),attack('shortsword','Короткий меч',9,1,6,5,damageType='piercing',ability='DEX',light=True,sneakEligible=True,inventoryId='rada-source-row-45'),attack('dagger','Кинжал',9,1,4,5,damageType='piercing',ability='DEX',light=True,sneakEligible=True,inventoryId='rada-source-row-46')]
         p['tokenKey']='heroes.'+key
         profiles[key]=p;characters[key]=dict(name=c['name'],profile=key,resources=r,inventory=inventory)
