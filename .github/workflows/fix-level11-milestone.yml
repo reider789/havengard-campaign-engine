@@ -1,0 +1,67 @@
+name: Finalize draft level-11 milestone receipt
+on:
+  push:
+    branches: [feature/havengard-party-level-11-20261025]
+    paths: ['.github/workflows/fix-level11-milestone.yml']
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Correct unmerged milestone character labels and event receipt
+        run: |
+          python - <<'PY'
+          import sys, json
+          from pathlib import Path
+          sys.path.insert(0,'tools')
+          from campaignctl import read_campaign_rules,validate_project,write_views,atomic_write_json
+          from campaign_model import transaction_hash
+          archive=Path('transactions/applied/HAVENGARD-LEVEL11-20261025.json')
+          sp=Path('state/_campaign-state.json')
+          tx=json.loads(archive.read_text())
+          state=json.loads(sp.read_text())
+          assert state['state_revision']==32
+          assert tx['event']['id']=='HAVENGARD-LEVEL11-20261025'
+          names={
+            'yar':'Воин 11 / Мастер боевых приёмов • Градодержатель Хейвенгарда',
+            'daphne':'Волшебница 11 / Школа Воплощения • Личный помощник и писарь градодержателя',
+            'lyutobor':'Паладин 11 / Клятва Преданности • Защитник передней линии',
+            'rada':'Плут 11 / Вор • Разведка и специальные задачи'
+          }
+          fixed=set()
+          for op in tx['operations']:
+            if op.get('type')=='set_character_field' and op.get('field')=='character_sheet' and op.get('id') in names:
+              op['value']['class_and_level']=names[op['id']]
+              fixed.add(op['id'])
+          assert fixed==set(names)
+          for who,name in names.items():
+            assert state['characters'][who]['character_sheet']['level']==11
+            state['characters'][who]['character_sheet']['class_and_level']=name
+          state['applied_events'][tx['event']['id']]={'revision':32,'payload_sha256':transaction_hash(tx)}
+          assert state['world']['timekeeping']['elapsed_seconds_from_anchor']==432000
+          rules=read_campaign_rules(Path('.'))
+          errors=validate_project(state,rules)
+          assert not errors,errors
+          atomic_write_json(archive,tx)
+          atomic_write_json(sp,state)
+          write_views(Path('.'),state,rules)
+          print('REPAIRED: four complete character labels, matching receipt',state['applied_events'][tx['event']['id']])
+          PY
+      - name: Validate canon and derived views
+        run: python tools/run_tests.py
+      - name: Commit corrected WIP and remove one-off workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm .github/workflows/fix-level11-milestone.yml
+          git add state/_campaign-state.json transactions/applied/HAVENGARD-LEVEL11-20261025.json views/ .github/workflows/fix-level11-milestone.yml
+          git commit -m 'fix(campaign): validate level-11 milestone receipt and complete class names [skip ci]'
+          git -c pull.rebase=true pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
