@@ -1,6 +1,6 @@
 # GM Context
 
-> state_revision: 31
+> state_revision: 32
 > authoritative state = что происходит сейчас; rule pack = как вести кампанию
 
 ## Где и когда
