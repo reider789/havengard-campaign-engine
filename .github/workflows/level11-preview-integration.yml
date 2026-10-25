@@ -86,7 +86,7 @@ jobs:
       - name: Install Playwright and Chromium
         run: |
           python -m pip install playwright==1.55.0
-          python -m playwright install --with-deps chromium
+          python -m playwright install chromium
       - name: Test regenerated desktop battle in real browser
         run: python tools/test_shared_browser.py
       - name: Commit only verified preview artifacts to draft branch
