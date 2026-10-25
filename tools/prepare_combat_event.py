@@ -62,7 +62,7 @@ def changes_to_transaction(state: dict, request: dict) -> dict:
                 sheet["prepared_spell_ids"] = spells
             if "armor_class" in update:
                 ac = update["armor_class"]
-                if not isinstance(ac, str) or not re.match(r"^(?:[1-9]|[1-3][0-9]|40)(?:\\b|\\s)", ac):
+                if not isinstance(ac, str) or not re.match(r"^(?:[1-9]|[1-3][0-9]|40)(?:\b|\s)", ac):
                     raise ValueError("Текущий КД должен начинаться с числа 1–40")
                 sheet["armor_class"] = ac
             operations.append(dict(type="set_character_field", id=cid,
