@@ -5,7 +5,7 @@ Level-11 abilities that are not registered by the pinned shared core MUST fail
 pack validation, not silently disappear. See docs/LEVEL_11_SYNC_2026-10-25.md.
 """
 from pathlib import Path
-import argparse,hashlib,json,re
+import argparse,copy,hashlib,json,re
 BASE_RESOURCES={"hp","focus","luck","heroic","arrows","unusual_metabolism","spell_slots"}
 STATS=dict(zip(['СИЛ','ЛОВ','ТЕЛ','ИНТ','МДР','ХАР'],['STR','DEX','CON','INT','WIS','CHA']))
 def attack(id,name,bonus,count,die,flat,kind='melee',damageType='slashing',range=5,**kw):return dict(id=id,name=name,bonus=bonus,count=count,die=die,flat=flat,kind=kind,damageType=damageType,range=range,**kw)
@@ -70,6 +70,22 @@ def build(state,capabilities):
             p['attacks']=[attack('leafBow','Лук Последнего Листа',11,1,6,7,'ranged','piercing',320,normalRange=80,ability='DEX',mastery='vex',sneakEligible=True,ammo='arrows',ammoInventoryId='rada-source-row-43',inventoryId='rada-source-row-42'),attack('scimitar','Скимитар',9,1,6,5,ability='DEX',light=True,mastery='nick',sneakEligible=True,inventoryId='rada-source-row-44'),attack('shortsword','Короткий меч',9,1,6,5,damageType='piercing',ability='DEX',light=True,sneakEligible=True,inventoryId='rada-source-row-45'),attack('dagger','Кинжал',9,1,4,5,damageType='piercing',ability='DEX',light=True,sneakEligible=True,inventoryId='rada-source-row-46')]
         p['tokenKey']='heroes.'+key
         profiles[key]=p;characters[key]=dict(name=c['name'],profile=key,resources=r,inventory=inventory)
+    # Additional canonical heroes no longer require another hard-coded class
+    # branch. They provide a reviewed, declarative SDK combat_profile.
+    for extra_id, extra in state['characters'].items():
+        if extra_id in ('yar','daphne','lyutobor','rada'):continue
+        if 'combat_profile' not in extra:continue
+        if not isinstance(extra['combat_profile'],dict):raise ValueError('Неверный боевой профиль: '+extra_id)
+        profiles[extra_id]=copy.deepcopy(extra['combat_profile'])
+        usable=[]
+        for iid,item in extra.get('inventory_catalog',{}).items():
+            count=item.get('quantity')
+            if not isinstance(count,int):continue
+            available=not any(t in item.get('status','').lower() for t in
+                ['личная собственность','личный резерв','в переносной дыре','не надеты'])
+            usable.append(dict(id=iid,name=item.get('name',iid),quantity=count,combat_available=available))
+        characters[extra_id]=dict(name=extra['name'],profile=extra_id,
+                                  resources=copy.deepcopy(extra['resources']),inventory=usable)
     profiles['raider']=dict(name='Налётчик',hp=42,ac=14,speed=30,scores=dict(STR=14,DEX=14,CON=12,INT=10,WIS=10,CHA=8),proficiency=2,features={},attacks=[attack('sword','Клинок',5,1,8,2)])
     pack=dict(kind='dnd-combat-pack',version=1,api=1,id=cid,revision=state['state_revision'],name='Хейвенгард · полная партия',rules_version='dnd-2024-2026-10',requires=['spellcasting','magicItems','advancedClasses'],abilities={},profiles=profiles,characters=characters,default_encounter='party-training',encounters={
       'party-training':dict(name='Хейвенгард · учебная встреча',kind='training',width=14,height=10,theme='forest',heroes={k:dict(cell=cell) for k,cell in zip(characters,['C4','B6','D5','C7'])},enemies=[dict(id='raider'+str(i+1),profile='raider',cell=cell) for i,cell in enumerate(['J3','K5','J7','L4','L8'])],walls=['G2','G3','G8','G9'],rubble=['G5','H5'],cover={'C4':5,'C7':5})},source_state_sha256=hashlib.sha256(json.dumps(state,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest(),notes=['Учебная встреча не является сыгранным событием. Все четыре героя управляются игроком. Текущий КД Яра 11: латы не надеты. Неподготовленные заклинания доступны в справочнике книги.'])
@@ -77,6 +93,8 @@ def build(state,capabilities):
     continuity={'effects':[],'temporary_hp':{},'temp_sources':{},'statuses':{},'objects':[],'zones':[],'life':{},'cauldron_vials':[]}
     for key in characters:
         saved=state['characters'][key].get('combat_continuity',{})
+        if saved.get('exhaustion',0):
+            continuity.setdefault('exhaustion',{})[key]=saved['exhaustion']
         continuity['temporary_hp'][key]=saved.get('temporary_hp',0)
         continuity['temp_sources'][key]=saved.get('temp_source')
         if saved.get('life'):continuity['life'][key]=saved['life']
