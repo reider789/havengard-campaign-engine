@@ -40,6 +40,28 @@ assert after["characters"]["yar"]["character_sheet"]["armor_class"]=="19 в на
 assert after["characters"]["daphne"]["inventory_catalog"]["narrative-test-ladle"]["value_gp"]==500
 assert after["characters"]["lyutobor"]["inventory_catalog"]["narrative-test-diamond"]["value_gp"]==300
 assert state==original, "preview must not mutate canonical data"
+from build_party_combat_pack import build
+sample_cap={"counters":[]}
+updated_pack=build(after,sample_cap)
+assert updated_pack["continuity"]["exhaustion"]["yar"]==2
+assert updated_pack["profiles"]["daphne"]["casting"]["components"]["tashasBubblingCauldron"]=={
+    "itemId":"narrative-test-ladle","valueGp":500
+}
+assert updated_pack["profiles"]["lyutobor"]["casting"]["components"]["revivify"]=={
+    "itemId":"narrative-test-diamond","valueGp":300
+}
+# A previously unknown character can join with a verified portable data profile.
+guest_state=copy.deepcopy(state)
+guest=copy.deepcopy(guest_state["characters"]["rada"])
+guest["name"]="Учебный союзник"
+guest["combat_profile"]=copy.deepcopy(build(state,sample_cap)["profiles"]["rada"])
+guest["inventory"]=[]
+guest["inventory_catalog"]={}
+guest["resources"]={"hp":{"current":30,"max":30}}
+guest_state["characters"]["guest"]=guest
+guest_pack=build(guest_state,sample_cap)
+assert "guest" in guest_pack["characters"] and "guest" in guest_pack["profiles"]
+
 try:
     changes_to_transaction(state,{"event":request["event"],
       "characters":{"yar":{"exhaustion":6}}})
