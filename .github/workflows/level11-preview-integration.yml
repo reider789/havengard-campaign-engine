@@ -28,11 +28,11 @@ jobs:
         with:
           node-version: '22'
       - name: Read exact reviewed shared kernel
-        run: echo 'Shared engine preview commit 7a4bb4caad08bfba693d354d232d176f6a91f293'
+        run: echo 'Shared engine preview commit 94666c5dc26b9d9f035b692402ac7445b5228a13'
       - uses: actions/checkout@v4
         with:
           repository: reider789/rin_dnd
-          ref: 7a4bb4caad08bfba693d354d232d176f6a91f293
+          ref: 94666c5dc26b9d9f035b692402ac7445b5228a13
           path: .shared-combat
           persist-credentials: false
       - name: Verify level 11 profiles and prepare deterministic pin
@@ -59,7 +59,7 @@ jobs:
           lockfile=base/'prototypes/shared-combat/engine-lock.json'
           lock=json.loads(lockfile.read_text())
           assert lock['repository']=='reider789/rin_dnd'
-          lock['commit']='7a4bb4caad08bfba693d354d232d176f6a91f293'
+          lock['commit']='94666c5dc26b9d9f035b692402ac7445b5228a13'
           lock['engine_version']=cap['engine']
           lock['files']={name:hashlib.sha256((engine/name).read_bytes()).hexdigest()
                          for name in lock['files']}
@@ -96,10 +96,21 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # A new commit may have arrived while Playwright was running.
+          # Do not overwrite it with artifacts from a superseded check.
+          git fetch origin "$BRANCH"
+          if [ "$(git rev-parse FETCH_HEAD)" != "$(git rev-parse HEAD)" ]; then
+            echo "Draft head advanced; a fresh integration run owns these artifacts."
+            git restore -- prototypes/shared-combat/engine-lock.json prototypes/shared-combat/reviewed-profiles.json prototypes/shared-combat/party-pack.json prototypes/shared-combat/migration-audit.json prototypes/chat-combat/desktop-battle.html prototypes/chat-combat/current-chat-battle.html prototypes/chat-combat/entrypoint.json prototypes/chat-combat/current-manifest.json
+            exit 0
+          fi
           git add -- prototypes/shared-combat/engine-lock.json prototypes/shared-combat/reviewed-profiles.json prototypes/shared-combat/party-pack.json prototypes/shared-combat/migration-audit.json prototypes/chat-combat/desktop-battle.html prototypes/chat-combat/current-chat-battle.html prototypes/chat-combat/entrypoint.json prototypes/chat-combat/current-manifest.json
           if ! git diff --cached --quiet; then
             git commit -m 'build: validated four-hero level-11 desktop preview'
-            git push origin "HEAD:refs/heads/$BRANCH"
+            if ! git push origin "HEAD:refs/heads/$BRANCH"; then
+              echo "Draft advanced during upload; a new run must publish the preview."
+              git reset --hard HEAD~1
+            fi
           fi
       - name: Assert no uncommitted preview drift
         run: git diff --exit-code -- prototypes/shared-combat/engine-lock.json prototypes/shared-combat/reviewed-profiles.json prototypes/shared-combat/party-pack.json prototypes/shared-combat/migration-audit.json prototypes/chat-combat/desktop-battle.html prototypes/chat-combat/current-chat-battle.html prototypes/chat-combat/entrypoint.json prototypes/chat-combat/current-manifest.json
