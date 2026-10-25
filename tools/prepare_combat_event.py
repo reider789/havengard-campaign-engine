@@ -46,9 +46,20 @@ def changes_to_transaction(state: dict, request: dict) -> dict:
             raise ValueError(f"Неизвестное изменение персонажа {cid}")
         character = state["characters"][cid]
         if "exhaustion" in update:
-            level = natural(update["exhaustion"], "Уровень истощения", maximum=5)
+            level = natural(update["exhaustion"], "Уровень истощения", maximum=6)
             continuity = copy.deepcopy(character.get("combat_continuity", {}))
             continuity["exhaustion"] = level
+            if level == 6:
+                # The death itself is a confirmed narrative outcome, not an
+                # automatic tactical penalty after a random combat.
+                if update.get("resources", {}).get("hp", 0) != 0:
+                    raise ValueError("При шестом уровне истощения ПЗ должны быть 0")
+                continuity["life"] = dict(dead=True, stable=False,
+                                           deathSuccesses=0, deathFailures=3)
+                pool = copy.deepcopy(character["resources"]["hp"])
+                pool["current"] = 0
+                operations.append(dict(type="set_character_resource", id=cid,
+                                       resource="hp", value=pool))
             operations.append(dict(type="set_character_field", id=cid,
                                    field="combat_continuity", value=continuity))
         if "prepared_spell_ids" in update or "armor_class" in update:
