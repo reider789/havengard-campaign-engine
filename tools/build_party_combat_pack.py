@@ -12,6 +12,19 @@ def attack(id,name,bonus,count,die,flat,kind='melee',damageType='slashing',range
 def build(state,capabilities):
     RESOURCES=BASE_RESOURCES|set(capabilities["counters"])
     cid=state['campaign']['id'];profiles={};characters={}
+    def component(catalog, spell, word, minimum):
+        # No inferred purchase: only a named, priced, explicitly present item
+        # in usable inventory authorizes expensive material spellcasting.
+        for iid, item in catalog.items():
+            if not isinstance(item.get('quantity'),int) or item['quantity']<1:continue
+            status=item.get('status','').lower()
+            if any(t in status for t in ('личный резерв','в переносной дыре','не при себе')):continue
+            if word not in item.get('name','').lower():continue
+            if item.get('component_for') not in (None,spell):continue
+            cost=item.get('value_gp')
+            if isinstance(cost,int) and not isinstance(cost,bool) and cost>=minimum:
+                return {'itemId':iid,'valueGp':cost}
+        return False
     spell_wizard=['mageArmor','magicMissile','thunderwave','fogCloud','scorchingRay','mistyStep','fireball','slow','counterspell','dimensionDoor','greaterInvisibility','coneCold','seeming','holdMonster','bigbyHand']
     spell_paladin=['bless','cureWounds','heroism','command','compelledDuel','protectionEvil','shieldFaith','aid','lesserRestoration','zoneTruth','wardingBond','beaconHope','dispelMagic','crusaderMantle','auraVitality','divineSmite','findSteed']
     for key in ['yar','daphne','lyutobor','rada']:
@@ -36,19 +49,19 @@ def build(state,capabilities):
         if key=='yar':
             p['saves']=dict(STR=10,DEX=2,CON=8,INT=0,WIS=2,CHA=0)
             p['skills']=dict(athletics=9,acrobatics=5,perception=5,insight=5,survival=5,intimidation=3)
-            p['features']=dict(fighterLevel=sh['level'],secondWind=True,actionSurge=True,tacticalMind=True,tacticalShift=True,indomitable=True,knowEnemy=True,extraAttack=3 if sh['level'] >= 11 else 2,greatWeaponFighting=True,greatWeaponMaster=4,savageAttacker=True,tacticalMaster=True,superiorityDie=10,maneuverDC=17,maneuvers=['precision','trip','push','goad','maneuvering','riposte','bait'],masteries=['graze','sap'],acReaction=3,heavyArmorReduction=4,heavyArmor=False)
+            p['features']=dict(fighterLevel=sh['level'],secondWind=True,actionSurge=True,tacticalMind=True,tacticalShift=True,indomitable=True,knowEnemy=True,extraAttack=3 if sh['level'] >= 11 else 2,greatWeaponFighting=True,greatWeaponMaster=4,savageAttacker=True,tacticalMaster=True,superiorityDie=10,maneuverDC=17,maneuvers=['precision','trip','push','goad','maneuvering','riposte','bait'],masteries=['graze','sap'],acReaction=3,heavyArmorReduction=4,heavyArmor=any(i.get('quantity',0)==1 and 'латы' in i.get('name','').lower() and 'экипирован' in i.get('status','').lower() for i in inv.values()))
             p['attacks']=[attack('accurateSword','Меч Меткого Удара',12,2,6,6,ability='STR',mastery='graze',heavy=True,twoHanded=True,inventoryId='yar-source-row-45'),attack('stormThrower','Грозовой метатель',8,2,8,2,'ranged','lightning',240,normalRange=90,ammoCounter='storm_thrower_ammo'),attack('forgeMaul','Молот Великой Кузни',9,2,6,5,damageType='bludgeoning',ability='STR',heavy=True,twoHanded=True,inventoryId='yar-source-row-52'),attack('flail','Цеп',9,1,8,5,damageType='bludgeoning',ability='STR',mastery='sap',inventoryId='yar-source-row-46')]
-            p['equipment'].update(rootPartner='daphne',forgeAttuned=False)
+            p['equipment'].update(rootPartner='daphne',forgeAttuned=any(i.get('quantity',0)==1 and 'Молот Великой Кузни' in i.get('name','') and 'настроен' in i.get('status','').lower() and 'не настроен' not in i.get('status','').lower() for i in inv.values()))
         elif key=='daphne':
             p['saveProficiencies']=['INT','WIS'];p['features']=dict(sculptSpells=True,potentCantrip=True,empoweredEvocation=True,shieldSpell=True,autoShield=True,alert=True)
             p['attacks']=[attack('staff','Посох',3,1,6,-1,damageType='bludgeoning',ability='STR')]
-            p['casting']=dict(ability='INT',attack=11,dc=19,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_wizard),cantrips=['fireBolt','rayFrost','mindSliver','mageHand','prestidigitation'],book=['burningHands','web','dispelMagic','fly','wallFire','polymorph','resilientSphere','wallForce',*sh.get('new_spellbook_ids',[])],components={'tashasBubblingCauldron':False},recoveryLevels=(sh['level']+1)//2)
+            p['casting']=dict(ability='INT',attack=11,dc=19,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_wizard),cantrips=['fireBolt','rayFrost','mindSliver','mageHand','prestidigitation'],book=['burningHands','web','dispelMagic','fly','wallFire','polymorph','resilientSphere','wallForce',*sh.get('new_spellbook_ids',[])],components={'tashasBubblingCauldron':component(inv,'tashasBubblingCauldron','позолоченный половник',500)},recoveryLevels=(sh['level']+1)//2)
             p['equipment'].update(stormBracers=True,vaeltirFocus=True,leafPartner='yar')
         elif key=='lyutobor':
             p['saves']=dict(STR=4,DEX=0,CON=2,INT=-1,WIS=5,CHA=6)
             p['features']=dict(extraAttack=2,radiantStrikes=sh['level'] >= 11,masteries=['sap'],auraProtection=2,auraRadius=10,auraDevotion=True,auraCourage=True,guardianSaveBonus=1,critNegation=True,protection=True,shieldEquipped=True,heavyArmor=True,heavyArmorReduction=4,layOnHands=True,sacredWeapon=True,abjureFoes=True,shieldMaster=True,divineSmite=True)
             p['attacks']=[attack('longsword','Длинный меч',8,1,8,4,ability='STR',mastery='sap',inventoryId='lyutobor-source-row-57')]
-            p['casting']=dict(ability='CHA',attack=6,dc=14,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_paladin),cantrips=[],components={'wardingBond':False,'protectionEvil':False,'revivify':False})
+            p['casting']=dict(ability='CHA',attack=6,dc=14,level=sh['level'],prepared=sh.get('prepared_spell_ids',spell_paladin),cantrips=[],components={'wardingBond':False,'protectionEvil':False,'revivify':component(inv,'revivify','алмаз',300)})
             p['equipment']['armor']=True
         else:
             p['saveProficiencies']=['DEX','INT'];p['skills']=dict(stealth=13,sleight=13,intimidation=10,perception=10,acrobatics=9,insight=6,investigation=4)
