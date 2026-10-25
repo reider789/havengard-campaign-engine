@@ -1,0 +1,598 @@
+{
+  "schema_version": 1,
+  "description": "Reviewed party and training enemy profiles expressed as data.",
+  "heroes": {
+    "yar": {
+      "profile": {
+        "speed": 30,
+        "features": {
+          "fighterLevel": 11,
+          "secondWind": true,
+          "actionSurge": true,
+          "tacticalMind": true,
+          "tacticalShift": true,
+          "indomitable": true,
+          "knowEnemy": true,
+          "extraAttack": 3,
+          "greatWeaponFighting": true,
+          "greatWeaponMaster": 4,
+          "savageAttacker": true,
+          "tacticalMaster": true,
+          "superiorityDie": 10,
+          "maneuverDC": 17,
+          "maneuvers": [
+            "precision",
+            "trip",
+            "push",
+            "goad",
+            "maneuvering",
+            "riposte",
+            "bait"
+          ],
+          "masteries": [
+            "graze",
+            "sap"
+          ],
+          "acReaction": 3,
+          "heavyArmorReduction": 4,
+          "heavyArmor": false
+        },
+        "attacks": [
+          {
+            "id": "accurateSword",
+            "name": "Меч Меткого Удара",
+            "bonus": 12,
+            "count": 2,
+            "die": 6,
+            "flat": 6,
+            "kind": "melee",
+            "damageType": "slashing",
+            "range": 5,
+            "ability": "STR",
+            "mastery": "graze",
+            "heavy": true,
+            "twoHanded": true,
+            "inventoryId": "yar-source-row-45"
+          },
+          {
+            "id": "stormThrower",
+            "name": "Грозовой метатель",
+            "bonus": 8,
+            "count": 2,
+            "die": 8,
+            "flat": 2,
+            "kind": "ranged",
+            "damageType": "lightning",
+            "range": 240,
+            "normalRange": 90,
+            "ammoCounter": "storm_thrower_ammo"
+          },
+          {
+            "id": "forgeMaul",
+            "name": "Молот Великой Кузни",
+            "bonus": 9,
+            "count": 2,
+            "die": 6,
+            "flat": 5,
+            "kind": "melee",
+            "damageType": "bludgeoning",
+            "range": 5,
+            "ability": "STR",
+            "heavy": true,
+            "twoHanded": true,
+            "inventoryId": "yar-source-row-52"
+          },
+          {
+            "id": "flail",
+            "name": "Цеп",
+            "bonus": 9,
+            "count": 1,
+            "die": 8,
+            "flat": 5,
+            "kind": "melee",
+            "damageType": "bludgeoning",
+            "range": 5,
+            "ability": "STR",
+            "mastery": "sap",
+            "inventoryId": "yar-source-row-46"
+          }
+        ],
+        "deathSaves": true,
+        "equipment": {
+          "rootPartner": "daphne",
+          "forgeAttuned": false
+        },
+        "saves": {
+          "STR": 10,
+          "DEX": 2,
+          "CON": 8,
+          "INT": 0,
+          "WIS": 2,
+          "CHA": 0
+        },
+        "skills": {
+          "athletics": 9,
+          "acrobatics": 5,
+          "perception": 5,
+          "insight": 5,
+          "survival": 5,
+          "intimidation": 3
+        }
+      },
+      "bindings": {
+        "level_features": {
+          "fighterLevel": "level",
+          "extraAttack": "fighterAttacks"
+        },
+        "equipment_status": {
+          "heavyArmor": {
+            "name_contains": "латы",
+            "must_have": "экипирован"
+          },
+          "forgeAttuned": {
+            "name_contains": "Молот Великой Кузни",
+            "must_have": "настроен",
+            "must_not_have": "не настроен"
+          },
+          "rootPartner": {
+            "name_contains": "Кольцо Корня",
+            "must_have": "настроено",
+            "value": "daphne"
+          }
+        }
+      }
+    },
+    "daphne": {
+      "profile": {
+        "speed": 30,
+        "features": {
+          "sculptSpells": true,
+          "potentCantrip": true,
+          "empoweredEvocation": true,
+          "shieldSpell": true,
+          "autoShield": true,
+          "alert": true
+        },
+        "attacks": [
+          {
+            "id": "staff",
+            "name": "Посох",
+            "bonus": 3,
+            "count": 1,
+            "die": 6,
+            "flat": -1,
+            "kind": "melee",
+            "damageType": "bludgeoning",
+            "range": 5,
+            "ability": "STR"
+          }
+        ],
+        "deathSaves": true,
+        "equipment": {
+          "stormBracers": true,
+          "vaeltirFocus": true,
+          "leafPartner": "yar"
+        },
+        "saveProficiencies": [
+          "INT",
+          "WIS"
+        ],
+        "casting": {
+          "ability": "INT",
+          "attack": 11,
+          "dc": 19,
+          "level": 11,
+          "prepared": [
+            "mageArmor",
+            "magicMissile",
+            "thunderwave",
+            "fogCloud",
+            "scorchingRay",
+            "mistyStep",
+            "fireball",
+            "slow",
+            "counterspell",
+            "dimensionDoor",
+            "greaterInvisibility",
+            "coneCold",
+            "seeming",
+            "holdMonster",
+            "bigbyHand",
+            "chainLightning"
+          ],
+          "cantrips": [
+            "fireBolt",
+            "rayFrost",
+            "mindSliver",
+            "mageHand",
+            "prestidigitation"
+          ],
+          "book": [
+            "burningHands",
+            "web",
+            "dispelMagic",
+            "fly",
+            "wallFire",
+            "polymorph",
+            "resilientSphere",
+            "wallForce"
+          ],
+          "components": {
+            "tashasBubblingCauldron": false
+          },
+          "recoveryLevels": 6
+        }
+      },
+      "bindings": {
+        "spellbook_extensions": "new_spellbook_ids",
+        "recovery_levels": "halfLevelUp",
+        "component_spells": {
+          "tashasBubblingCauldron": {
+            "name_contains": "позолоченный половник",
+            "minimum_gp": 500
+          }
+        },
+        "equipment_status": {
+          "stormBracers": {
+            "name_contains": "Наручи Грозового Контура",
+            "must_have": "настроен"
+          },
+          "vaeltirFocus": {
+            "name_contains": "Магический фокус Ваэльтира",
+            "must_have": "настроен"
+          },
+          "leafPartner": {
+            "name_contains": "Кольцо Листа",
+            "must_have": "настроено",
+            "value": "yar"
+          }
+        }
+      }
+    },
+    "lyutobor": {
+      "profile": {
+        "speed": 30,
+        "features": {
+          "extraAttack": 2,
+          "radiantStrikes": true,
+          "masteries": [
+            "sap"
+          ],
+          "auraProtection": 2,
+          "auraRadius": 10,
+          "auraDevotion": true,
+          "auraCourage": true,
+          "guardianSaveBonus": 1,
+          "critNegation": true,
+          "protection": true,
+          "shieldEquipped": true,
+          "heavyArmor": true,
+          "heavyArmorReduction": 4,
+          "layOnHands": true,
+          "sacredWeapon": true,
+          "abjureFoes": true,
+          "shieldMaster": true,
+          "divineSmite": true
+        },
+        "attacks": [
+          {
+            "id": "longsword",
+            "name": "Длинный меч",
+            "bonus": 8,
+            "count": 1,
+            "die": 8,
+            "flat": 4,
+            "kind": "melee",
+            "damageType": "slashing",
+            "range": 5,
+            "ability": "STR",
+            "mastery": "sap",
+            "inventoryId": "lyutobor-source-row-57"
+          }
+        ],
+        "deathSaves": true,
+        "equipment": {
+          "armor": true
+        },
+        "saves": {
+          "STR": 4,
+          "DEX": 0,
+          "CON": 2,
+          "INT": -1,
+          "WIS": 5,
+          "CHA": 6
+        },
+        "casting": {
+          "ability": "CHA",
+          "attack": 6,
+          "dc": 14,
+          "level": 11,
+          "prepared": [
+            "bless",
+            "cureWounds",
+            "heroism",
+            "command",
+            "compelledDuel",
+            "protectionEvil",
+            "shieldFaith",
+            "aid",
+            "lesserRestoration",
+            "zoneTruth",
+            "wardingBond",
+            "beaconHope",
+            "dispelMagic",
+            "crusaderMantle",
+            "auraVitality",
+            "divineSmite",
+            "findSteed",
+            "revivify"
+          ],
+          "cantrips": [],
+          "components": {
+            "wardingBond": false,
+            "protectionEvil": false,
+            "revivify": false
+          }
+        }
+      },
+      "bindings": {
+        "level_features": {
+          "radiantStrikes": "levelAtLeast11"
+        },
+        "component_spells": {
+          "revivify": {
+            "name_contains": "алмаз",
+            "minimum_gp": 300
+          }
+        },
+        "equipment_status": {
+          "heavyArmor": {
+            "name_contains": "Мифриловые латы",
+            "must_have": "экипирован"
+          },
+          "shieldEquipped": {
+            "name_contains": "Щит / Знак",
+            "must_have": "экипирован"
+          }
+        }
+      }
+    },
+    "rada": {
+      "profile": {
+        "speed": 30,
+        "features": {
+          "sneakDice": 6,
+          "improvedCunningStrike": true,
+          "cunningAction": true,
+          "steadyAim": true,
+          "uncannyDodge": true,
+          "evasion": true,
+          "reliableTalent": true,
+          "sharpshooter": true,
+          "masteries": [
+            "vex",
+            "nick"
+          ],
+          "cunningStrike": true,
+          "cunningDC": 17,
+          "stealthAttack": true,
+          "thiefHands": true,
+          "climbSpeed": 30,
+          "poisonerKit": true,
+          "silentShadow": true,
+          "alert": true
+        },
+        "attacks": [
+          {
+            "id": "leafBow",
+            "name": "Лук Последнего Листа",
+            "bonus": 11,
+            "count": 1,
+            "die": 6,
+            "flat": 7,
+            "kind": "ranged",
+            "damageType": "piercing",
+            "range": 320,
+            "normalRange": 80,
+            "ability": "DEX",
+            "mastery": "vex",
+            "sneakEligible": true,
+            "ammo": "arrows",
+            "ammoInventoryId": "rada-source-row-43",
+            "inventoryId": "rada-source-row-42"
+          },
+          {
+            "id": "scimitar",
+            "name": "Скимитар",
+            "bonus": 9,
+            "count": 1,
+            "die": 6,
+            "flat": 5,
+            "kind": "melee",
+            "damageType": "slashing",
+            "range": 5,
+            "ability": "DEX",
+            "light": true,
+            "mastery": "nick",
+            "sneakEligible": true,
+            "inventoryId": "rada-source-row-44"
+          },
+          {
+            "id": "shortsword",
+            "name": "Короткий меч",
+            "bonus": 9,
+            "count": 1,
+            "die": 6,
+            "flat": 5,
+            "kind": "melee",
+            "damageType": "piercing",
+            "range": 5,
+            "ability": "DEX",
+            "light": true,
+            "sneakEligible": true,
+            "inventoryId": "rada-source-row-45"
+          },
+          {
+            "id": "dagger",
+            "name": "Кинжал",
+            "bonus": 9,
+            "count": 1,
+            "die": 4,
+            "flat": 5,
+            "kind": "melee",
+            "damageType": "piercing",
+            "range": 5,
+            "ability": "DEX",
+            "light": true,
+            "sneakEligible": true,
+            "inventoryId": "rada-source-row-46"
+          }
+        ],
+        "deathSaves": true,
+        "equipment": {},
+        "saveProficiencies": [
+          "DEX",
+          "INT"
+        ],
+        "skills": {
+          "stealth": 13,
+          "sleight": 13,
+          "intimidation": 10,
+          "perception": 10,
+          "acrobatics": 9,
+          "insight": 6,
+          "investigation": 4
+        },
+        "skillProficiencies": {
+          "stealth": [
+            "DEX",
+            1
+          ],
+          "sleight": [
+            "DEX",
+            1
+          ],
+          "intimidation": [
+            "CHA",
+            1
+          ],
+          "perception": [
+            "WIS",
+            1
+          ],
+          "acrobatics": [
+            "DEX",
+            1
+          ],
+          "insight": [
+            "WIS",
+            1
+          ],
+          "investigation": [
+            "INT",
+            1
+          ]
+        }
+      },
+      "bindings": {
+        "level_features": {
+          "sneakDice": "halfLevelUp",
+          "improvedCunningStrike": "levelAtLeast11"
+        }
+      }
+    }
+  },
+  "npc_profiles": {
+    "raider": {
+      "name": "Налётчик",
+      "hp": 42,
+      "ac": 14,
+      "speed": 30,
+      "scores": {
+        "STR": 14,
+        "DEX": 14,
+        "CON": 12,
+        "INT": 10,
+        "WIS": 10,
+        "CHA": 8
+      },
+      "proficiency": 2,
+      "features": {},
+      "attacks": [
+        {
+          "id": "sword",
+          "name": "Клинок",
+          "bonus": 5,
+          "count": 1,
+          "die": 8,
+          "flat": 2,
+          "kind": "melee",
+          "damageType": "slashing",
+          "range": 5
+        }
+      ]
+    }
+  },
+  "training_encounter": {
+    "name": "Хейвенгард · учебная встреча",
+    "kind": "training",
+    "width": 14,
+    "height": 10,
+    "theme": "forest",
+    "heroes": {
+      "yar": {
+        "cell": "C4"
+      },
+      "daphne": {
+        "cell": "B6"
+      },
+      "lyutobor": {
+        "cell": "D5"
+      },
+      "rada": {
+        "cell": "C7"
+      }
+    },
+    "enemies": [
+      {
+        "id": "raider1",
+        "profile": "raider",
+        "cell": "J3"
+      },
+      {
+        "id": "raider2",
+        "profile": "raider",
+        "cell": "K5"
+      },
+      {
+        "id": "raider3",
+        "profile": "raider",
+        "cell": "J7"
+      },
+      {
+        "id": "raider4",
+        "profile": "raider",
+        "cell": "L4"
+      },
+      {
+        "id": "raider5",
+        "profile": "raider",
+        "cell": "L8"
+      }
+    ],
+    "walls": [
+      "G2",
+      "G3",
+      "G8",
+      "G9"
+    ],
+    "rubble": [
+      "G5",
+      "H5"
+    ],
+    "cover": {
+      "C4": 5,
+      "C7": 5
+    }
+  }
+}
