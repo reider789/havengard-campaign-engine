@@ -12,6 +12,7 @@ on:
       - 'prototypes/shared-combat/**'
       - 'tests/test_prepare_combat_event.py'
       - 'tools/test_shared_handoff.py'
+      - 'tools/test_story_release.py'
   workflow_dispatch:
 permissions:
   contents: write
@@ -97,6 +98,8 @@ jobs:
           python -m playwright install chromium
       - name: Test regenerated desktop battle in real browser
         run: python tools/test_shared_browser.py
+      - name: Final simulated story battle and replay-safe canonical import on copies
+        run: python tools/test_story_release.py .shared-combat
       - name: Commit only verified integration artifacts to review branch
         if: github.event_name == 'pull_request'
         env:
