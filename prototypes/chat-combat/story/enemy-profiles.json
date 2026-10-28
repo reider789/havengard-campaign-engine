@@ -1,0 +1,86 @@
+{
+  "profiles": {
+    "garden_thread_strangler": {
+      "name": "Нитяной удушитель",
+      "hp": 91,
+      "ac": 14,
+      "speed": 10,
+      "proficiency": 3,
+      "size": 3,
+      "creatureType": "plant",
+      "scores": {
+        "STR": 18,
+        "DEX": 10,
+        "CON": 16,
+        "INT": 1,
+        "WIS": 12,
+        "CHA": 3
+      },
+      "saves": {
+        "STR": 4,
+        "DEX": 0,
+        "CON": 3,
+        "INT": -5,
+        "WIS": 1,
+        "CHA": -4
+      },
+      "skills": {
+        "perception": 3
+      },
+      "senses": {
+        "blindsight": 30
+      },
+      "conditionImmunities": [
+        "charmed",
+        "frightened"
+      ],
+      "resistances": [],
+      "immunities": [],
+      "vulnerabilities": [],
+      "features": {
+        "extraAttack": 2
+      },
+      "attacks": [
+        {
+          "id": "graspVines",
+          "name": "Хватательные лозы",
+          "kind": "melee",
+          "bonus": 7,
+          "count": 1,
+          "die": 8,
+          "flat": 4,
+          "range": 15,
+          "damageType": "bludgeoning",
+          "grappleOnHit": {
+            "dc": 15,
+            "maxTargets": 2,
+            "reach": 15,
+            "vineHP": 12,
+            "vineAC": 14
+          },
+          "constrict": {
+            "count": 2,
+            "die": 8,
+            "flat": 0,
+            "damageType": "bludgeoning"
+          }
+        }
+      ],
+      "abilities": [],
+      "tactics": {
+        "role": "guardian",
+        "canFlee": false,
+        "hold": true,
+        "searchRadius": 15
+      },
+      "reference": [
+        "Канон: 03_Бестиарий_и_награды.md, C09; G5 Корневая низина, максимум две особи.",
+        "Без действия бонуса и реакции. Действие Атака: два отдельных удара хватательными лозами с дальностью 15 фт; захват при попадании, две цели максимум.",
+        "Альтернативное полное действие Сжатие: 2к8 дробящего каждому уже удерживаемому существу, без новых ударов.",
+        "Отдельная лоза: КД14, 12 рубящего урона, перерубание освобождает жертву, но не уменьшает ПЗ самого хищника.",
+        "Слепое зрение 30 фт, вне его слеп; чувствует тепло и вибрации на расстоянии 15 фт, так же реагирует на подвешенную тёплую приманку. Нет речи, разума, магии или предметов.",
+        "Иммунитеты к Очарованию и Испугу; никаких сопротивлений, уязвимостей или иммунитетов к типам урона."
+      ]
+    }
+  }
+}
