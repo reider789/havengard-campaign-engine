@@ -28,7 +28,8 @@
         "perception": 3
       },
       "senses": {
-        "blindsight": 30
+        "blindsight": 30,
+        "blindBeyondBlindsight": true
       },
       "conditionImmunities": [
         "charmed",
