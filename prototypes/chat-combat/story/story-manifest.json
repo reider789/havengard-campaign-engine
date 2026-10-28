@@ -4,8 +4,8 @@
   "source_revision": 32,
   "source_state_sha256": "7f5e156c1c0086a0c183de58f50808b9d4a94bf3f990e761022800a0fef6f71c",
   "engine_version": "30.7.1",
-  "sha256": "7e2b08a6a0fc7cbde7dda204cbb2e8c2a15b02ecee6869bdff0dc116b09e89e0",
-  "html_bytes": 1335773,
+  "sha256": "7d7f5d9228767e2df907989f0bf50e154b8444f67af94af2fbd5ee4cad130fce",
+  "html_bytes": 1338266,
   "all_party_controlled_by_player": true,
   "opponents_controlled_by_engine": true,
   "narrative_imported": false
