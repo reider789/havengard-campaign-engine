@@ -506,6 +506,10 @@ button:focus-visible, select:focus-visible { outline: 2px solid #ecd1a0; outline
 .event-details summary { cursor: pointer; }
 .event-details ul { margin: .4rem 0; padding-left: 1.4rem; }
 
+/* Large creatures occupy their entire tactical footprint, not a single cell. */
+.tile.large-footprint-body{box-shadow:inset 0 0 0 2px #b47d46aa;background-color:#5a3a2180}
+.large-body-marker{position:relative;z-index:2;font-size:20px;color:#eabf80;text-shadow:0 1px 4px #000;text-align:center;display:block;pointer-events:none}
+
     </style>
   </head>
   <body>
@@ -1407,13 +1411,18 @@ class CombatContentPack {
           "conditionImmunities",
           "tactics",
           "tokenKey",
-          "size", "casting", "equipment", "exhaustion", "reference", "summoner", "summonLevel", "summonDC", "creatureType", "powerAvailable", "initialHP",
+          "size", "footprint", "casting", "equipment", "exhaustion", "reference", "summoner", "summonLevel", "summonDC", "creatureType", "powerAvailable", "initialHP",
         ],
         key,
       );
       C.require(p.initialHP===undefined||(Number.isInteger(p.initialHP)&&p.initialHP>=0&&p.initialHP<=p.hp),"Неверные текущие ПЗ профиля");
       C.require(p.exhaustion===undefined||(Number.isInteger(p.exhaustion)&&p.exhaustion>=0&&p.exhaustion<=5),"Неверное истощение профиля");
       p.features ??= {};
+      C.require(
+        p.footprint === undefined || (Number.isInteger(p.footprint) &&
+          [1,2,3].includes(p.footprint) && (p.size || 2) >= 3),
+        "Некорректная клеточная площадь существа: " + key,
+      );
       C.require(
         p.size === undefined ||
           (Number.isInteger(p.size) && p.size >= 0 && p.size <= 5),
@@ -7514,7 +7523,11 @@ class CombatRulesEngine {
     return u;
   }
   distance(a, b) {
-    const horizontal = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) * 5;
+    // A Large footprint uses its nearest occupied squares, not its anchor.
+    const as = Math.max(1, a.footprint || 1), bs = Math.max(1, b.footprint || 1);
+    const dx = Math.max(0, a.x-(b.x+bs-1), b.x-(a.x+as-1));
+    const dy = Math.max(0, a.y-(b.y+bs-1), b.y-(a.y+as-1));
+    const horizontal = Math.max(dx,dy) * 5;
     const vertical = Math.abs((this.s.terrain.elevation?.[a.x + "," + a.y] || 0) -
       (this.s.terrain.elevation?.[b.x + "," + b.y] || 0));
     return Math.max(horizontal, vertical);
@@ -7587,8 +7600,10 @@ class CombatRulesEngine {
         id !== except &&
         this.unit(id).hp > 0 &&
         !this.unit(id).fled &&
-        this.unit(id).x === x &&
-        this.unit(id).y === y,
+        x >= this.unit(id).x &&
+        x < this.unit(id).x + (this.unit(id).footprint || 1) &&
+        y >= this.unit(id).y &&
+        y < this.unit(id).y + (this.unit(id).footprint || 1),
     );
   }
   canPass(id, other) {
@@ -8497,16 +8512,26 @@ class CombatRulesEngine {
     const neighboring = to && Math.max(Math.abs(from.x - to.x), Math.abs(from.y - to.y)) === 1;
     if (!to || !this.inside(to) || this.wall(to) || !neighboring)
       return fail("Маршрут перекрыт");
-    if (from.x !== to.x && from.y !== to.y &&
-        (this.wall({x: from.x, y: to.y}) || this.wall({x: to.x, y: from.y})))
-      return fail("Закрытый угол");
+    const span=this.unit(id).footprint || 1;
+    for (let ox=0;ox<span;ox++) for(let oy=0;oy<span;oy++)
+      if(this.wall({x:to.x+ox,y:to.y+oy}))
+        return fail("Крупное существо не помещается на этом участке");
+    if (from.x !== to.x && from.y !== to.y) {
+      for(let ox=0;ox<span;ox++)for(let oy=0;oy<span;oy++)
+        if(this.wall({x:from.x+ox,y:to.y+oy}) ||
+           this.wall({x:to.x+ox,y:from.y+oy}))
+          return fail("Закрытый угол");
+    }
     const rise = this.elevationAt(to) - this.elevationAt(from);
     // A sheer drop or climb above one grid tier requires a GM-authored route.
     // Never silently teleport between elevations or infer aerial movement.
     if (Math.abs(rise) > 5) return fail("Слишком высокий уступ: нужен отдельный маршрут или решение мастера");
     if (!forced && !RulesMagic.canApproach(this, id, from, to, {observed: knowledge === "observed"}))
       return fail("Нельзя приближаться к источнику страха");
-    const occupant = this.occupied(to.x, to.y, id);
+    let occupant=null;
+    for(let ox=0;ox<span && !occupant;ox++)
+      for(let oy=0;oy<span && !occupant;oy++)
+        occupant=this.occupied(to.x+ox,to.y+oy,id);
     const known = occupant && (knowledge === "actual" ||
       this.unit(occupant).team === this.unit(id).team ||
       (!this.unit(occupant).hidden && this.canSee(id, occupant)));
@@ -11157,6 +11182,7 @@ class CombatCampaignAdapter {
       speed: p.speed ?? 30,
       exhaustion: p.exhaustion ?? 0,
       size: p.size ?? 2,
+      footprint: p.footprint || 1,
       summoner: p.summoner || null,
       summonLevel: p.summonLevel || null,
       summonDC: p.summonDC || null,
@@ -13638,8 +13664,10 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
         dark = s.zones.some(
           (z) => z.kind === "darkness" && engine.zoneAt(p, z),
         );
+      const extendedBody=Boolean(visible && a && (a.footprint||1)>1 && (a.x!==x || a.y!==y));
       b.className =
         "tile" +
+        (extendedBody ? " large-footprint-body" : "") +
         (wall ? " wall" : "") +
         (rough ? " rubble" : "") +
         (heightFeet ? " elevated" : "") +
@@ -13686,7 +13714,10 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
         "</span>" +
         (heightFeet ? '<span class="height-label">+' + heightFeet + ' фт</span>' : '') +
         (visible
-          ? '<span class="token ' +
+          ? (extendedBody
+              ? '<span class="large-body-marker" title="' + esc(a.name) +
+                ' · занимает 2×2 клетки">◆</span>'
+              : '<span class="token ' +
             (a.team === "enemies" ? "enemy " : "") +
             (occupant === id ? "current " : "") +
             (engine.incapacitated(occupant) ? "down" : "") +
@@ -13699,7 +13730,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
             a.hp +
             '</b><span class="hpbar"><i style="width:' +
             (100 * a.hp) / a.max +
-            '%"></i></span></span>'
+            '%"></i></span></span>')
           : objects.length
             ? '<span class="object-label">Рука<br>' +
               objects[0].hp +
