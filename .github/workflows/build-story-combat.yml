@@ -54,7 +54,7 @@ jobs:
             'opponents_controlled_by_engine':True,
             'narrative_imported':False
           }
-          (root/'story-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\\n')
+          (root/'story-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
           print(manifest)
           PY
       - name: Publish only the story bundle, never canonical state
