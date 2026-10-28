@@ -1,0 +1,41 @@
+name: Prepared Perelomye encounters
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'prototypes/prepared-encounters/**'
+      - 'tools/*prepared*'
+      - 'tools/prepare_perelomye.py'
+      - '.github/workflows/prepared-perelomye.yml'
+  pull_request:
+    paths:
+      - 'prototypes/prepared-encounters/**'
+      - 'tools/*prepared*'
+      - 'tools/prepare_perelomye.py'
+      - '.github/workflows/prepared-perelomye.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: campaign
+      - uses: actions/checkout@v4
+        with:
+          repository: reider789/rin_dnd
+          ref: 153b8447b0d77f700f006eb40b9725f1ac943e33
+          path: engine
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify prepared encounters without playing the campaign
+        run: python campaign/tools/verify_prepared_encounters.py --engine-root engine
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perelomye-rehearsals-GM-only
+          path: campaign/.build/
