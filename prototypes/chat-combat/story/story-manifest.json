@@ -1,0 +1,12 @@
+{
+  "battle_id": "hayvengard-g1m8-garden-g5-threadstranglers-01",
+  "kind": "story",
+  "source_revision": 32,
+  "source_state_sha256": "7f5e156c1c0086a0c183de58f50808b9d4a94bf3f990e761022800a0fef6f71c",
+  "engine_version": "30.7.1",
+  "sha256": "7e2b08a6a0fc7cbde7dda204cbb2e8c2a15b02ecee6869bdff0dc116b09e89e0",
+  "html_bytes": 1335773,
+  "all_party_controlled_by_player": true,
+  "opponents_controlled_by_engine": true,
+  "narrative_imported": false
+}\n
