@@ -9,6 +9,19 @@ for name,sha in lock['files'].items():
  if hashlib.sha256((engine/name).read_bytes()).hexdigest()!=sha:raise SystemExit('Engine lock mismatch: '+name)
 state=json.loads((ROOT/'state/_campaign-state.json').read_text());cap=json.loads(subprocess.check_output(['node',str(engine/'sdk/cli.js'),'capabilities'],text=True));pack=build(state,cap);scene=json.loads(a.scenario.read_text())
 if scene.get('kind')!='story' or not scene.get('battle_id') or scene.get('source_revision')!=pack['revision'] or scene.get('source_state_sha256')!=pack['source_state_sha256']:raise SystemExit('Authored story must pin the current canonical revision and hash')
+# The workbook may contain newly played resource use awaiting reconciliation in the
+# canonical campaign ledger. Pin every such temporary change to the battle scene.
+# Never silently reset a spent daily ability or ammunition to an older snapshot.
+overrides=scene.get('resource_overrides',{})
+if overrides:
+ if not isinstance(overrides,dict) or not scene.get('resource_override_source'):raise SystemExit('Resource overrides require an explicit source')
+ for char_id,pools in overrides.items():
+  if char_id not in pack['characters'] or not isinstance(pools,dict):raise SystemExit('Unknown resource override character')
+  existing=pack['characters'][char_id]['resources']
+  for name,value in pools.items():
+   if name not in existing or not isinstance(value,int) or not (0<=value<=existing[name]['max']):
+    raise SystemExit('Invalid resource override '+char_id+'/'+name)
+   existing[name]['current']=value
 if a.profiles:
  extra=json.loads(a.profiles.read_text())
  if not isinstance(extra,dict) or set(extra)!={'profiles'} or not isinstance(extra['profiles'],dict):raise SystemExit('Expected {"profiles": {...}}')
