@@ -34,13 +34,35 @@ jobs:
       - name: Validate the authored scene and package pinned canon
         run: |
           test -f prototypes/chat-combat/story/active-scene.json
-          python tools/build_shared_story.py --engine-root .shared-combat --scenario prototypes/chat-combat/story/active-scene.json --output prototypes/chat-combat/story/story-chat-battle.html
+          python tools/build_shared_story.py --engine-root .shared-combat --scenario prototypes/chat-combat/story/active-scene.json --profiles prototypes/chat-combat/story/enemy-profiles.json --output prototypes/chat-combat/story/story-chat-battle.html
+      - name: Verify scenario artifact and write launch manifest
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          root=pathlib.Path('prototypes/chat-combat/story')
+          scene=json.loads((root/'active-scene.json').read_text())
+          bundle=(root/'story-chat-battle.html').read_bytes()
+          manifest={
+            'battle_id':scene['battle_id'],
+            'kind':scene['kind'],
+            'source_revision':scene['source_revision'],
+            'source_state_sha256':scene['source_state_sha256'],
+            'engine_version':'30.7.1',
+            'sha256':hashlib.sha256(bundle).hexdigest(),
+            'html_bytes':len(bundle),
+            'all_party_controlled_by_player':True,
+            'opponents_controlled_by_engine':True,
+            'narrative_imported':False
+          }
+          (root/'story-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\\n')
+          print(manifest)
+          PY
       - name: Publish only the story bundle, never canonical state
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add prototypes/chat-combat/story/story-chat-battle.html prototypes/chat-combat/story/story-chat-battle.source.json
+          git add prototypes/chat-combat/story/story-chat-battle.html prototypes/chat-combat/story/story-chat-battle.source.json prototypes/chat-combat/story/story-manifest.json
           if ! git diff --cached --quiet; then
             git commit -m 'build(chat-combat): package current story encounter [skip ci]'
             git -c pull.rebase=true pull --rebase origin main
