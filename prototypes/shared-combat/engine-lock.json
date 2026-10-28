@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "reider789/rin_dnd",
-  "commit": "815d2f9a6e4c12bef6cebd16cbcc88846fe0e28d",
+  "commit": "912f04da37bf40c222bb1b68c766857d13c075ba",
   "engine_version": "30.7.1",
   "content_api": 1,
   "canonical_migration_complete": true,
@@ -18,7 +18,7 @@
     "core/defenses.js": "8caf27827783ee74f4cf54641a38c1298969db3a7461f8da2fd69482aa2eef2e",
     "core/magic.js": "c3c43691d652fd24ee47a2be9113a27fa372d50b332206684c8fa36aae1a46ad",
     "core/martial_features.js": "5dc701bc63a2019e1392c61c286573a9c94d5691c598eaf242e4539eec49b064",
-    "core/rules_engine.js": "f1bbd2fb265c653d1ceec4b89ffcf6028f65963bfa12dd9d836058be2354a0ea",
+    "core/rules_engine.js": "8697ce6c0e550b3a7786fc00445c30dd701098a40d01dcf2850505b7c1e872c8",
     "core/tactical_ai.js": "347cd716705b3c479c84ecec014d1f2fd76095d1bf06d1765761e2854f248b60",
     "core/visual_fx.js": "1a253881450f3e5d9a60aa5f5447b8a4b1b736901f9516a9ea3b50889cda5165",
     "docs/ANIMATIONS_30_6.md": "00e3f2174c3e564cb4c9eeb6372f50eeb948ba1786de5d5333b896cb2e51f00c",
