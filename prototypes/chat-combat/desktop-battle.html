@@ -987,6 +987,8 @@ class CombatCapabilities {
           "spellKey",
           "potent",
           "magicAdvantage",
+          "grappleOnHit",
+          "constrict",
         ].includes(k),
       ),
       "Неподдержанное поле атаки",
@@ -997,6 +999,32 @@ class CombatCapabilities {
       "Неверный набор эффектов атаки",
     );
     for (const effect of attack.effects || []) this.effect(effect);
+    if (attack.grappleOnHit !== undefined) {
+      const g = attack.grappleOnHit;
+      this.require(
+        g && typeof g === "object" && !Array.isArray(g) &&
+          Object.keys(g).every(k => ["dc", "maxTargets", "reach", "vineHP", "vineAC"].includes(k)) &&
+          Number.isInteger(g.dc) && g.dc >= 1 && g.dc <= 30 &&
+          Number.isInteger(g.maxTargets) && g.maxTargets >= 1 && g.maxTargets <= 4 &&
+          Number.isInteger(g.reach) && g.reach >= 5 && g.reach <= attack.range &&
+          Number.isInteger(g.vineHP) && g.vineHP >= 1 && g.vineHP <= 100 &&
+          Number.isInteger(g.vineAC) && g.vineAC >= 1 && g.vineAC <= 40 &&
+          attack.kind === "melee",
+        "Неверные параметры захватывающей лозы",
+      );
+    }
+    if (attack.constrict !== undefined) {
+      const c = attack.constrict;
+      this.require(
+        c && typeof c === "object" && !Array.isArray(c) &&
+          Object.keys(c).every(k => ["count", "die", "flat", "damageType"].includes(k)) &&
+          Number.isInteger(c.count) && c.count >= 1 && c.count <= 12 &&
+          [4, 6, 8, 10, 12, 20].includes(c.die) &&
+          Number.isInteger(c.flat) && c.flat >= 0 && c.flat <= 30 &&
+          c.damageType === "bludgeoning" && attack.grappleOnHit,
+        "Неверные параметры сжатия захваченных целей",
+      );
+    }
     this.require(
       attack.meleeWeapon === undefined ||
         (typeof attack.meleeWeapon === "boolean" &&
@@ -7265,6 +7293,10 @@ class CombatRulesEngine {
       "attackResult",
       "attackEffects",
       "applyAttackCondition",
+      "vineGrapple",
+      "constrictResult",
+      "vineCutHit",
+      "vineCutDamage",
       "damageResult",
       "sneakResult",
       "damage",
@@ -7880,6 +7912,53 @@ class CombatRulesEngine {
         bonus: spec.bonus,
         next: { kind: "emptyAttackResult", actor: id, point: p, spec },
       });
+      return;
+    }
+    if (c.kind === "cutVine") {
+      const spec = this.attackSpec(id, c.weapon);
+      const victim = this.unit(c.target);
+      const vine = victim.statuses.find(z =>
+        z.kind === "grappled" && z.vineHP > 0 &&
+        z.source && this.active(z.source));
+      this.require(
+        vine && this.active(c.target) && victim.team === u.team &&
+          spec.kind === "melee" && spec.damageType === "slashing" &&
+          !spec.unarmed && this.distance(u, victim) <= spec.range &&
+          (u.action > 0 || u.surgeAction > 0 || u.attacksLeft > 0),
+        "Чтобы рассечь лозу, выбери захваченного союзника и рубящее оружие в пределах досягаемости",
+      );
+      if (u.attacksLeft > 0) u.attacksLeft--;
+      else {
+        this.spendAction(id);
+        u.attacksLeft = (u.features.extraAttack || 1) - 1;
+      }
+      this.enqueue({kind:"roll",actor:id,label:"Рассечь лозу → " + victim.name,
+        count:1,sides:20,bonus:spec.bonus,
+        next:{kind:"vineCutHit",actor:id,target:c.target,
+          source:vine.source,spec,ac:vine.vineAC || 14}});
+      return;
+    }
+    if (c.kind === "constrict") {
+      const attack = u.attacks.find(a => a.constrict && a.grappleOnHit);
+      this.require(attack && (u.action > 0 || u.surgeAction > 0),
+        "Нет действия или способности сжатия");
+      const captives = this.s.order.filter(key =>
+        this.active(key) && this.unit(key).statuses.some(z =>
+          z.kind === "grappled" && z.source === id &&
+          this.distance(u, this.unit(key)) <= (z.reach || 5)));
+      this.require(captives.length > 0, "Нет удерживаемых существ для сжатия");
+      this.spendAction(id);
+      for (const target of captives) {
+        this.enqueue({
+          kind: "roll", actor: id, label: "Сжатие → " + this.name(target),
+          count: attack.constrict.count, sides: attack.constrict.die,
+          bonus: attack.constrict.flat,
+          next: {kind: "constrictResult", actor: id, target,
+            damageType: attack.constrict.damageType},
+        });
+      }
+      this.emit("ability", id, this.name(id) +
+        " сжимает удерживаемые цели вместо новых ударов лозами.");
       return;
     }
     if (c.kind === "attack") {
@@ -9293,6 +9372,9 @@ class CombatRulesEngine {
         return;
       }
       if (t.magicObject) this.s.objects[t.magicObject].empoweredUsed = true;
+      if (t.spec.grappleOnHit)
+        this.enqueue({kind: "vineGrapple", actor: t.actor, target: t.target,
+          grapple: structuredClone(t.spec.grappleOnHit)});
       if (t.spec.effects?.length)
         this.enqueue({
           kind: "attackEffects",
@@ -9354,6 +9436,71 @@ class CombatRulesEngine {
           this.saveTask(t.target, effect.save.stat, effect.save.dc, next),
         );
       else this.enqueue(next);
+      return;
+    }
+    if (t.kind === "vineCutHit") {
+      const hit = t.result.kept === 20 ||
+        (t.result.kept !== 1 && t.result.total >= t.ac);
+      this.emit("attack",t.actor,this.name(t.actor)+
+        ": удар по отдельной лозе у "+this.name(t.target)+
+        "; бросок "+t.result.rolls.join(", ")+" +"+
+        (t.result.total-t.result.kept)+" = "+t.result.total+
+        " против КД "+t.ac+(hit?" — попадание.":" — промах."),
+        {target:t.target,hit,weapon:t.spec.id,rolls:t.result.rolls,
+          targetAC:t.ac});
+      if (!hit) return;
+      const crit=t.result.kept===20;
+      this.enqueue({kind:"roll",actor:t.actor,label:"Рубящий урон отдельной лозе",
+        count:t.spec.count*(crit?2:1),sides:t.spec.die,
+        minimumDie:this.unit(t.actor).features.greatWeaponFighting &&
+          t.spec.heavy?3:undefined,
+        bonus:t.spec.flat,
+        next:{kind:"vineCutDamage",actor:t.actor,target:t.target,
+          source:t.source}});
+      return;
+    }
+    if (t.kind === "vineCutDamage") {
+      const victim=this.unit(t.target);
+      const vine=victim.statuses.find(z=>z.kind==="grappled" &&
+        z.source===t.source && z.vineHP>0);
+      if (!vine) return;
+      const damage=Math.max(0,t.result.total);
+      vine.vineHP=Math.max(0,vine.vineHP-damage);
+      this.emit("damage",t.actor,this.name(t.actor)+
+        ": "+damage+" рубящего урона отдельной лозе; "+
+        (vine.vineHP>0?"осталось "+vine.vineHP+" прочности.":"лоза перерублена, захват прекращён."),
+        {target:t.target,amount:damage,damageType:"slashing",
+          distinctVine:true,remainingVineHP:vine.vineHP});
+      if (vine.vineHP===0) this.removeStatus(t.target,"grappled");
+      // Урон по лозе не уменьшает ПЗ самого растения.
+      return;
+    }
+    if (t.kind === "vineGrapple") {
+      const g = t.grapple, target = this.unit(t.target);
+      if (!this.active(t.actor) || !this.active(t.target) ||
+          this.conditionImmune(t.target, "grappled") ||
+          this.size(t.target) > 3 ||
+          this.distance(this.unit(t.actor), target) > g.reach) return;
+      if (target.statuses.some(z => z.kind === "grappled" && z.source === t.actor))
+        return;
+      const n = this.s.order.filter(key =>
+        this.unit(key).statuses.some(z => z.kind === "grappled" &&
+          z.source === t.actor)).length;
+      if (n >= g.maxTargets) return;
+      this.status(t.target, "grappled", {source: t.actor, dc: g.dc,
+        reach: g.reach, vineHP: g.vineHP, vineAC: g.vineAC});
+      this.emit("condition", t.target, this.name(t.target) +
+        " захвачен(а) лозой " + this.name(t.actor) +
+        " (СЛ освобождения " + g.dc + ").", {
+          condition:"grappled", source:t.actor, dc:g.dc, reach:g.reach});
+      return;
+    }
+    if (t.kind === "constrictResult") {
+      if (!this.active(t.actor) || !this.active(t.target) ||
+          !this.unit(t.target).statuses.some(z => z.kind === "grappled" &&
+            z.source === t.actor)) return;
+      this.enqueue({kind:"damage",actor:t.actor,target:t.target,
+        amount:Math.max(0,t.result.total),damageType:t.damageType,attack:null});
       return;
     }
     if (t.kind === "applyAttackCondition") {
@@ -10332,7 +10479,7 @@ class CombatRulesEngine {
           (z.source &&
             this.active(z.source) &&
             !this.incapacitated(z.source) &&
-            this.distance(this.unit(id), this.unit(z.source)) <= 5),
+            this.distance(this.unit(id), this.unit(z.source)) <= (z.reach || 5)),
       );
       this.adjustMovementForSpeed(id, previous);
     }
@@ -10629,6 +10776,15 @@ class CombatTacticalAI {
       role = u.tactics?.role || "skirmisher",
       done = { kind: "endTurn", actor: id };
     if (e.incapacitated(id) || !e.active(id)) return done;
+    // A grappling plant must choose between constricting current prey and
+    // lashing out again; the choice is based only on its own active grapples.
+    if (u.action + (u.surgeAction || 0) > 0 &&
+        u.attacks.some(a => a.constrict && a.grappleOnHit) &&
+        s.order.some(key => e.active(key) &&
+          e.unit(key).statuses.some(z => z.kind === "grappled" &&
+            z.source === id &&
+            e.distance(u, e.unit(key)) <= (z.reach || 5))))
+      return {kind: "constrict", actor: id};
     if (
       u.features.secondWind &&
       u.bonus > 0 &&
@@ -13331,6 +13487,7 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
         "hide",
         "search",
         "grapple",
+        "cutVine",
         "shove",
         "helpAttack",
         "stand",
@@ -13677,6 +13834,11 @@ if (typeof module !== "undefined") module.exports = { CombatVisualFX };
       '</div><details class="additional"><summary>Другие действия</summary><div class="choices">' +
       button("search", "Поиск", !play || u.action + (u.surgeAction || 0) <= 0) +
       button("grapple", "Захват", !play || !target) +
+      (selected && engine.unit(selected)?.team === u.team &&
+        engine.unit(selected).statuses?.some(z => z.kind === "grappled" && z.vineHP > 0)
+        ? button("cutVine", "Перерубить удерживающую лозу<small>Отдельная цель · КД лозы 14 · рубящее оружие</small>",
+          !play || !u.attacks.some(a=>a.id===weapon && a.damageType==="slashing" && a.kind==="melee"))
+        : "") +
       button("shove", "Опрокинуть", !play || !target) +
       button(
         "helpAttack",
