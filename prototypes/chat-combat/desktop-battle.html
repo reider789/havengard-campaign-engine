@@ -7650,6 +7650,7 @@ class CombatRulesEngine {
       range = this.distance(a, b);
     if (!this.wallLOS(a, b)) return false;
     if ((u.senses?.blindsight || 0) >= range) return true;
+    if (u.senses?.blindBeyondBlindsight) return false;
     if (this.has(observer, "blinded")) return false;
     if (
       typeof target === "string" &&
