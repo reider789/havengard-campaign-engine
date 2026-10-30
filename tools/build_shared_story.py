@@ -22,6 +22,33 @@ if overrides:
    if name not in existing or not isinstance(value,int) or not (0<=value<=existing[name]['max']):
     raise SystemExit('Invalid resource override '+char_id+'/'+name)
    existing[name]['current']=value
+# The canonical master workbook can be newer than the last exported GitHub
+# campaign snapshot. A story-specific, sourced defensive profile correction must
+# be applied BEFORE compiling; otherwise AC/armor are silently reset.
+combat_overrides=scene.get('combat_profile_overrides',{})
+if combat_overrides:
+ if not isinstance(combat_overrides,dict) or not scene.get('combat_profile_override_source'):
+  raise SystemExit('Combat profile overrides require a source')
+ for char_id,delta in combat_overrides.items():
+  if char_id not in pack['characters'] or not isinstance(delta,dict) or set(delta)-{'ac','features'}:
+   raise SystemExit('Unknown or invalid combat profile override '+str(char_id))
+  profile=pack['characters'][char_id]['combat_profile']
+  if 'ac' in delta:
+   value=delta['ac']
+   if not isinstance(value,int) or not 1<=value<=40:raise SystemExit('Invalid AC correction')
+   profile['ac']=value
+  if 'features' in delta:
+   new_features=delta['features']
+   if not isinstance(new_features,dict) or set(new_features)-{'heavyArmor','heavyArmorReduction'}:
+    raise SystemExit('Only documented heavy-armor features may be corrected')
+   if 'heavyArmor' in new_features and not isinstance(new_features['heavyArmor'],bool):
+    raise SystemExit('Invalid heavy armor flag')
+   if 'heavyArmorReduction' in new_features and (not isinstance(new_features['heavyArmorReduction'],int) or not 1<=new_features['heavyArmorReduction']<=10):
+    raise SystemExit('Invalid heavy armor reduction')
+   profile['features'].update(new_features)
+  if char_id in pack.get('profiles',{}):
+   pack['profiles'][char_id]['ac']=profile['ac']
+   pack['profiles'][char_id]['features']=dict(profile['features'])
 if a.profiles:
  extra=json.loads(a.profiles.read_text())
  if not isinstance(extra,dict) or set(extra)!={'profiles'} or not isinstance(extra['profiles'],dict):raise SystemExit('Expected {"profiles": {...}}')
