@@ -214,11 +214,13 @@ function installPreparedGM(SDK, catalogue) {
     log(e,id,d.name,{action:key,cost:d.cost,uses:p.uses,legendary:p.legendary});
   }
   function moveWithBudget(e,id,path,budget){
+    if(e.s.prepared?.runtime&&e.preparedRuntimeMove){e.preparedRuntimeMove(id,path,budget);return;}
     const u=e.unit(id),old=u.move,rest=e.s.queue;e.s.queue=[];u.move=budget;
     E.preparedBaseCommand.call(e,{kind:'move',actor:id,path},u);
     e.s.queue=[...e.s.queue,task('restoreMove',id,{budget:old}),...rest];
   }
   function resolve(e,id,key,c){
+    if(e.s.prepared?.runtime&&e.preparedRuntimeTargets)c=e.preparedRuntimeTargets(id,key,c);
     const u=e.unit(id),r=rule(u),d=r.actions?.[key];req(d,'Неизвестная подготовленная способность');
     req(c.confirmed===true,'Подтвердите цели, геометрию и условия по полной карточке');
     const targets=c.targets||[];req(Array.isArray(targets)&&new Set(targets).size===targets.length&&targets.every(t=>e.s.units[t]),'Неверные цели');

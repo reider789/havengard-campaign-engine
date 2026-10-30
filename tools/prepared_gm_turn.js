@@ -14,15 +14,16 @@ try{
  const value=JSON.parse(bytes),sdk=require(path.resolve(engineRoot,'sdk'));
  const catalogue=require('../prototypes/prepared-encounters/perelomye/catalog.json');
  require('../prototypes/prepared-encounters/gm-assist').installPreparedGM(sdk,catalogue);
+ require('../prototypes/prepared-encounters/prepared-runtime').installPreparedRuntime(sdk,catalogue);
  if(!value.contentPack?.requires?.includes(catalogue.engine.requiredExtension))fail('A complete prepared content pack is required');
  const runtime=sdk.CombatContentPack.compile(value.contentPack),e=new sdk.CombatRulesEngine(value.session);
  if(e.s.meta.campaignId!==runtime.campaign_id||!e.s.prepared)fail('Wrong session/pack');
- const allowed=new Set(['attack','move','cast','dash','disengage','dodge','hide','search','escape','flee','helpAttack','ready','constrict','endTurn','prepared','preparedEndTurn','preparedArena','preparedRuling','decide']);
+ const allowed=new Set(['attack','move','cast','dash','disengage','dodge','hide','search','escape','flee','helpAttack','ready','constrict','endTurn','prepared','preparedEndTurn','preparedArena','preparedRuling','preparedMove','preparedInteract','preparedRecover','preparedZone','attackObject','decide']);
  for(const command of request.commands){
    if(!allowed.has(command.kind))fail('Unsupported GM command');
    if(command.kind==='decide'){
      const p=e.s.pending;if(!p)fail('No pending decision');
-     if(e.unit(p.actor).controlled&&!(p.kind==='preparedChoice'&&p.choice==='legendary'))fail('Player decision required; GM must not answer for a hero');
+     if(e.unit(p.actor).controlled&&!(p.kind==='preparedChoice'&&p.choice==='legendary'||p.kind==='preparedRuntimeChoice'&&p.choice==='arenaMark'))fail('Player decision required; GM must not answer for a hero');
    }else{
      const actor=command.actor||e.actorId;
      if(e.unit(actor).controlled&&!['preparedArena','preparedRuling'].includes(command.kind))fail('The GM cannot control a player hero');

@@ -6,6 +6,8 @@ const sdk=require(path.join(engineRoot,'sdk')),cat=require('../prototypes/prepar
 const base=require(path.join(root,'.build/T8.pack.json'));
 const stock=cp.spawnSync(process.execPath,[path.join(engineRoot,'sdk/cli.js'),'validate',path.join(root,'.build/T8.pack.json')],{encoding:'utf8'});
 require('../prototypes/prepared-encounters/gm-assist').installPreparedGM(sdk,cat);
+require('../prototypes/prepared-encounters/prepared-runtime').installPreparedRuntime(sdk,cat);
+const nativeCreate=sdk.createBattle; sdk.createBattle=(p,...args)=>{p=structuredClone(p);for(const v of Object.values(p.encounters))v.prepared_automation=false;return nativeCreate(p,...args);};
 const E=sdk.CombatRulesEngine;
 function setup(room='T8',profile){
  const pack=JSON.parse(fs.readFileSync(path.join(root,'.build',room+'.pack.json')));

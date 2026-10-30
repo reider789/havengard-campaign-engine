@@ -88,7 +88,7 @@ def make_pack(engine,room_id,deployment=None,story=False):
     overlap=set(pack['profiles'])&set(cat['profiles'])
     if overlap:raise ValueError('Profile collision '+str(overlap))
     pack['profiles'].update(copy.deepcopy(cat['profiles']))
-    pack['requires']=list(dict.fromkeys(pack.get('requires',[])+[cat['engine']['requiredExtension']]))
+    pack['requires']=list(dict.fromkeys(pack.get('requires',[])+[cat['engine']['requiredExtension'],'perelomye-runtime-v1']))
     pack['encounters']={room_id:scene};pack['default_encounter']=room_id
     pack['notes']=['GM-assisted: полная карточка, геометрия и специальные решения ведущего.','Подготовка не является сыгранным событием.']
     return pack,cat
@@ -109,16 +109,18 @@ def render(engine,pack,cat,output):
         art.setdefault('assets',{})['enemies.prepared_'+key]={'mime':'image/svg+xml','data':base64.b64encode(svg.encode()).decode(),'bytes':len(svg.encode())}
     html=bundle.render(data['runtime'],data['scene'],bundle.scene_art(data['runtime'],data['scene'],art),root=engine)
     core=(engine/'web/combat_app.js').read_text()
-    install=(ROOT/'prototypes/prepared-encounters/gm-assist.js').read_text()+'\nconst PreparedCatalogue='+bundle.encoded(cat)+';\ninstallPreparedGM({CombatContentPack,CombatCampaignAdapter,CombatRulesEngine,CombatMagic},PreparedCatalogue);\n'
+    install=(ROOT/'prototypes/prepared-encounters/gm-assist.js').read_text()+'\nconst PreparedCatalogue='+bundle.encoded(cat)+';\ninstallPreparedGM({CombatContentPack,CombatCampaignAdapter,CombatRulesEngine,CombatMagic},PreparedCatalogue);\n'+(ROOT/'prototypes/prepared-encounters/prepared-runtime.js').read_text()+'\ninstallPreparedRuntime({CombatContentPack,CombatCampaignAdapter,CombatRulesEngine,CombatMagic,CombatActivities},PreparedCatalogue);\n'
     # A small, explicit integration seam; fail closed if upstream changes it.
     assert html.count(core)==1
     ui=core.replace('function schedule() {','function schedule() {\n    if(engine?.s.prepared) return;')
     assert ui!=core
     marker='  function download(name, value) {'
     assert ui.count(marker)==1
+    ui=ui.replace('Object.values(engine.s.objects).find((o) => o.owner === id)', 'Object.values(engine.s.objects).find((o) => o.owner === id && !o.preparedObject)')
+    ui=ui.replace('Рука Бигби · ', 'Предмет · ')
     ui=ui.replace(marker,'  globalThis.PreparedGMPort = {getEngine:()=>engine, act, save, render};\n'+marker)
     html=html.replace(core,install+ui)
-    panel=(ROOT/'prototypes/prepared-encounters/gm-panel.js').read_text()
+    panel=(ROOT/'prototypes/prepared-encounters/gm-panel.js').read_text()+'\n'+(ROOT/'prototypes/prepared-encounters/runtime-panel.js').read_text()
     html=html.replace('</body>','<script>'+panel+'</script></body>')
     output.write_text(html)
     return {'room':data['scene']['scene_id'],'mode':data['scene']['kind'],'source_revision':pack['revision'],

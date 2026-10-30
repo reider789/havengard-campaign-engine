@@ -9,7 +9,7 @@
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let last='',chosen='';
  function draw(){
-  const e=port.getEngine();if(!e?.s.prepared)return;
+  const e=port.getEngine();if(!e?.s.prepared)return;if(e.s.prepared.runtime){box.hidden=true;return;}box.hidden=false;
   const fingerprint=JSON.stringify([e.s.turnSerial,e.s.pending,e.revision,e.s.prepared,Object.values(e.s.units).map(u=>[u.id,u.hp,u.prepared])]);
   if(last===fingerprint)return;last=fingerprint;
   const ids=e.s.order.filter(id=>e.unit(id).prepared);if(!ids.includes(chosen))chosen=ids[0];
