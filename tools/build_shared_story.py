@@ -32,7 +32,7 @@ if combat_overrides:
  for char_id,delta in combat_overrides.items():
   if char_id not in pack['characters'] or not isinstance(delta,dict) or set(delta)-{'ac','features'}:
    raise SystemExit('Unknown or invalid combat profile override '+str(char_id))
-  profile=pack['characters'][char_id]['combat_profile']
+  profile=pack['profiles'][char_id]
   if 'ac' in delta:
    value=delta['ac']
    if not isinstance(value,int) or not 1<=value<=40:raise SystemExit('Invalid AC correction')
