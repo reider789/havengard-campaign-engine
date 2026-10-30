@@ -440,7 +440,7 @@ function installPreparedGM(SDK, catalogue) {
           this.status(t.target,d.condition,{source:t.actor,preparedPause:true,expiresAtStart:t.actor});
           if(d.rooted)this.status(t.target,'rooted',{source:t.actor,preparedPause:true,expiresAtStart:t.actor});
         }else if(!success&&d.op==='grappleSave')this.status(t.target,'grappled',{source:t.actor,dc:d.dc,reach:d.range,preparedGrapple:true});
-        else if(!success&&d.op==='pushSave')log(this,t.actor,'Толчок: сдвинуть на '+d.distance+' фт по полной карточке.',{target:t.target,manual:true});
+        else if(!success&&d.op==='pushSave'){if(this.s.prepared?.runtime)M.push(this,t.target,this.unit(t.actor),d.distance);else log(this,t.actor,'Толчок: сдвинуть на '+d.distance+' фт по полной карточке.',{target:t.target,manual:true});}
         if(!success&&d.condition==='poisoned'){
           this.status(t.target,'poisoned',{source:t.actor,preparedPoison:true,expiresOnSourceEnd:t.target,expiresOnSourceEndTurn:this.unit(t.target).turnCount+1});
         }

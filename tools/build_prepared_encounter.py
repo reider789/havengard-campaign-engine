@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build an offline, GM-assisted battle from data; never change live state.
+"""Build an offline, prepared battle from data; never change live state.
 
 Default output is a clearly labelled rehearsal. Story start requires an explicit
 deployment, verified finite populations, and the current canonical hash.
@@ -28,8 +28,11 @@ def terrain(room):
                 elif kind=='crate':cover[c]=2
                 elif kind=='ledge' and room['id']=='T8':elevation[c]=10
     # Lightning rods are interactive, destructible arena objects, not solid
-    # unbreakable map walls. Their collision is adjudicated by the GM.
+    # unbreakable map walls. The prepared runtime handles their collision.
     for o in room.get('objects',[]):walls.discard(cell(o['x'],o['y']))
+    if room['id']=='T8':
+        for x in [4,19]:
+            for y in [0,19]:elevation[cell(x,y)]=5
     return dict(width=width,height=height,walls=sorted(walls),rubble=sorted(rubble),cover=cover,elevation=elevation)
 def make_pack(engine,room_id,deployment=None,story=False):
     cat=json.loads(CATALOGUE.read_text());template=cat['encounters'][room_id];room=template['room']
@@ -90,7 +93,7 @@ def make_pack(engine,room_id,deployment=None,story=False):
     pack['profiles'].update(copy.deepcopy(cat['profiles']))
     pack['requires']=list(dict.fromkeys(pack.get('requires',[])+[cat['engine']['requiredExtension'],'perelomye-runtime-v1']))
     pack['encounters']={room_id:scene};pack['default_encounter']=room_id
-    pack['notes']=['GM-assisted: полная карточка, геометрия и специальные решения ведущего.','Подготовка не является сыгранным событием.']
+    pack['notes']=['Prepared runtime: особые действия, геометрия, приборы, инициатива 20 и штатные реакции.','Подготовка не является сыгранным событием.']
     return pack,cat
 def render(engine,pack,cat,output):
     output.parent.mkdir(parents=True,exist_ok=True)
@@ -117,7 +120,10 @@ def render(engine,pack,cat,output):
     marker='  function download(name, value) {'
     assert ui.count(marker)==1
     ui=ui.replace('Object.values(engine.s.objects).find((o) => o.owner === id)', 'Object.values(engine.s.objects).find((o) => o.owner === id && !o.preparedObject)')
-    ui=ui.replace('Рука Бигби · ', 'Предмет · ')
+    ui=ui.replace('(o) => "Рука Бигби · " + o.hp', '(o) => (o.name || "Рука Бигби") + " · " + o.hp')
+    ui=ui.replace("'<span class=\"object-label\">Рука<br>'", "'<span class=\"object-label\">' + esc(objects[0].preparedObject ? objects[0].id : 'Рука') + '<br>'")
+    ui=ui.replace("'\">Рука Бигби · ' +", "'\">' + esc(o.name || 'Рука Бигби') + ' · ' +")
+    ui=ui.replace('\"Рука Бигби: \" +\n          object.hp', '(object.name || \"Рука Бигби\") + \": \" +\n          object.hp')
     ui=ui.replace(marker,'  globalThis.PreparedGMPort = {getEngine:()=>engine, act, save, render};\n'+marker)
     html=html.replace(core,install+ui)
     panel=(ROOT/'prototypes/prepared-encounters/gm-panel.js').read_text()+'\n'+(ROOT/'prototypes/prepared-encounters/runtime-panel.js').read_text()
@@ -125,7 +131,7 @@ def render(engine,pack,cat,output):
     output.write_text(html)
     return {'room':data['scene']['scene_id'],'mode':data['scene']['kind'],'source_revision':pack['revision'],
       'source_state_sha256':pack['source_state_sha256'],'html_sha256':hashlib.sha256(html.encode()).hexdigest(),
-      'requiredExtension':cat['engine']['requiredExtension'],'execution':'gm-assisted','preparation_only':True}
+      'requiredExtension':cat['engine']['requiredExtension'],'execution':'prepared-runtime','preparation_only':True}
 def main():
     p=argparse.ArgumentParser();p.add_argument('--engine-root',type=Path,required=True);p.add_argument('--room',required=True)
     p.add_argument('--deployment',type=Path);p.add_argument('--story',action='store_true');p.add_argument('--output',type=Path,required=True)

@@ -1,6 +1,7 @@
 /* Offline actions for the authored encounters. Every choice is explicit. */
 (()=>{
  'use strict';const port=globalThis.PreparedGMPort;if(!port)return;
+ const style=document.createElement('style');style.textContent='#prepared-runtime label{display:inline-flex;flex-direction:column;gap:5px;margin:8px 12px 8px 0;vertical-align:top;min-width:200px;max-width:100%}#prepared-runtime input,#prepared-runtime select{font:inherit;padding:8px;min-height:40px;background:#142126;color:#f4ead9;border:1px solid #75878c;border-radius:5px;max-width:100%}#prepared-runtime button{margin:8px 8px 8px 0;padding:10px}#prepared-runtime select[multiple]{min-width:260px}#prepared-runtime details{margin:12px 0;padding:12px}#prepared-runtime #pr-error{color:#ffd2ac}';document.head.append(style);
  const box=document.createElement('section');box.id='prepared-runtime';
  box.style.cssText='margin:20px;padding:20px;border:1px solid #b99c69;border-radius:12px;background:#192124;color:#f4ead9;line-height:1.6';document.querySelector('main').append(box);
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -44,6 +45,7 @@
   if($('skip'))$('skip').onclick=()=>decide('skip');
   if($('athletics'))$('athletics').onclick=()=>decide('athletics');if($('acrobatics'))$('acrobatics').onclick=()=>decide('acrobatics');
   if($('yes'))$('yes').onclick=()=>decide('yes',{object:$('object').value});if($('no'))$('no').onclick=()=>decide('no');
+  for(const button of box.querySelectorAll('button')){const click=button.onclick;if(click)button.onclick=event=>{event.stopPropagation();try{click();}catch(error){$('error').textContent=error.message;}};}
  }
  setInterval(draw,200);draw();
 })();

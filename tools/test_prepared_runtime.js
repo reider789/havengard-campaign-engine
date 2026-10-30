@@ -57,7 +57,7 @@ test('disabling the pending arena source cancels its attack; no duplicate initia
  const hp=e.unit('yar').hp;e.task({kind:'startTurn'});e.run();assert.equal(e.unit('yar').hp,hp);decide(e,'skip');e.task({kind:'startTurn'});e.run();assert.equal(e.s.pending,null);
 });
 test('failed Arcana spends an action; successful Arcana switches a real resonator off',()=>{
- const e=setup();turn(e,'yar');const u=e.unit('yar'),o=e.s.prepared.objects['BT-R1'];Object.assign(u,{x:o.x+1,y:o.y,altitude:10});e.s.random.tape=[1];
+ const e=setup();turn(e,'yar');const u=e.unit('yar'),o=e.s.prepared.objects['BT-R1'];Object.assign(u,{x:o.x,y:o.y+1,altitude:10});e.s.random.tape=[1];
  e.dispatch({kind:'preparedInteract',actor:u.id,object:o.id,method:'arcana'});assert.equal(u.action,0);assert.equal(o.off,false);
  u.action=1;e.s.random.tape=[20];e.dispatch({kind:'preparedInteract',actor:u.id,object:o.id,method:'arcana'});assert(o.off);reload(e);
 });
@@ -84,13 +84,13 @@ test('vertical movement offers opportunity attack to the player and saves contin
  e.dispatch({kind:'preparedMove',actor:u.id,mode:'fly',path:[{x:8,y:8,altitude:5},{x:8,y:8,altitude:10}]});assert.equal(e.s.pending.kind,'opportunity');e=reload(e);decide(e,'no');assert.equal(e.unit(u.id).altitude,10);
 });
 test('non-hovering flying creature falls when prone; water reaction belongs to player',()=>{
- let e=setup('B8','C33'),u=e.unit('subject');Object.assign(u,{x:10,y:8,altitude:20,preparedMovementMode:'fly'});e.status(u.id,'prone');e.s.random.tape=Array(100).fill(1);e.task({kind:'checkResult',actor:u.id});e.run();assert.equal(u.altitude,0);assert.equal(u.hp,u.max-2);
+ let e=setup('B8','C33'),u=e.unit('subject');Object.assign(u,{x:10,y:8,altitude:20,preparedMovementMode:'fly'});e.status(u.id,'prone');e.s.random.tape=Array(100).fill(1);e.task({kind:'checkResult',actor:u.id,result:{total:15,success:true}});e.run();assert.equal(u.altitude,0);assert.equal(u.hp,u.max-2);
  const v=e.unit('yar');Object.assign(v,{x:29,y:12,altitude:0});e.s.pending=null;e.s.queue=[];M.push(e,v.id,{x:28,y:12,altitude:0},10);e.run();assert.equal(e.s.pending.choice,'water');e=reload(e);decide(e,'skip');assert.equal(e.unit(v.id).worldPosition.altitude,-40);
 });
 test('broken rod remains conductive; grounding requires actual available chain and two actions',()=>{
  const e=setup('B8','C33'),o=e.s.prepared.objects['BB-R1'],u=e.unit('subject');o.hp=0;Object.assign(u,{x:o.x+1,y:o.y});u.prepared.uses.breath=2;e.s.random.tape=[6];e.task({kind:'startTurn',actor:u.id});assert.equal(u.prepared.uses.breath,3);
  turn(e,'yar');const v=e.unit('yar');Object.assign(v,{x:o.x,y:o.y+1});assert.throws(()=>e.dispatch({kind:'preparedInteract',actor:v.id,object:o.id}),/цепь/);
- e.s.prepared.runtime.inventory[v.id]=[{name:'Цепь 30 фт',quantity:1,combat_available:true}];v.action=1;e.dispatch({kind:'preparedInteract',actor:v.id,object:o.id});assert(!o.grounded);v.action=1;e.dispatch({kind:'preparedInteract',actor:v.id,object:o.id});assert(o.grounded);
+ e.s.prepared.runtime.inventory[v.id]=[{name:'Цепь 30 фт',quantity:1,combat_available:true}];e.unit(v.id).action=1;e.dispatch({kind:'preparedInteract',actor:v.id,object:o.id});assert(!e.s.prepared.objects[o.id].grounded);e.unit(v.id).action=1;e.dispatch({kind:'preparedInteract',actor:v.id,object:o.id});assert(e.s.prepared.objects[o.id].grounded);
 });
 test('B8 without beast has four heroes, four initiative draws and no phantom opponent',()=>{
  const e=setup('B8',null);assert.equal(e.s.order.length,4);assert.equal(e.s.random.draws,4);assert(!Object.values(e.s.units).some(u=>u.prepared));assert.equal(e.s.phase,'active');
@@ -115,4 +115,66 @@ test('repeated initiative and legendary cycles remain serializable without repla
   e=reload(e);if(e.s.pending){const p=e.s.pending;decide(e,p.kind==='preparedRuntimeChoice'?'skip':p.kind==='initiativeSwap'?'skip':'no');}
   else e.dispatch({kind:'endTurn',actor:e.actorId});E.validate(e.s);
  }
+});
+test('Fly supplies hover while prone; ending concentration resumes falling and restores ground speed',()=>{
+ const e=setup('B8','C33'),u=caster(e);turn(e,u.id);Object.assign(u,{x:8,y:8});
+ e.dispatch({kind:'cast',actor:u.id,spell:'fly',level:3,targets:[u.id]});
+ e.dispatch({kind:'preparedMove',actor:u.id,mode:'fly',path:[{x:8,y:8,altitude:5},{x:8,y:8,altitude:10},{x:8,y:8,altitude:15},{x:8,y:8,altitude:20}]});
+ e.status(u.id,'prone');e.run();assert.equal(u.altitude,20);e.s.random.tape=Array(100).fill(1);e.dispatch({kind:'endConcentration',actor:u.id});assert.equal(u.altitude,0);assert.equal(u.speed,30);
+});
+test('zero fall damage creates no Prone and safe west steps do not fall into water',()=>{
+ const e=setup('B8','C33'),u=e.unit('yar');u.immunities=['bludgeoning'];Object.assign(u,{x:8,y:8,altitude:20});e.s.random.tape=Array(100).fill(1);e.run();assert.equal(u.altitude,0);assert(!e.has(u.id,'prone'));
+ turn(e,u.id);Object.assign(u,{x:0,y:10,altitude:0});e.dispatch({kind:'preparedMove',actor:u.id,mode:'walk',path:[{x:-1,y:10,altitude:0}]});assert.equal(u.worldPosition.altitude,0);assert.equal(e.s.pending,null);
+});
+test('legendary flight uses its own budget, offers OA, and preserves ordinary movement',()=>{
+ let e=setup('B8','C33'),u=e.unit('subject'),v=e.unit('yar');Object.assign(u,{x:8,y:8,altitude:5,move:7,preparedMovementMode:'fly'});Object.assign(v,{x:7,y:8,altitude:0});
+ e.s.prepared.legendaryBoundary={actor:v.id,used:[]};e.decision('preparedChoice',v.id,{choice:'legendary',ended:v.id,label:'Тест'});
+ decide(e,'ability',{creature:u.id,ability:'legend-move',confirmed:true,path:[{x:8,y:8,altitude:10},{x:8,y:8,altitude:15}]});assert.equal(e.s.pending.kind,'opportunity');e=reload(e);decide(e,'no');assert.equal(e.unit(u.id).move,7);assert.equal(e.unit(u.id).altitude,15);
+});
+test('wing buffet computes friendly targets and actual pushes rather than trusting a list',()=>{
+ const e=setup('B8','C33'),u=e.unit('subject'),v=e.unit('yar');Object.assign(u,{x:8,y:8});Object.assign(v,{x:9,y:8});e.s.random.tape=Array(100).fill(1);
+ e.s.prepared.legendaryBoundary={actor:'rada',used:[]};e.decision('preparedChoice','rada',{choice:'legendary',ended:'rada',label:'Тест'});
+ decide(e,'ability',{creature:u.id,ability:'wings',targets:[],confirmed:true});assert(v.hp<500);assert.equal(v.x,11);
+});
+test('destroying the beast does not stop natural weather, grounding all rods does',()=>{
+ const e=setup('B8','C33'),u=e.unit('subject');u.hp=0;u.dead=true;e.checkEnd();assert.equal(e.s.phase,'active');
+ for(const o of Object.values(e.s.prepared.objects))o.grounded=true;e.checkEnd();assert.equal(e.s.phase,'ended');
+});
+test('phase II walk speed and ordinary climbing use the actual shared movement budget',()=>{
+ const e=setup('P9','C34'),u=e.unit('subject');u.hp=190;e.task({kind:'startTurn',actor:u.id});assert.equal(u.prepared.phase,2);assert.equal(u.speed,40);
+ Object.assign(u,{x:10,y:10,altitude:0});e.dispatch({kind:'preparedMove',actor:u.id,mode:'climb',path:[{x:10,y:10,altitude:5}]});assert.equal(u.move,30);assert.equal(u.altitude,5);
+});
+test('empty or unavailable inventory cannot supply tools or a chain; malformed tasks are rejected',()=>{
+ const e=setup('B8','C33'),u=e.unit('yar'),o=e.s.prepared.objects['BB-R1'];turn(e,u.id);Object.assign(u,{x:o.x+1,y:o.y});o.hp=0;e.s.prepared.runtime.inventory[u.id]=[{name:'Цепь 30 фт',quantity:0,combat_available:true}];
+ assert.throws(()=>e.dispatch({kind:'preparedInteract',actor:u.id,object:o.id}),/цепь/);
+ e.s.queue=[{kind:'preparedRuntimeTask',op:'arbitrary',actor:u.id}];assert.throws(()=>E.validate(e.s),/шаг исполнителя/);
+});
+test('grounding grants one resistance to boss lightning and local discharge, never two',()=>{
+ const e=setup('B8','C33'),o=e.s.prepared.objects['BB-R1'],v=e.unit('yar');Object.assign(v,{x:o.x+1,y:o.y});o.grounded=true;v.resistances=['lightning'];
+ e.task({kind:'damage',actor:'subject',target:v.id,amount:20,damageType:'lightning'});assert.equal(v.hp,490);
+ v.resistances=[];e.task({kind:'damage',actor:'subject',target:v.id,amount:20,damageType:'lightning'});assert.equal(v.hp,480);
+ e.task({kind:'damage',actor:'daphne',target:v.id,amount:20,damageType:'lightning'});assert.equal(v.hp,460);
+});
+test('Silence suppresses the actual resonator and hearing attack, then expires without leaving it off',()=>{
+ const e=setup(),o=e.s.prepared.objects['BT-R1'],u=e.unit('subject'),v=e.unit('yar');Object.assign(u,{x:8,y:8});Object.assign(v,{x:10,y:8});
+ e.s.prepared.runtime.zones=[{kind:'silence',point:{x:o.x,y:o.y,altitude:10},radius:10,until:10,source:'resolved-effect'},{kind:'silence',point:{x:v.x,y:v.y},radius:5,until:10,source:'resolved-effect'}];R.sync(e);assert(o.suppressed);assert.throws(()=>e.validateAttack(u.id,v.id,e.attackSpec(u.id,'voice')),/не слышит/);
+ e.s.elapsed=12;R.sync(e);assert(!o.suppressed);
+});
+test('C05 authored push moves the target using the runtime instead of logging an unresolved instruction',()=>{
+ const e=setup('L1','C05'),u=e.unit('subject'),v=e.unit('yar');Object.assign(u,{x:8,y:8});Object.assign(v,{x:9,y:8});u.prepared.attackSequence=['spear'];u.attacksLeft=1;e.s.random.tape=Array(100).fill(1);
+ ability(e,'push',{targets:[v.id]});assert.equal(v.x,10);assert.equal(u.attacksLeft,0);
+});
+test('report with an actual ongoing Fly effect passes the unmodified continuity validator',()=>{
+ const e=setup('B8','C33'),u=caster(e);turn(e,u.id);e.dispatch({kind:'cast',actor:u.id,spell:'fly',level:3,targets:[u.id]});e.s.phase='ended';e.s.pending=null;e.s.queue=[];
+ const r=sdk.CombatCampaignAdapter.outcome(e.s);sdk.CombatContinuity.validateReport(r);assert(r.continuity.effects.some(x=>x.kind==='fly'));
+});
+test('all initiatives above 20 process the missed arena boundary exactly once on wrapping',()=>{
+ const e=setup();e.s.prepared.runtime.last20Round=2;e.s.round=4;for(const id of e.s.order)e.s.initiative[id]=25;
+ e.task({kind:'startTurn'});e.run();assert.equal(e.s.prepared.runtime.last20Round,3);assert.equal(e.s.pending.choice,'arenaMark');decide(e,'skip');e.task({kind:'startTurn'});e.run();assert.equal(e.s.pending,null);
+});
+test('GM bridge can choose the arena on a hero boundary but cannot choose a hero water reaction',()=>{
+ const cp=require('node:child_process'),crypto=require('node:crypto'),dir=fs.mkdtempSync(path.join(__dirname,'../.build/runtime-cli-')),e=setup('B8','C33');
+ const pack=JSON.parse(fs.readFileSync(path.join(__dirname,'../.build/B8.pack.json'))),session=path.join(dir,'session.json'),request=path.join(dir,'request.json'),out=path.join(dir,'out.json');
+ const run=choice=>{e.s.queue=[];e.s.pending={id:'decision-500',kind:'preparedRuntimeChoice',actor:'yar',choice,...(choice==='water'?{resume:{kind:'preparedRuntimeTask',op:'land',actor:'yar',amount:5,point:{x:10,y:10,altitude:0}}}:{})};const bytes=JSON.stringify({...e.export(),contentPack:pack});fs.writeFileSync(session,bytes);fs.writeFileSync(request,JSON.stringify({session_sha256:crypto.createHash('sha256').update(bytes).digest('hex'),commands:[{kind:'decide',id:'decision-500',choice:'skip'}]}));return cp.spawnSync(process.execPath,[path.join(__dirname,'prepared_gm_turn.js'),path.resolve(process.env.ENGINE_ROOT||path.join(__dirname,'../../rin-engine')),session,request,out],{encoding:'utf8'});};
+ const allowed=run('arenaMark');assert.equal(allowed.status,0,allowed.stderr);const refused=run('water');assert.notEqual(refused.status,0);assert.match(refused.stderr,/Player decision required/);
 });

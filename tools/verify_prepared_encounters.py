@@ -12,7 +12,8 @@ def main():
         if not t['population']:continue
         pack,c=make_pack(engine,room);render(engine,pack,c,ROOT/'.build'/f'{room}.html');built.append(room)
     env={**os.environ,'ENGINE_ROOT':str(engine)}
-    subprocess.run(['node','--test',str(ROOT/'tools/test_prepared_encounters.js')],check=True,env=env)
+    for suite in ['test_prepared_encounters.js','test_prepared_runtime.js']:
+        subprocess.run(['node','--test',str(ROOT/'tools'/suite)],check=True,env=env)
     # Actual story start pins the current state; preparation must not create one.
     for room in ['G5','T8']:
         try:make_pack(engine,room,{},True)
@@ -21,6 +22,6 @@ def main():
     for name,sha in before.items():assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==sha,name
     lock=json.loads((ROOT/'prototypes/shared-combat/engine-lock.json').read_text())
     for name,sha in lock['files'].items():assert hashlib.sha256((engine/name).read_bytes()).hexdigest()==sha,name
-    result={'ok':True,'profiles':len(cat['profiles']),'room_templates':len(cat['encounters']),'built_rehearsals':built,'canonical_files_unchanged':True,'pinned_engine_55_files_unchanged':True,'mode':'gm-assisted','full_3d_automation':False}
+    result={'ok':True,'profiles':len(cat['profiles']),'room_templates':len(cat['encounters']),'built_rehearsals':built,'canonical_files_unchanged':True,'pinned_engine_55_files_unchanged':True,'mode':'prepared-runtime','full_3d_automation':False,'authored_encounter_automation':True}
     (ROOT/'.build/prepared-verification.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n');print(json.dumps(result,ensure_ascii=False))
 if __name__=='__main__':main()

@@ -13,7 +13,7 @@ function installPreparedRuntime(SDK, catalogue) {
   const job=(op,actor,data={})=>({kind:'preparedRuntimeTask',op,actor,...data});
   const log=(e,id,text,data={})=>e.emit('preparedRuntime',id,text,{extension:requirement,...data});
   const pos=(e,u)=>{const p=u.worldPosition||u;return {x:p.x,y:p.y,altitude:p.altitude??u.altitude??e.s.terrain.elevation?.[u.x+','+u.y]??ground(e,p),footprint:u.footprint||1};};
-  const dist=(e,a,b)=>{a=pos(e,a);b=pos(e,b);return Math.max(Math.abs(a.x-b.x)*5,Math.abs(a.y-b.y)*5,Math.abs(a.altitude-b.altitude));};
+  const dist=(e,a,b)=>{a=pos(e,a);b=pos(e,b);return Math.max(Math.max(0,a.x-b.x-b.footprint+1,b.x-a.x-a.footprint+1)*5,Math.max(0,a.y-b.y-b.footprint+1,b.y-a.y-a.footprint+1)*5,Math.abs(a.altitude-b.altitude));};
   function ground(e,p){
     const t=e.s.prepared.room;
     if(t==='T5'&&p.x>=5&&p.x<=11&&p.y>=4&&p.y<=9)return -20;
@@ -44,7 +44,10 @@ function installPreparedRuntime(SDK, catalogue) {
     }).map(u=>u.id);
   }
   function sync(e){
-    for(const o of Object.values(e.s.prepared.objects)){o.preparedObject=true;o.owner||=e.s.order.find(id=>e.unit(id).prepared)||e.s.order[0];o.altitude=ground(e,o);e.s.objects[o.id]=o;}
+    for(const o of Object.values(e.s.prepared.objects)){
+      if(e.s.prepared.room==='T8'){if(silence(e,o)){if(!o.silenceSuppressed){o.beforeSilenceSuppressed=!!o.suppressed;o.silenceSuppressed=true;}o.suppressed=true;}else if(o.silenceSuppressed){o.suppressed=o.beforeSilenceSuppressed;delete o.beforeSilenceSuppressed;delete o.silenceSuppressed;}}
+      o.preparedObject=true;o.owner||=e.s.order.find(id=>e.unit(id).prepared)||e.s.order[0];o.altitude=ground(e,o);e.s.objects[o.id]=o;
+    }
     for(const u of Object.values(e.s.units))if(u.prepared)u.prepared.silenced=silence(e,u);
     // Grounded rods protect against authored lightning while within ten feet.
     for(const u of Object.values(e.s.units))u.preparedGrounded=Object.values(e.s.prepared.objects).some(o=>o.grounded&&dist(e,u,o)<=10);
@@ -106,11 +109,14 @@ function installPreparedRuntime(SDK, catalogue) {
   const distance=E.prototype.distance,wallLOS=E.prototype.wallLOS;
   E.prototype.distance=function(a,b){return enabled(this)?dist(this,a,b):distance.call(this,a,b);};
   E.prototype.wallLOS=function(a,b){return enabled(this)?lineClear(this,a,b):wallLOS.call(this,a,b);};
+  const validateAttack=E.prototype.validateAttack;
+  E.prototype.validateAttack=function(id,target,spec,from){if(enabled(this)&&rules(this.unit(id)).hearingAttacks?.includes(spec.id))req(hear(this,this.unit(target)),'Цель не слышит глас');return validateAttack.call(this,id,target,spec,from);};
   const globe=M.globeBlocked;
   M.globeBlocked=function(e,f,target){
     if(!enabled(e))return globe.call(this,e,f,target);
     const v=typeof target==='string'&&target.startsWith('object:')?e.s.objects[target.slice(7)]:e.s.units[target],origin=f.castOrigin||e.s.units[f.actor];
-    return !!v&&Number.isInteger(f.level)&&e.s.effects.some(x=>x.kind==='globeInvulnerability'&&x.until>e.s.elapsed&&f.level<x.level&&dist(e,v,x.point)<=10&&dist(e,origin,x.point)>10);
+    const sphere=(a,b)=>{a=pos(e,a);b=pos(e,b);return Math.hypot((a.x-b.x)*5,(a.y-b.y)*5,a.altitude-b.altitude);};
+    return !!v&&Number.isInteger(f.level)&&e.s.effects.some(x=>x.kind==='globeInvulnerability'&&x.until>e.s.elapsed&&f.level<x.level&&sphere(v,x.point)<=10&&sphere(origin,x.point)>10);
   };
   const areaTargets=M.areaTargets;
   M.areaTargets=function(e,f,range,shape='radius'){
@@ -146,8 +152,7 @@ function installPreparedRuntime(SDK, catalogue) {
   }
   const before=M.beforeCommand;
   M.beforeCommand=function(e,c,u){if(enabled(e)&&c.kind==='cast'&&silence(e,u)&&!['counterspell'].includes(c.spell))throw Error('Вербальный компонент запрещён Тишиной');return before.call(this,e,c,u);};
-  const eligible=M.eligibleCounter;
-  M.eligibleCounter=function(e,f){return eligible.call(this,e,f).filter(id=>!enabled(e)||!silence(e,e.unit(id)));};
+  // Counterspell is somatic: Silence does not prohibit its reaction.
   const resolveSpell=M.resolve;
   M.resolve=function(e,f){
     if(!enabled(e))return resolveSpell.call(this,e,f);
@@ -166,10 +171,12 @@ function installPreparedRuntime(SDK, catalogue) {
     if(f.preparedObjects){
       const u=e.unit(f.actor);let empowered=M.empowered(e,f);
       for(const object of f.preparedObjects){const o=e.s.prepared.objects[object];if(!o||o.hp<=0||M.globeBlocked(e,f,'object:'+object))continue;
-        const count=f.spell==='fireBolt'?(u.level>=17?4:u.level>=11?3:u.level>=5?2:1):2;
+        const count=f.spell==='fireBolt'?(u.casting.level>=17?4:u.casting.level>=11?3:u.casting.level>=5?2:1):2;
         const spec={id:f.spell,name:M.SPELLS[f.spell][0],kind:'rangedSpell',count,die:f.spell==='fireBolt'?10:6,flat:empowered,bonus:u.casting.attack,damageType:'fire'};empowered=0;
-        const dis=e.enemies(u.id).some(id=>!e.incapacitated(id)&&dist(e,u,e.unit(id))<=5&&e.canSee(id,u.id));
-        e.enqueue({kind:'roll',actor:u.id,count:1,sides:20,mode:dis?-1:0,bonus:spec.bonus,attackRoll:true,label:spec.name+' → '+o.name,next:job('objectHit',u.id,{object,spec,potent:f.spell==='fireBolt'&&!!u.features.potentCantrip})});}
+        const dis=e.enemies(u.id).some(id=>!e.incapacitated(id)&&dist(e,u,e.unit(id))<=5&&e.canSee(id,u.id))||['restrained','prone','blinded','poisoned','sap'].some(k=>e.has(u.id,k))||e.conditionD20Modifiers(u.id,'attack').disadvantage.length>0;
+        const adv=e.has(u.id,'aim')||e.has(u.id,'invisible');
+        e.enqueue({kind:'roll',actor:u.id,count:1,sides:20,mode:adv===dis?0:adv?1:-1,bonus:spec.bonus,attackRoll:true,label:spec.name+' → '+o.name,next:job('objectHit',u.id,{object,spec,potent:f.spell==='fireBolt'&&!!u.features.potentCantrip})});}
+      e.removeStatus(u.id,'aim');e.removeStatus(u.id,'sap');e.removeStatus(u.id,'invisible');u.hidden=false;
       return;
     }
     return resolveSpell.call(this,e,f);
@@ -203,7 +210,7 @@ function installPreparedRuntime(SDK, catalogue) {
     return Object.values(e.s.units).filter(u=>!u.dead&&!u.fled).filter(u=>{
       const v=pos(e,u);if(room==='P9'){if(!len)return false;const vx=(v.x-a.x)*5,vy=(v.y-a.y)*5,forward=(vx*dx+vy*dy)/len,side=Math.abs(vx*dy-vy*dx)/len;return forward>=0&&forward<=60&&side<=5&&Math.abs(v.altitude-a.altitude)<=5&&lineClear(e,a,v);}
       const radial=Math.hypot((v.x-b.x)*5,(v.y-b.y)*5)<=10;
-      return radial&&(room==='B8'?v.altitude>=b.altitude&&v.altitude<=b.altitude+60:Math.abs(v.altitude-b.altitude)<=10&&hear(e,u))&&lineClear(e,b,v);
+      return radial&&(room==='B8'?v.altitude>=b.altitude&&v.altitude<=b.altitude+60:Math.hypot((v.x-b.x)*5,(v.y-b.y)*5,v.altitude-b.altitude)<=10&&hear(e,u))&&lineClear(e,b,v);
     }).map(u=>u.id);
   }
   function arena(e,actor){
@@ -225,7 +232,7 @@ function installPreparedRuntime(SDK, catalogue) {
         req(c.point&&Number.isInteger(c.point.x)&&Number.isInteger(c.point.y)&&this.inside(c.point),'Укажите клетку области');
         if(this.s.prepared.room!=='P9')req(dist(this,o,c.point)<=30,'Область дальше 30 фт от источника');
         else req(c.point.x!==o.x||c.point.y!==o.y,'Укажите направление полосы');
-        this.s.prepared.environment={source:o.id,point:pos(this,c.point),dueRound:this.s.round+1};log(this,p.actor,'Область отмечена до следующей инициативы 20.',{mark:copy(this.s.prepared.environment)});
+        this.s.prepared.environment={source:o.id,point:pos(this,c.point),dueRound:rt(this).last20Round+1};log(this,p.actor,'Область отмечена до следующей инициативы 20.',{mark:copy(this.s.prepared.environment)});
       }
       this.s.pending=null;return;
     }
@@ -254,9 +261,10 @@ function installPreparedRuntime(SDK, catalogue) {
       if(mode==='walk')req(p.altitude===ground(e,p),'Для подъёма выберите лазание или полёт');
       const multiplier=['climb','swim'].includes(mode)&&!rules(u).movement?.[mode]?2:1;
       cost+=5*multiplier;from=p;return p;});
-    const spent=u.preparedDistanceSpent||0,remaining=budget??Math.max(0,s-spent);
+    const spent=u.preparedDistanceSpent||0,remaining=budget??(mode===(u.preparedMovementMode||'walk')?u.move:Math.max(0,s*(1+(u.dashCount||0))-spent));
     req(cost<=remaining,'Недостаточно перемещения');
-    if(budget===undefined){u.speed=s;u.move=remaining;u.preparedMovementMode=mode;}
+    if(budget===undefined)u.move=remaining;
+    u.speed=s;u.preparedMovementMode=mode;
     e.enqueue(job('move',u.id,{path,mode,provoked:[],...(budget===undefined?{}:{budget})}));
   }
   E.prototype.preparedRuntimeMove=function(id,path,budget){const u=this.unit(id);movement(this,u,{path,mode:rules(u).actions['legend-move']?.halfFly?'fly':u.preparedMovementMode||'walk'},budget);};
@@ -273,6 +281,7 @@ function installPreparedRuntime(SDK, catalogue) {
   const command=E.prototype.command;
   E.prototype.command=function(c,u){
     if(!enabled(this))return command.call(this,c,u);sync(this);
+    req(c.kind!=='preparedArena','Арена исполняется на инициативе 20; используйте её окно');
     if(c.kind==='preparedZone'){
       req(c.source&&c.point&&Number.isInteger(c.radius)&&c.radius>0&&c.radius<=100&&Number.isFinite(c.until)&&c.until>this.s.elapsed,'Нужны источник и срок уже разрешённой Тишины');
       req(c.zone==='silence','Поддерживается только внешняя Тишина');rt(this).zones.push({kind:'silence',point:pos(this,c.point),radius:c.radius,until:c.until,source:String(c.source)});sync(this);return;
@@ -280,12 +289,12 @@ function installPreparedRuntime(SDK, catalogue) {
     if(c.kind==='preparedInteract'){
       const o=this.s.prepared.objects[c.object];req(o&&dist(this,u,o)<=5,'Подойдите к прибору');const room=this.s.prepared.room;
       if(room==='B8'){
-        if(o.hp===0){req(JSON.stringify(rt(this).inventory[u.id]).match(/цепь|chain/i),'Нужна настоящая цепь 30 фт');o.groundActions=(o.groundActions||0)+1;}
+        if(o.hp===0){req(rt(this).inventory[u.id]?.some(i=>i.quantity>0&&i.combat_available&&/цепь|chain/i.test(i.name)&&/30\s*(фт|ft|фут)/i.test(i.name))||Boolean(o.chainOwner),'Нужна настоящая цепь 30 фт');if(!o.chainOwner){const chain=rt(this).inventory[u.id].find(i=>i.quantity>0&&i.combat_available&&/цепь|chain/i.test(i.name)&&/30\s*(фт|ft|фут)/i.test(i.name));chain.quantity--;o.chainOwner=u.id;}o.groundActions=(o.groundActions||0)+1;}
         this.spendAction(u.id);if(o.hp>0||o.groundActions>=2)o.grounded=true;
       }else if(room==='P9'&&o.open){this.spendAction(u.id);o.off=true;}
       else{
-        req(c.method==='arcana'&&room==='T8'||c.method==='tools'&&JSON.stringify(rt(this).inventory[u.id]).match(/thieves|воров|вора/i),'Нужна Аркана или настоящие инструменты вора');
-        this.spendAction(u.id);const bonus=c.method==='arcana'?(u.skills?.arcana??u.stats.INT):u.stats.DEX+(u.prof||0);
+        req(c.method==='arcana'&&room==='T8'||c.method==='tools'&&rt(this).inventory[u.id]?.some(i=>i.quantity>0&&i.combat_available&&/thieves|воров|вора/i.test(i.name)),'Нужна Аркана или настоящие инструменты вора');
+        this.spendAction(u.id);const bonus=c.method==='arcana'?(u.skills?.arcana??u.stats.INT):u.stats.DEX+(u.proficiency||0);
         this.enqueue({kind:'roll',actor:u.id,count:1,sides:20,check:true,bonus,dc:16,label:'Отключение прибора',next:job('interact',u.id,{object:o.id})});
       }sync(this);return;
     }
@@ -316,10 +325,17 @@ function installPreparedRuntime(SDK, catalogue) {
   };
   const checkEnd=E.prototype.checkEnd;
   E.prototype.checkEnd=function(){if(enabled(this)&&this.s.prepared.room==='B8'&&live(this).length&&Object.values(this.s.units).some(u=>u.controlled&&!u.dead&&!u.fled))return;return checkEnd.call(this);};
+  const run=E.prototype.run;
+  E.prototype.run=function(){run.call(this);if(enabled(this)&&!this.s.pending&&this.s.phase==='active'){
+    for(const u of Object.values(this.s.units))fall(this,u);
+    if(this.s.queue.length)run.call(this);
+  }};
   const push=M.push;
   M.push=function(e,id,from,feet){if(!enabled(e))return push.call(this,e,id,from,feet);const u=e.unit(id),a=pos(e,from),b=pos(e,u),dx=Math.sign(b.x-a.x),dy=Math.sign(b.y-a.y);if(!dx&&!dy)return;
     for(let n=0;n<feet/5;n++){const p={x:pos(e,u).x+dx,y:pos(e,u).y+dy,altitude:pos(e,u).altitude};if(!rt(e).openSky&&!e.inside(p)||!lineClear(e,u,p))break;setpos(e,u,p);if(p.altitude-ground(e,p)>=10){e.enqueue(job('fall',id,{height:p.altitude-ground(e,p)}));break;}}
   };
+  const mitigate=M.mitigate;
+  M.mitigate=function(e,t,amount){const value=mitigate.call(this,e,t,amount);return enabled(e)&&!t.finalTransfer&&t.damageType==='lightning'&&(t.preparedArena||profile(e.unit(t.actor))==='C33')&&e.unit(t.target).preparedGrounded&&value===amount?Math.floor(amount/2):value;};
   const task=E.prototype.task;
   E.prototype.task=function(t){
     if(!enabled(this))return task.call(this,t);const u=t.actor?this.unit(t.actor):null;sync(this);
@@ -331,7 +347,11 @@ function installPreparedRuntime(SDK, catalogue) {
       if(t.op==='save'){
         const d=t.definition||catalogue.rules.C32.actions[t.key],success=t.result.success;
         if(t.key==='pause'){if(!success){this.status(t.target,'incapacitated',{source:t.actor,preparedPause:true,expiresAtStart:t.actor});this.status(t.target,'rooted',{source:t.actor,preparedPause:true,expiresAtStart:t.actor});}}
-        else M.apply(this,{actor:t.actor,target:t.target,type:d.damageType,amount:t.amount,stat:d.stat,half:d.half??true},success);return;
+        else {
+          const enqueue=this.enqueue;
+          if(t.key==='arena')this.enqueue=function(...tasks){enqueue.call(this,...tasks.map(x=>x.kind==='damage'?{...x,preparedArena:true}:x));};
+          try{M.apply(this,{actor:t.actor,target:t.target,type:d.damageType,amount:t.amount,stat:d.stat,half:d.half??true},success);}finally{this.enqueue=enqueue;}
+        }return;
       }
       if(t.op==='objectHit'){
         const o=this.s.prepared.objects[t.object],hit=t.result.kept===20||t.result.kept!==1&&t.result.total>=o.ac,critical=t.result.kept===20;
@@ -343,14 +363,18 @@ function installPreparedRuntime(SDK, catalogue) {
       }
       if(t.op==='move'){
         if(!t.path.length||!this.active(u.id)||this.speed(u.id)===0)return;
-        const p=t.path[0],from=pos(this,u),cost=5*(['climb','swim'].includes(t.mode)&&!rules(u).movement?.[t.mode]?2:1);
+        const p={...t.path[0],footprint:u.footprint||1},from=pos(this,u),cost=5*(['climb','swim'].includes(t.mode)&&!rules(u).movement?.[t.mode]?2:1);
         if((t.budget??u.move)<cost||!lineClear(this,from,p))return;
+        for(let dx=0;dx<(u.footprint||1);dx++)for(let dy=0;dy<(u.footprint||1);dy++){
+          const k=(p.x+dx)+','+(p.y+dy);req(!this.s.terrain.walls.includes(k)||p.altitude>=(rt(this).wallHeights[k]??rt(this).ceiling??1000),'Площадь пересекает стену');
+          req(!Object.values(this.s.prepared.objects).some(o=>o.hp>0&&p.x+dx===o.x&&p.y+dy===o.y&&p.altitude<o.altitude+o.height&&p.altitude+(u.footprint||1)*5>o.altitude),'Проход занят прибором');
+        }
         const collision=Object.values(this.s.units).some(v=>v.id!==u.id&&!v.dead&&!v.fled&&!rules(v).sharedSpace&&!rules(u).sharedSpace&&Math.abs(pos(this,v).altitude-p.altitude)<5&&p.x<pos(this,v).x+(v.footprint||1)&&p.x+(u.footprint||1)>pos(this,v).x&&p.y<pos(this,v).y+(v.footprint||1)&&p.y+(u.footprint||1)>pos(this,v).y);
         req(!collision,'Площадь занята существом');
         if(!u.disengaged){const enemy=this.enemies(u.id).find(id=>!t.provoked.includes(id)&&this.unit(id).reaction>0&&M.canReact(this,id)&&!this.incapacitated(id)&&this.canSee(id,u.id)&&this.unit(id).attacks.some(a=>a.kind==='melee'&&dist(this,from,this.unit(id))<=a.range&&dist(this,p,this.unit(id))>a.range));
           if(enemy){const attack={kind:'attackRoll',actor:enemy,target:u.id,spec:this.unit(enemy).attacks.find(a=>a.kind==='melee'&&dist(this,from,this.unit(enemy))<=a.range&&dist(this,p,this.unit(enemy))>a.range),mode:'reaction'};
             t.provoked.push(enemy);this.decision('opportunity',enemy,{attack,movement:t});return;}}
-        if(t.budget!==undefined)t.budget-=cost;else{u.move-=cost;u.preparedDistanceSpent=(u.preparedDistanceSpent||0)+cost;}
+        if(t.budget!==undefined)t.budget-=cost;else{u.move-=cost;u.preparedDistanceSpent=(u.preparedDistanceSpent||0)+cost;u.movedThisTurn=(u.movedThisTurn||0)+cost;}
         setpos(this,u,p);log(this,u.id,'Перемещение: '+p.x+','+p.y+'; высота '+p.altitude+' фт',{from,to:p,cost});
         if(t.mode==='walk'&&from.altitude-p.altitude>=10){u.altitude=from.altitude;this.enqueue(job('fall',u.id,{height:from.altitude-p.altitude}));return;}
         this.enqueue({kind:'moveCompleted',actor:u.id},{...t,path:t.path.slice(1),provoked:[]});M.moved(this,u.id);return;
@@ -375,10 +399,6 @@ function installPreparedRuntime(SDK, catalogue) {
     // Damaged rods still conduct: temporarily count them for the authored recharge.
     const rods=t.kind==='startTurn'&&this.s.prepared.room==='B8'?Object.values(this.s.prepared.objects).filter(o=>!o.grounded&&o.hp===0):[];
     for(const o of rods){o.hp=1;o.runtimeBroken=true;}
-    if(t.kind==='damage'&&this.unit(t.target).preparedGrounded&&((t.damageType==='lightning')||t.components?.some(c=>c.damageType==='lightning'))){
-      if(t.components)t={...t,components:t.components.map(c=>({...c,amount:c.damageType==='lightning'?Math.floor(c.amount/2):c.amount}))};else t={...t,amount:Math.floor(t.amount/2)};
-      if(t.components)t.amount=t.components.reduce((s,c)=>s+c.amount,0);
-    }
     const result=task.call(this,t);
     for(const o of rods){o.hp=0;delete o.runtimeBroken;}
     if(t.kind==='damage'&&t.preparedFall&&this.unit(t.target).hp+this.unit(t.target).temp<beforeHP)this.status(t.target,'prone');
