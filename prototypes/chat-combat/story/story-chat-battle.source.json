@@ -1324,7 +1324,7 @@
         ],
         "acReaction": 3,
         "heavyArmorReduction": 4,
-        "heavyArmor": false
+        "heavyArmor": true
       },
       "attacks": [
         {
@@ -1415,7 +1415,7 @@
       },
       "name": "Яр",
       "hp": 125,
-      "ac": 11,
+      "ac": 20,
       "scores": {
         "INT": 8,
         "DEX": 12,
@@ -2549,6 +2549,7 @@
   "encounters": {
     "active-story": {
       "schema_version": 1,
+      "current_armor_checked": true,
       "kind": "story",
       "battle_id": "hayvengard-g1m8-garden-g5-threadstranglers-01",
       "source_revision": 32,
@@ -2640,6 +2641,16 @@
         },
         "rada": {
           "arrows": 60
+        }
+      },
+      "combat_profile_override_source": "Актуальная карточка «Яр» в мастер-книге Хейвенгарда, строка 9 (КД 20), строки 47, 49, 61 (Латы Великой Кузни +1 экипированы, Кольцо Защиты настроено, Проводящий плащ Ваэльтира на Яре). Латы дают КД 19, кольцо +1, с реакцией плаща +3 только к отдельной атаке. Черта Мастер тяжёлых доспехов действует: уменьшение подходящего физического урона на 4.",
+      "combat_profile_overrides": {
+        "yar": {
+          "ac": 20,
+          "features": {
+            "heavyArmor": true,
+            "heavyArmorReduction": 4
+          }
         }
       }
     }
