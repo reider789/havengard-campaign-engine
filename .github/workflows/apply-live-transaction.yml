@@ -37,17 +37,7 @@ jobs:
             python tools/apply_live.py --project .
             # Rebuild the published combat pack from the new canonical state
             # before regression tests compare profiles, resources and hashes.
-            python - <<'PY'
-            import json
-            from pathlib import Path
-            from tools.build_party_combat_pack import build, BASE_RESOURCES
-            source = json.loads(Path("state/_campaign-state.json").read_text(encoding="utf-8"))
-            target = Path("prototypes/shared-combat/party-pack.json")
-            old = json.loads(target.read_text(encoding="utf-8"))
-            counters = set().union(*(set(c["resources"]) for c in old["characters"].values()))
-            pack = build(source, {"counters": sorted(counters - BASE_RESOURCES)})
-            target.write_text(json.dumps(pack, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            PY
+            python -c 'import json; from pathlib import Path; from tools.build_party_combat_pack import build, BASE_RESOURCES; source=json.loads(Path("state/_campaign-state.json").read_text(encoding="utf-8")); target=Path("prototypes/shared-combat/party-pack.json"); old=json.loads(target.read_text(encoding="utf-8")); counters=set().union(*(set(c["resources"]) for c in old["characters"].values())); pack=build(source,{"counters":sorted(counters-BASE_RESOURCES)}); target.write_text(json.dumps(pack,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")'
             python tools/run_tests.py
             git add -A state views transactions prototypes/shared-combat/party-pack.json
             if git diff --cached --quiet; then
