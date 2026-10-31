@@ -32,7 +32,7 @@ request={
 }
 tx=changes_to_transaction(state,request)
 assert state==original, "creation must never mutate canonical data"
-assert tx["expected_state_revision"]==32
+assert tx["expected_state_revision"]==state["state_revision"]
 assert tx["event"]["id"]=="STORY-TEST-PREPARATION"
 after=build_result(state,tx)
 assert after["characters"]["yar"]["combat_continuity"]["exhaustion"]==2
